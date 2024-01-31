@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "da-vinci-cdk"
+version = "2024.1.20"
+description = "Da Vinci CDK components"
+authors = ["Jim Rosser"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+aws-cdk-lib = "^2.115.0"
+constructs = "^10.0.0"
+da-vinci = { path = "../da_vinci/", develop = true }
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
