@@ -10,7 +10,7 @@ readme = "README.md"
 python = "^3.11"
 aws-cdk-lib = "^2.115.0"
 constructs = "^10.0.0"
-da-vinci = { path = "../da_vinci/", develop = true }
+da-vinci = { git = "https://github.com/jarosser06/da-vinci", develop = true, subdirectory = "da_vinci" }
 
 
 [build-system]

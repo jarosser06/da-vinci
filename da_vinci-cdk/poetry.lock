@@ -69,13 +69,13 @@ typeguard = ">=2.13.3,<2.14.0"
 
 [[package]]
 name = "aws-cdk-lib"
-version = "2.124.0"
+version = "2.126.0"
 description = "Version 2 of the AWS Cloud Development Kit library"
 optional = false
 python-versions = "~=3.8"
 files = [
-    {file = "aws-cdk-lib-2.124.0.tar.gz", hash = "sha256:cff25caaa7670f739fbd762f56dbee14db8a052c7024aa09845055c306901fd1"},
-    {file = "aws_cdk_lib-2.124.0-py3-none-any.whl", hash = "sha256:0ffbde5b62accadffa682a8a935ca750ae9930b050478ab04d8bfb5a2637e611"},
+    {file = "aws-cdk-lib-2.126.0.tar.gz", hash = "sha256:291f9a15fb45f1461644ffa2ff360c8c2ed2797ac29082655252de291fa04333"},
+    {file = "aws_cdk_lib-2.126.0-py3-none-any.whl", hash = "sha256:8e00c0a3bfe8f5c20d305d149df251b8fbf292aa7e74df0765ba47fdbbec82d6"},
 ]
 
 [package.dependencies]
@@ -89,17 +89,17 @@ typeguard = ">=2.13.3,<2.14.0"
 
 [[package]]
 name = "boto3"
-version = "1.34.30"
+version = "1.34.35"
 description = "The AWS SDK for Python"
 optional = false
 python-versions = ">= 3.8"
 files = [
-    {file = "boto3-1.34.30-py3-none-any.whl", hash = "sha256:cd6173380768faaecf6236dbdcec15d8d032cbb162ce354fdb111056a74fc298"},
-    {file = "boto3-1.34.30.tar.gz", hash = "sha256:9e1476ce2b26437881a0381bf2daa54de619ac74ab4bd74278668acda6004a64"},
+    {file = "boto3-1.34.35-py3-none-any.whl", hash = "sha256:53897701ab4f307fbcfdade673eae809dfc5eabb6102053c84907aa27de66e53"},
+    {file = "boto3-1.34.35.tar.gz", hash = "sha256:4052031f9ac18924e94be7c30a5f0af5843a4752b8c8cb9034cd978be252b61b"},
 ]
 
 [package.dependencies]
-botocore = ">=1.34.30,<1.35.0"
+botocore = ">=1.34.35,<1.35.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.10.0,<0.11.0"
 
@@ -108,13 +108,13 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.34.30"
+version = "1.34.35"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">= 3.8"
 files = [
-    {file = "botocore-1.34.30-py3-none-any.whl", hash = "sha256:caf82d91c2ff61235284a07ffdfba006873e0752e00896052f901a37720cefa4"},
-    {file = "botocore-1.34.30.tar.gz", hash = "sha256:e071a9766e7fc2221ca42ec01dfc54368a7518610787342ea622f6edc57f7891"},
+    {file = "botocore-1.34.35-py3-none-any.whl", hash = "sha256:b67b8c865973202dc655a493317ae14b33d115e49ed6960874eb05d950167b37"},
+    {file = "botocore-1.34.35.tar.gz", hash = "sha256:8a2b53ab772584a5f7e2fe1e4a59028b0602cfef8e39d622db7c6b670e4b1ee6"},
 ]
 
 [package.dependencies]
@@ -150,13 +150,13 @@ ujson = ["ujson (>=5.7.0)"]
 
 [[package]]
 name = "certifi"
-version = "2023.11.17"
+version = "2024.2.2"
 description = "Python package for providing Mozilla's CA Bundle."
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "certifi-2023.11.17-py3-none-any.whl", hash = "sha256:e036ab49d5b79556f99cfc2d9320b34cfbe5be05c5871b51de9329f0603b0474"},
-    {file = "certifi-2023.11.17.tar.gz", hash = "sha256:9b469f3a900bf28dc19b8cfbf8019bf47f7fdd1a65a1d4ffb98fc14166beb4d1"},
+    {file = "certifi-2024.2.2-py3-none-any.whl", hash = "sha256:dc383c07b76109f368f6106eee2b593b04a011ea4d55f652c6ca24a754d1cdd1"},
+    {file = "certifi-2024.2.2.tar.gz", hash = "sha256:0569859f95fc761b18b45ef421b1290a0f65f147e92a1e5eb3e635f9a5e4e66f"},
 ]
 
 [[package]]
@@ -289,8 +289,11 @@ requests = "^2.31.0"
 requests-auth-aws-sigv4 = "^0.7"
 
 [package.source]
-type = "directory"
-url = "../da_vinci"
+type = "git"
+url = "https://github.com/jarosser06/da-vinci"
+reference = "HEAD"
+resolved_reference = "18c339890812510f7353d3c15ffe8da98946e9bf"
+subdirectory = "da_vinci"
 
 [[package]]
 name = "idna"
@@ -483,4 +486,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "00c713c8cbc37ce34d0614612f5836811ff4121f15fd9580d2fd1e6b291f9f02"
+content-hash = "681ea439fd8805d255bb817768c291a7e4f013883a3425fb440c47d4fded385a"
