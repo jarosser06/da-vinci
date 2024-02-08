@@ -104,7 +104,7 @@ class Application:
                  app_entry: Optional[str] = None, app_image_use_lib_base: Optional[bool] = True,
                  architecture: Optional[str] = cdk_lambda.Architecture.ARM_64,
                  create_hosted_zone: Optional[bool] = False,
-                 disable_docker_image_cache: Optional[bool] = da_vinci_DISABLE_DOCKER_CACHE,
+                 disable_docker_image_cache: Optional[bool] = DA_VINCI_DISABLE_DOCKER_CACHE,
                  enable_exception_trap: Optional[bool] = True, enable_global_settings: Optional[bool] = True,
                  include_event_bus: Optional[bool] = True, 
                  log_level: Optional[str] = 'INFO', root_domain_name: Optional[str] = None):

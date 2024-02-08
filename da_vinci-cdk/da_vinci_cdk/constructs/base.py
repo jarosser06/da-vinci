@@ -37,7 +37,7 @@ def resource_namer(name: str, scope: Construct):
     app_name = scope.node.get_context('app_name')
     deployment_id = scope.node.get_context('deployment_id')
 
-    return f'{deployment_id}-{app_name}-{name}'
+    return f'{app_name}-{deployment_id}-{name}'
 
 
 def apply_framework_tags(resource: Construct, scope: Construct):

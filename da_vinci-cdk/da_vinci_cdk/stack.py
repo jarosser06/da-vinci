@@ -59,7 +59,7 @@ class Stack(CDKStack):
             ```
         """
 
-        self.da_vinci_stack_name = f'{deployment_id}-{stack_name}'
+        self.da_vinci_stack_name = f'{app_name}-{deployment_id}-{stack_name}'
 
         construct_id = self.da_vinci_stack_name
 

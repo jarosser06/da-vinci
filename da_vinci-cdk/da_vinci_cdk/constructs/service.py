@@ -2,9 +2,12 @@ from typing import List, Optional
 
 from aws_cdk import (
     aws_apigatewayv2 as cdk_apigatewayv2,
+    aws_certificatemanager as cdk_certificatemanager,
     aws_lambda as cdk_lambda,
     aws_lambda_event_sources as cdk_lambda_event_sources,
     aws_iam as cdk_iam,
+    aws_route53 as cdk_route53,
+    aws_route53_targets as cdk_route53_targets,
     aws_sqs as cdk_sqs,
     Duration,
     Tags,
@@ -17,6 +20,7 @@ from da_vinci_cdk.constructs.access_management import (
     ResourceAccessRequest,
 )
 from da_vinci_cdk.constructs.base import apply_framework_tags, resource_namer
+from da_vinci_cdk.constructs.dns import PublicDomain
 from da_vinci_cdk.constructs.lambda_function import LambdaFunction
 from da_vinci_cdk.constructs.resource_discovery import DiscoverableResource
 
@@ -91,12 +95,6 @@ class AsyncService(Construct):
         )
 
         apply_framework_tags(resource=self.queue, scope=self)
-
-        Tags.of(self.queue).add(
-            key='DaVinciFramework::FunctionPurpose',
-            value='AsyncService',
-            priority=200
-        )
 
         function_name = resource_namer(
             name=f'{service_name}-async-handler',
@@ -298,14 +296,17 @@ class SimpleRESTService(Construct):
 
 
 class APIGatewayRESTService(Construct):
-    def __init__(self, scope: Construct, service_name: str, **gw_args):
+    def __init__(self,  scope: Construct, service_name: str, subdomain_name: Optional[str] = None,
+                 subdomain_certificate: Optional[cdk_certificatemanager.ICertificate] = None, **api_gw_args):
         '''
         Creates a REST Service that generates an endpoint using API Gateway
 
         Keyword Arguments:
             service_name: Name of the service
             scope: Parent construct for the APIGatewayRESTService
-            gw_args: Additional arguments to pass to the API Gateway construct
+            api_gw_args: Additional arguments to pass to the API Gateway construct
+            subdomain_name: The subdomain name to use for the API Gateway, adds the subdomain name to the app root domain
+            subdomain_certificate: The certificate to use for the subdomain, if not specified a new one will be created
 
         Example:
             ```
@@ -324,14 +325,64 @@ class APIGatewayRESTService(Construct):
 
         super().__init__(scope, construct_id)
 
-        # TODO: Handle domain name management and certificate management
+        self.domain = None
+
+        if subdomain_name:
+            if not self.node.get_context('root_domain_name'):
+                raise ValueError('Root domain name must be set in the context to use subdomain functionality')
+
+            root_domain_name = self.node.get_context('root_domain_name')
+            full_subdomain_name = f'{subdomain_name}.{root_domain_name}'
+
+            cert = subdomain_certificate
+
+            root_hosted_zone = PublicDomain.hosted_zone_from_name(
+                app_name=self.node.get_context('app_name'),
+                deployment_id=self.node.get_context('deployment_id'),
+                name=root_domain_name,
+                scope=self,
+            )
+
+            if not cert:
+                cert = cdk_certificatemanager.Certificate(
+                    self,
+                    f'{construct_id}-cert',
+                    domain_name=full_subdomain_name,
+                    validation=cdk_certificatemanager.CertificateValidation.from_dns(root_hosted_zone),
+                )
+
+            self.domain = cdk_apigatewayv2.DomainName(
+                self,
+                f'{construct_id}-domain',
+                domain_name=full_subdomain_name,
+                certificate=cert,
+            )
+
+        if self.domain:
+            api_gw_args['default_domain_mapping'] = cdk_apigatewayv2.DomainMappingOptions(
+                domain_name=self.domain,
+            )
 
         self.api = cdk_apigatewayv2.HttpApi(
             scope=self,
             id=f'{construct_id}_api',
             api_name=resource_namer(name=service_name, scope=self),
-            **gw_args,
+            **api_gw_args,
         )
+
+        if self.domain:
+            self.dns_record = cdk_route53.ARecord(
+                self,
+                f'{construct_id}-dns-record',
+                zone=root_hosted_zone,
+                target=cdk_route53.RecordTarget.from_alias(
+                    cdk_route53_targets.ApiGatewayv2DomainProperties(
+                        regional_domain_name=self.domain.regional_domain_name,
+                        regional_hosted_zone_id=self.domain.regional_hosted_zone_id,
+                    )
+                ),
+                record_name=subdomain_name,
+            )
 
         self.discovery_resource = DiscoverableResource(
             construct_id=f'{construct_id}-discovery-resource',

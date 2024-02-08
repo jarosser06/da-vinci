@@ -133,16 +133,17 @@ class DynamoDBTable(Construct):
 
         self.param_access_statement = self._discovery_resource.parameter.access_statement()
 
-        self.read_access_policy = ResourceAccessPolicy(
-            scope=scope,
-            policy_name='read',
-            policy_statements=[
-                self.read_access_statement,
-                self.param_access_statement,
-            ],
-            resource_name=table_name,
-            resource_type=ResourceType.TABLE,
-        )
+        for policy_name in ('read', 'default'):
+            self.read_access_policy = ResourceAccessPolicy(
+                scope=scope,
+                policy_name=policy_name,
+                policy_statements=[
+                    self.read_access_statement,
+                    self.param_access_statement,
+                ],
+                resource_name=table_name,
+                resource_type=ResourceType.TABLE,
+            )
 
         self.read_write_access_policy = ResourceAccessPolicy(
             scope=scope,
