@@ -27,7 +27,7 @@ from da_vinci_cdk.stack import Stack
 LOG = logging.getLogger(__name__)
 
 
-da_vinci_DISABLE_DOCKER_CACHE = getenv('da_vinci_DISABLE_DOCKER_CACHE', False)
+DA_VINCI_DISABLE_DOCKER_CACHE = getenv('DA_VINCI_DISABLE_DOCKER_CACHE', False)
 
 
 class CoreStack(Stack):
