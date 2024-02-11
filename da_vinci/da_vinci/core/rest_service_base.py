@@ -159,12 +159,23 @@ class SimpleRESTServiceBase:
 
         route = self._route_map[method][path]
 
-        route_validation = route.validate_request(parameters=params)
+        validation_response = route.validate_request(parameters=params)
 
-        if route_validation:
-            return route_validation
+        if validation_response:
+            return validation_response
 
-        return route.handler(**params)
+        try:
+            route_response = route.handler(**params)
+
+        except Exception as exc:
+            LOG.exception(exc)
+
+            return self.respond(
+                body='Internal server error',
+                status_code=500,
+            )
+
+        return route_response
 
     def respond(self, body: Dict, status_code: int,
                 headers: Dict = None) -> Dict:

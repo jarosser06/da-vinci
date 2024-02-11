@@ -19,7 +19,7 @@ class Logger:
 
         if not log_level_name and global_settings_available():
             ll_setting = setting_value(
-                key='log_level',
+                setting_key='log_level',
                 namespace='core',
             )
 

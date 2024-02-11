@@ -2,17 +2,17 @@
 
 [[package]]
 name = "boto3"
-version = "1.34.30"
+version = "1.34.39"
 description = "The AWS SDK for Python"
 optional = false
 python-versions = ">= 3.8"
 files = [
-    {file = "boto3-1.34.30-py3-none-any.whl", hash = "sha256:cd6173380768faaecf6236dbdcec15d8d032cbb162ce354fdb111056a74fc298"},
-    {file = "boto3-1.34.30.tar.gz", hash = "sha256:9e1476ce2b26437881a0381bf2daa54de619ac74ab4bd74278668acda6004a64"},
+    {file = "boto3-1.34.39-py3-none-any.whl", hash = "sha256:476896e70d36c9134d4125834280c597c17b54bff4902baf2e5fcde74f8acec8"},
+    {file = "boto3-1.34.39.tar.gz", hash = "sha256:35bcbecf1b5d3620c93f0062d2994177f8bda25a9d2cba144d6462793c16065b"},
 ]
 
 [package.dependencies]
-botocore = ">=1.34.30,<1.35.0"
+botocore = ">=1.34.39,<1.35.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.10.0,<0.11.0"
 
@@ -21,13 +21,13 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.34.30"
+version = "1.34.39"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">= 3.8"
 files = [
-    {file = "botocore-1.34.30-py3-none-any.whl", hash = "sha256:caf82d91c2ff61235284a07ffdfba006873e0752e00896052f901a37720cefa4"},
-    {file = "botocore-1.34.30.tar.gz", hash = "sha256:e071a9766e7fc2221ca42ec01dfc54368a7518610787342ea622f6edc57f7891"},
+    {file = "botocore-1.34.39-py3-none-any.whl", hash = "sha256:e175360445424b83b0e28ae20d301b99cf44ff2c9d5ab1d8670899bec05a9753"},
+    {file = "botocore-1.34.39.tar.gz", hash = "sha256:9f00bd5e4698bcdd37ce6e224a896baf58d209678ed92834944b767de9061cc5"},
 ]
 
 [package.dependencies]
@@ -40,13 +40,13 @@ crt = ["awscrt (==0.19.19)"]
 
 [[package]]
 name = "certifi"
-version = "2023.11.17"
+version = "2024.2.2"
 description = "Python package for providing Mozilla's CA Bundle."
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "certifi-2023.11.17-py3-none-any.whl", hash = "sha256:e036ab49d5b79556f99cfc2d9320b34cfbe5be05c5871b51de9329f0603b0474"},
-    {file = "certifi-2023.11.17.tar.gz", hash = "sha256:9b469f3a900bf28dc19b8cfbf8019bf47f7fdd1a65a1d4ffb98fc14166beb4d1"},
+    {file = "certifi-2024.2.2-py3-none-any.whl", hash = "sha256:dc383c07b76109f368f6106eee2b593b04a011ea4d55f652c6ca24a754d1cdd1"},
+    {file = "certifi-2024.2.2.tar.gz", hash = "sha256:0569859f95fc761b18b45ef421b1290a0f65f147e92a1e5eb3e635f9a5e4e66f"},
 ]
 
 [[package]]
@@ -267,4 +267,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "57f5d7273c930ecab1e1800e4e340a67a03d7d1fb6ae63273b6581b11d92e58f"
+content-hash = "ead5f4275ce9e08d31cdca0a040bbeb9e82bc5ca8b78b68785b20d2bdfe2534c"

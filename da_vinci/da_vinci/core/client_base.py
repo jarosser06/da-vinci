@@ -85,16 +85,16 @@ class RESTClientBase(BaseClient):
     endpoint: str = None
     app_name: str = None
     deployment_id: str = None
-    no_auth: bool = False
+    disable_auth: bool = False
     resource_type: str = ResourceType.REST_SERVICE
 
     def __post_init__(self):
         super().__post_init__()
 
-        if self.no_auth:
+        if self.disable_auth:
             self.aws_auth = None
-
-        self.aws_auth = AWSSigV4('lambda')
+        else:
+            self.aws_auth = AWSSigV4('lambda')
 
     def _full_url(self, path: str = None) -> str:
         '''
