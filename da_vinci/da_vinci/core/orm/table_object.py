@@ -216,7 +216,7 @@ class TableObjectAttribute:
         elif self.attribute_type is TableObjectAttributeType.DATETIME:
             if not value:
                 return str(0)
-            return str(self.datetime_to_timestamp(value))
+            return str(float(self.datetime_to_timestamp(value)))
 
         elif self.attribute_type is TableObjectAttributeType.JSON:
             return json.dumps(value, cls=DateTimeEncoder)
@@ -277,7 +277,7 @@ class TableObjectAttribute:
             return int(value)
 
         elif self.attribute_type is TableObjectAttributeType.DATETIME:
-            if int(value) == 0:
+            if float(value) == 0.0:
                 return None
 
             return self.timestamp_to_datetime(float(value))
@@ -323,7 +323,7 @@ class TableObjectAttribute:
         Return the attribute value as a Python value, run a
         custom importer if one was set
         """
-        true_val = self.true_value(value[self.dynamodb_key_name])
+        true_val = self.true_value(value)
 
         if self.custom_importer:
             return self.custom_importer(true_val)

@@ -1,6 +1,7 @@
 import json
 import traceback
 
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from functools import wraps
 from os import getenv
@@ -8,9 +9,11 @@ from typing import Dict, Optional
 
 from da_vinci.core.client_base import RESTClientBase
 from da_vinci.core.json import DateTimeEncoder
+from da_vinci.core.logging import Logger
 
 
 EXCEPTION_TRAP_ENV_VAR = 'DaVinciFramework_ExceptionTrapEnabled'
+
 
 
 def exception_trap_enabled() -> bool:
@@ -58,7 +61,7 @@ class ReportedException:
 
 class ExceptionReporter(RESTClientBase):
     def __init__(self):
-        super().__init__(resource_name='exception_trap')
+        super().__init__(resource_name='exceptions_trap')
 
     def report(self, function_name: str, exception: str, exception_traceback: str,
                  originating_event: Dict, metadata: Optional[Dict] = None):
@@ -81,26 +84,37 @@ class ExceptionReporter(RESTClientBase):
             metadata=metadata,
         )
 
-        self.post(body=req_body)
+        logger = Logger(namespace='da_vinci.exception_trap_client')
+
+        logger.debug(f'Reporting exception: {req_body.to_dict()}')
+
+        self.post(body=req_body.to_dict())
 
 
-def fn_exception_reporter(func, function_name: str, metadata: Optional[Dict] = None):
+def fn_exception_reporter(function_name: str, metadata: Optional[Dict] = None):
     """Wraps a function that handles an event and reports any exception"""
-    @wraps(func)
-    def wrapper(event: Dict, context: Dict):
-        try:
-            func(event, context)
-        except Exception as exc:
-            if exception_trap_enabled():
-                reporter = ExceptionReporter()
+    def reporter_wrapper(func: Callable):
+        @wraps(func)
+        def wrapper(event: Dict, context: Dict):
+            logger = Logger(namespace='da_vinci.exception_trap_client')
+            try:
+                logger.debug(f'Executing function {function_name}({event})')
 
-                reporter.report(
-                    originating_event=event,
-                    function_name=function_name,
-                    exception=str(exc),
-                    exception_traceback=traceback.format_exc(),
-                    metadata=metadata,
-                )
+                func(event, context)
+            except Exception as exc:
+                if exception_trap_enabled():
+                    reporter = ExceptionReporter()
 
-            traceback.print_exc()
-    return wrapper
+                    logger.debug(f'Function threw exception: {traceback.format_exc()}')
+
+                    reporter.report(
+                        originating_event=event,
+                        function_name=function_name,
+                        exception=str(exc),
+                        exception_traceback=traceback.format_exc(),
+                        metadata=metadata,
+                    )
+
+                traceback.print_exc()
+        return wrapper
+    return reporter_wrapper

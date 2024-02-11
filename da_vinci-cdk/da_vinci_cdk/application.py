@@ -106,7 +106,7 @@ class Application:
                  create_hosted_zone: Optional[bool] = False,
                  disable_docker_image_cache: Optional[bool] = DA_VINCI_DISABLE_DOCKER_CACHE,
                  enable_exception_trap: Optional[bool] = True, enable_global_settings: Optional[bool] = True,
-                 include_event_bus: Optional[bool] = True, 
+                 include_event_bus: Optional[bool] = False, 
                  log_level: Optional[str] = 'INFO', root_domain_name: Optional[str] = None):
         """
         Initialize a new Application object
@@ -119,7 +119,7 @@ class Application:
             deployment_id: Identifier assigned to the installation
             enable_exception_trap: Whether to enable the exception trap (default: True)
             enable_global_settings: Whether to build the global settings stack as part of the application (default: True)
-            include_event_bus: Whether to build the event bus stack as part of the application (default: True)
+            include_event_bus: Whether to build the event bus stack as part of the application (default: False)
             log_level: Logging level to use for the application (default: INFO)
             root_domain_name: Root domain name for the application (default: None)
 

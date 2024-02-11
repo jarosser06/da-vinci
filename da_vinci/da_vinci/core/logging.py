@@ -23,7 +23,7 @@ class Logger:
                 namespace='core',
             )
 
-            log_level_name = ll_setting.setting_value
+            log_level_name = ll_setting
 
         self.pylogger = logging.getLogger()
 
@@ -31,27 +31,23 @@ class Logger:
 
         self.pylogger.setLevel(level=self.log_level_name.upper())
 
-    def log(self, level: str, message: str):
-        level_fn = getattr(self.pylogger, level)
-
-        level_fn(
-            level=level,
-            msg=f'{self.namespace}: {message}',
-        )
-
     def debug(self, message: str):
         """Add a log message with level DEBUG."""
 
-        self.log(level='debug', message=message)
+        self.pylogger.debug(message)
 
     def error(self, message: str):
         """Add a log message with level ERROR."""
-        self.log(level='error', message=message)
+        self.pylogger.error(message)
 
     def info(self, message: str):
         """Add a log message with level INFO."""
-        self.log(level='info', message=message)
+        self.pylogger.info(message)
 
     def warning(self, message: str):
         """Add a log message with level WARNING."""
-        self.log(level='warn', message=message)
+        self.pylogger.warning(message)
+
+    def exception(self, message: str):
+        """Add a log message with level ERROR."""
+        self.pylogger.exception(message)

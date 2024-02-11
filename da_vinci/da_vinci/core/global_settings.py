@@ -1,5 +1,5 @@
 from os import getenv
-from typing import Union
+from typing import Any, Union
 
 from da_vinci.core.exceptions import GlobalSettingsNotEnabledError, GlobalSettingNotFoundError
 from da_vinci.core.orm.client import TableClient
@@ -25,13 +25,13 @@ def global_settings_available() -> bool:
     )
 
 
-def setting_value(setting_key: str, namespace: str) -> Union[Setting, None]:
+def setting_value(namespace: str, setting_key: str) -> Union[Any, None]:
     """
     Retrieve a setting value as the correct Python type, given
     a namespace and key
 
     Arguments:
-        key: The setting key
+        setting_key: The setting key
         namespace: The namespace of the setting
     """
 
