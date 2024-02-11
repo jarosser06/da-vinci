@@ -222,7 +222,7 @@ class TableClient:
             response = mthd(**params)
 
             for item in response.get('Items', []):
-                items.append(self.default_object_class.from_dynamodb(item))
+                items.append(self.default_object_class.from_dynamodb_item(item))
 
             yield items
 
@@ -264,7 +264,7 @@ class TableClient:
         if 'Item' not in results:
             return None
 
-        return self.default_object_class.from_dynamodb(results['Item'])
+        return self.default_object_class.from_dynamodb_item(results['Item'])
 
     def put_object(self, table_object: TableObject):
         """
