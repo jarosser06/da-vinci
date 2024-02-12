@@ -3,6 +3,7 @@ Provides the base class for constructing a REST service using the DaVinci framew
 '''
 import logging
 import json
+import traceback
 
 from dataclasses import asdict, dataclass
 from collections.abc import Callable
@@ -167,8 +168,8 @@ class SimpleRESTServiceBase:
         try:
             route_response = route.handler(**params)
 
-        except Exception as exc:
-            LOG.exception(exc)
+        except Exception:
+            LOG.info(f'Exception occurred: {traceback.format_exc()}')
 
             return self.respond(
                 body='Internal server error',
