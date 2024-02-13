@@ -100,7 +100,7 @@ def fn_exception_reporter(function_name: str, metadata: Optional[Dict] = None):
             try:
                 logger.debug(f'Executing function {function_name}({event})')
 
-                func(event, context)
+                return func(event, context)
             except Exception as exc:
                 if exception_trap_enabled():
                     reporter = ExceptionReporter()
