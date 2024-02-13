@@ -143,6 +143,7 @@ class SimpleRESTServiceBase:
         '''
         req_info = event['requestContext']['http']
 
+        self.current_event = event
         self.current_request = req_info
 
         method = req_info['method']
