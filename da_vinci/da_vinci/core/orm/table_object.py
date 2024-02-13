@@ -484,12 +484,12 @@ class TableObject:
 
         return changed_attrs
 
-    def to_dict(self) -> Dict:
+    def to_dict(self, convert_datetime_to_str: Optional[bool] = False) -> Dict:
         """
         Convert the object to a Dict
 
-        Returns:
-            Dict
+        Keyword Arguments:
+            convert_datetime_to_str: Whether to convert datetime objects to iso format strings
         """
         res = {}
 
@@ -498,6 +498,9 @@ class TableObject:
                 continue
 
             val = getattr(self, attr.name)
+
+            if attr.attribute_type is TableObjectAttributeType.DATETIME and convert_datetime_to_str:
+                val = val.isoformat()
 
             if attr.custom_exporter:
                 val = attr.custom_exporter(val)
