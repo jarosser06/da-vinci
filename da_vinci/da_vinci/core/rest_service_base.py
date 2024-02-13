@@ -179,8 +179,6 @@ class SimpleRESTServiceBase:
             return validation_response
 
         try:
-            
-
             route_response = route.handler(**params)
 
         except Exception as err:
@@ -188,7 +186,7 @@ class SimpleRESTServiceBase:
 
             if self.exception_reporter:
                 self.exception_reporter.report(
-                    exception=err,
+                    exception=str(err),
                     exception_traceback=traceback.format_exc(),
                     function_name=route.handler.__name__,
                     originating_event=event,
