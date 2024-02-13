@@ -7,10 +7,12 @@ import traceback
 
 from dataclasses import asdict, dataclass
 from collections.abc import Callable
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from da_vinci.core.exceptions import DuplicateRouteDefinitionError
 from da_vinci.core.json import DateTimeEncoder
+
+from da_vinci.exception_trap.client import ExceptionReporter
 
 
 LOG = logging.getLogger(__name__)
@@ -104,8 +106,18 @@ class Route:
 
 
 class SimpleRESTServiceBase:
-    def __init__(self, routes: List[Route]):
+    def __init__(self, routes: List[Route], exception_reporter: Optional[ExceptionReporter] = None):
+        """
+        Enabling the creation of a simple REST service using the DaVinci framework
+
+        Keyword Arguments:
+            routes: List of Route objects
+            exception_reporter: ExceptionReporter object (default: None)
+        """
         self.routes = routes
+
+        if exception_reporter:
+            self.exception_reporter = exception_reporter()
 
         # The current request being handled
         # not my favorite way to do this, but it works for now - JR
@@ -167,10 +179,20 @@ class SimpleRESTServiceBase:
             return validation_response
 
         try:
+            
+
             route_response = route.handler(**params)
 
-        except Exception:
+        except Exception as err:
             LOG.info(f'Exception occurred: {traceback.format_exc()}')
+
+            if self.exception_reporter:
+                self.exception_reporter.report(
+                    exception=err,
+                    exception_traceback=traceback.format_exc(),
+                    function_name=route.handler.__name__,
+                    originating_event=event,
+                )
 
             return self.respond(
                 body='Internal server error',
