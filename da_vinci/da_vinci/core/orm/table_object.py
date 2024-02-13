@@ -233,6 +233,8 @@ class TableObjectAttribute:
             return TableObjectAttribute.composite_string_value(arg_values)
 
         elif TableObjectAttributeType.is_list(self.attribute_type):
+            if not value:
+                return []
             if self.attribute_type is TableObjectAttributeType.NUMBER_LIST:
                 label = 'N'
             else:
