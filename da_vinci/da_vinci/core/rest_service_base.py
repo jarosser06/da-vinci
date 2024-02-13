@@ -106,15 +106,19 @@ class Route:
 
 
 class SimpleRESTServiceBase:
-    def __init__(self, routes: List[Route], exception_reporter: Optional[ExceptionReporter] = None):
+    def __init__(self, routes: List[Route], exception_function_name: Optional[str] = None,
+                 exception_reporter: Optional[ExceptionReporter] = None):
         """
         Enabling the creation of a simple REST service using the DaVinci framework
 
         Keyword Arguments:
             routes: List of Route objects
+            exception_function_name: Name of the function to call when an exception occurs (default: None)
             exception_reporter: ExceptionReporter object (default: None)
         """
         self.routes = routes
+
+        self.exception_function_name = exception_function_name
 
         if exception_reporter:
             self.exception_reporter = exception_reporter()
@@ -179,16 +183,18 @@ class SimpleRESTServiceBase:
             return validation_response
 
         try:
-            route_response = route.handler(**params)
+            return route.handler(**params)
 
         except Exception as err:
             LOG.info(f'Exception occurred: {traceback.format_exc()}')
+
+            report_fn_name = self.exception_function_name or route.handler.__name__
 
             if self.exception_reporter:
                 self.exception_reporter.report(
                     exception=str(err),
                     exception_traceback=traceback.format_exc(),
-                    function_name=route.handler.__name__,
+                    function_name=report_fn_name,
                     originating_event=event,
                 )
 
@@ -196,8 +202,6 @@ class SimpleRESTServiceBase:
                 body='Internal server error',
                 status_code=500,
             )
-
-        return route_response
 
     def respond(self, body: Dict, status_code: int,
                 headers: Dict = None) -> Dict:
