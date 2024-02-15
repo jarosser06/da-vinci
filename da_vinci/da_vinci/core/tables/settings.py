@@ -9,6 +9,7 @@ from da_vinci.core.orm import (
     TableObject,
     TableObjectAttribute,
     TableObjectAttributeType,
+    TableScanDefinition,
 )
 
 
@@ -126,6 +127,10 @@ class Setting(TableObject):
         return self.setting_value
 
 
+class SettingsScanDefinition(TableScanDefinition):
+    def __init__(self):
+        super().__init__(table_object_class=Setting)
+
 
 class Settings(TableClient):
     def __init__(self, app_name: Optional[str] = None, deployment_id: Optional[str] = None):
@@ -139,7 +144,7 @@ class Settings(TableClient):
         """
         Get all settings
         """
-        return self.__all_objects()
+        return self._all_objects()
 
     def delete(self, setting: Setting) -> None:
         """
@@ -171,3 +176,12 @@ class Settings(TableClient):
             setting: The setting to put
         """
         return self.put_object(setting)
+
+    def scan(self, scan_definition: TableScanDefinition) -> List[TableObject]:
+        """
+        Scan for settings
+
+        Keyword Arguments:
+            scan_definition: The scan definition
+        """
+        return self.full_scan(scan_definition)

@@ -75,6 +75,9 @@ class TableScanDefinition:
         expression = []
         expression_attributes = {}
 
+        if not self._attribute_filters:
+            return None, None
+
         for idx, fltr in enumerate(self._attribute_filters):
             name, comparison, value = fltr
 
@@ -231,7 +234,7 @@ class TableClient:
             if more_results:
                 params['ExclusiveStartKey'] = response['LastEvaluatedKey']
 
-    def __all_objects(self) -> List[TableObject]:
+    def _all_objects(self) -> List[TableObject]:
         """
         Loads all objects from a DynamoDB table into memory. Not recommended to use
         for large tables.
@@ -303,16 +306,18 @@ class TableClient:
 
         Keyword Arguments:
             scan_definition: Scan definition to use (default: None)
-            kwargs: Additional arguments to pass to the scan
         """
         filter_expression, attribute_values = scan_definition.to_expression()
 
         params = {
-            'ExpressionAttributeValues': attribute_values,
-            'FilterExpression': filter_expression,
             'Select': 'ALL_ATTRIBUTES',
             'TableName': self.table_endpoint_name,
         }
+
+        if filter_expression:
+            params['ExpressionAttributeValues'] = attribute_values
+
+            params['FilterExpression'] = filter_expression
 
         for page in self.paginated(call='scan', parameters=params):
             yield page
