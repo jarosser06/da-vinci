@@ -1,5 +1,7 @@
+
 import logging
 
+from os import environ
 from typing import Optional
 
 from da_vinci.core.global_settings import (
@@ -17,13 +19,8 @@ class Logger:
 
         log_level_name = log_level_name
 
-        if not log_level_name and global_settings_available():
-            ll_setting = setting_value(
-                setting_key='log_level',
-                namespace='core',
-            )
-
-            log_level_name = ll_setting
+        if not log_level_name:
+            log_level_name = environ.get('LOG_LEVEL', DEFAULT_LOG_LEVEL_NAME)
 
         self.pylogger = logging.getLogger()
 
