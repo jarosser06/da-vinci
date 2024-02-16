@@ -199,7 +199,7 @@ class TableClient:
         except ResourceNotFoundError:
             return False
 
-    def paginated(self, call: str = 'scan', parameters: Optional[Dict] = None) -> List[TableObject]:
+    def paginated(self, call: str = 'scan', parameters: Optional[Dict] = None):
         """
         Handle paginated DynamoDB table results
 
@@ -281,7 +281,9 @@ class TableClient:
             if not callable(table_object.execute_on_update):
                 raise ValueError('execute_on_update must be a function')
 
-            table_object.execute_on_update(table_object)
+            exec_on_update = table_object.execute_on_update
+
+            exec_on_update(table_object)
 
         self.client.put_item(
             TableName=self.table_endpoint_name,
@@ -300,7 +302,7 @@ class TableClient:
             Key=table_object.gen_dynamodb_key(),
         )
 
-    def scanner(self, scan_definition: TableScanDefinition) -> List[TableObject]:
+    def scanner(self, scan_definition: TableScanDefinition):
         """
         Perform a scan on the table, works similar to the paginator.
 
