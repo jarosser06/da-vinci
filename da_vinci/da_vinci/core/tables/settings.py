@@ -21,22 +21,8 @@ class SettingType(StrEnum):
     STRING = auto()
 
 
-def _execute_on_update(table_object: 'Setting'):
-    """
-    Execute on update hook for the Event Bus Subscription object.
-
-    Keyword Arguments:
-        table_object: The table object to update
-    """
-    table_object.update_date_attributes(
-        date_attribute_names=['last_updated'],
-        obj=table_object,
-    )
-
-
 class Setting(TableObject):
     description = 'Application Settings'
-    execute_on_update = _execute_on_update
     table_name = 'global_settings'
 
     partition_key_attribute = TableObjectAttribute(
@@ -125,6 +111,15 @@ class Setting(TableObject):
             return int(self.setting_value)
         
         return self.setting_value
+
+    def execute_on_update(self):
+        """
+        Execute on update hook for the Event Bus Subscription object.
+        """
+        self.update_date_attributes(
+            date_attribute_names=['last_updated'],
+            obj=self,
+        )
 
 
 class SettingsScanDefinition(TableScanDefinition):

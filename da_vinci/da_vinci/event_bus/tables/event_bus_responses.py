@@ -14,20 +14,8 @@ from da_vinci.core.orm import (
 from da_vinci.core.orm.table_object import TableObject
 
 
-def _execute_on_update(table_object: 'EventBusResponse'):
-    """
-    Execute on update hook for the Event Bus  Response object.
-
-    Keyword Arguments:
-        table_object: The table object to update
-    """
-    if table_object.response_status == 'FAILURE':
-        table_object.time_to_live = datetime.utcnow() + timedelta(days=2)
-
-
 class EventBusResponse(TableObject):
     description = 'Event Bus  Responses'
-    execute_on_update = _execute_on_update
     table_name = 'event_bus_responses'
 
     partition_key_attribute = TableObjectAttribute(
@@ -88,6 +76,13 @@ class EventBusResponse(TableObject):
             description='The time to live for the table object',
         )
     ]
+
+    def execute_on_update(self):
+        """
+        Execute on update hook for the Event Bus  Response object.
+        """
+        if self.response_status == 'FAILURE':
+            self.time_to_live = datetime.utcnow() + timedelta(days=2)
 
 
 class EventBusResponsesScanDefinition(TableScanDefinition):

@@ -277,13 +277,8 @@ class TableClient:
             table_object: Object to save
         """
 
-        if table_object.execute_on_update:
-            if not callable(table_object.execute_on_update):
-                raise ValueError('execute_on_update must be a function')
-
-            exec_on_update = table_object.execute_on_update
-
-            exec_on_update(table_object)
+        if hasattr(table_object, 'execute_on_update'):
+            table_object.execute_on_update()
 
         self.client.put_item(
             TableName=self.table_endpoint_name,
