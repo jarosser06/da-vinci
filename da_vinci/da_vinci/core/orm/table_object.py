@@ -499,7 +499,8 @@ class TableObject:
 
             val = getattr(self, attr.name)
 
-            if attr.attribute_type is TableObjectAttributeType.DATETIME and convert_datetime_to_str:
+            if attr.attribute_type is TableObjectAttributeType.DATETIME and convert_datetime_to_str \
+                and val is not None:
                 val = val.isoformat()
 
             if attr.custom_exporter:
