@@ -69,15 +69,6 @@ class EventBusSubscription(TableObject):
             self.event_type,
         )
 
-    def execute_on_update(self):
-        """
-        Execute on update hook for the Event Bus Subscription object.
-        """
-        self.update_date_attributes(
-            date_attribute_names=['record_last_updated'],
-            obj=self,
-        )
-
     @staticmethod
     def _validate_legal_subscription(self, generates_events: List[str], function_name: str,
                                      subscribed_event_type: str):

@@ -112,15 +112,6 @@ class Setting(TableObject):
         
         return self.setting_value
 
-    def execute_on_update(self):
-        """
-        Execute on update hook for the Event Bus Subscription object.
-        """
-        self.update_date_attributes(
-            date_attribute_names=['last_updated'],
-            obj=self,
-        )
-
 
 class SettingsScanDefinition(TableScanDefinition):
     def __init__(self):

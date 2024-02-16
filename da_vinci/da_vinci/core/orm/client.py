@@ -277,9 +277,6 @@ class TableClient:
             table_object: Object to save
         """
 
-        if hasattr(table_object, 'execute_on_update'):
-            table_object.execute_on_update()
-
         self.client.put_item(
             TableName=self.table_endpoint_name,
             Item=table_object.to_dynamodb_item(),

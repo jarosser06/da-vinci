@@ -461,15 +461,6 @@ class TableObject:
         """
         return getattr(self, name)
 
-    def execute_on_update(self):
-        """
-        Execute the on update function. This is called whenever the object is updated using the
-        put_object TableClient method.
-
-        Meant to be overridden.
-        """
-        pass
-
     def update(self, **kwargs):
         """
         Update the attributes of the object and provide a list of attribute names

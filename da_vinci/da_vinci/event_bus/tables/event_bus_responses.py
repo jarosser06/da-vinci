@@ -77,13 +77,6 @@ class EventBusResponse(TableObject):
         )
     ]
 
-    def execute_on_update(self):
-        """
-        Execute on update hook for the Event Bus  Response object.
-        """
-        if self.response_status == 'FAILURE':
-            self.time_to_live = datetime.utcnow() + timedelta(days=2)
-
 
 class EventBusResponsesScanDefinition(TableScanDefinition):
     def __init__(self):
