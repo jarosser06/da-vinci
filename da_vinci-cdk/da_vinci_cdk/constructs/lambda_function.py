@@ -95,6 +95,7 @@ class LambdaFunction(Construct):
         environment = runtime_environment_dict(
             app_name=scope.node.get_context('app_name'),
             deployment_id=scope.node.get_context('deployment_id'),
+            log_level=scope.node.get_context('log_level'),
         )
 
         environment[SETTINGS_ENABLED_VAR_NAME] = str(
