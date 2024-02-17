@@ -104,8 +104,8 @@ class EventBusSubscriptions(TableClient):
         """
         params = {
             'ExpressionAttributeNames': {
-                '#ck': 'event_type',
-                '#es': 'active',
+                '#ck': 'EventType',
+                '#es': 'Active',
             },
             'ExpressionAttributeValues': {
                 ':cv': {'S': event_type},
