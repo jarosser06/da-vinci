@@ -1,4 +1,4 @@
-'''Event Bus runtime.'''
+'''Event Bus runtime'''
 import logging
 
 from typing import Dict

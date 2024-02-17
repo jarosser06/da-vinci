@@ -97,7 +97,7 @@ class EventResponder(RESTClientBase):
             failure_traceback=failure_traceback,
         )
 
-        self.post(body=response_body)
+        self.post(body=response_body.to_dict())
 
 
 def fn_event_response(func):
