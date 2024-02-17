@@ -1,9 +1,9 @@
 '''Event Bus runtime'''
-import logging
-
 from typing import Dict
 
 import boto3
+
+from da_vinci.core.logging import Logger
 
 from da_vinci.event_bus.client import (
     EventResponder,
@@ -15,7 +15,7 @@ from da_vinci.event_bus.tables.event_bus_subscriptions import (
 )
 
 
-LOG = logging.getLogger(__name__)
+LOG = Logger('event_bus')
 
 
 class EventBus:
