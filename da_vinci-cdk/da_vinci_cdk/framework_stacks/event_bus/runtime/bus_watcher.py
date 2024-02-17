@@ -6,14 +6,14 @@ from da_vinci.core.rest_service_base import (
     SimpleRESTServiceBase,
 )
 from da_vinci.event_bus.tables.event_bus_responses import (
-    EventBusSubscriptionResponse,
-    EventBusSubscriptionResponses,
+    EventBusResponse,
+    EventBusResponses,
 )
 
 
 class EventBusWatcher(SimpleRESTServiceBase):
     def __init__(self):
-        self.event_responses = EventBusSubscriptionResponses()
+        self.event_responses = EventBusResponses()
 
         super().__init__(
             routes=[
@@ -37,7 +37,7 @@ class EventBusWatcher(SimpleRESTServiceBase):
             failure_reason: The reason for the failure
             failure_traceback: The traceback of the failure
         """
-        response = EventBusSubscriptionResponse(
+        response = EventBusResponse(
             event_type=event['event_type'],
             failure_reason=failure_reason,
             failure_traceback=failure_traceback,
