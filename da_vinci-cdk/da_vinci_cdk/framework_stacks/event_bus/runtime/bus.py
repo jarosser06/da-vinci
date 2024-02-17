@@ -42,7 +42,7 @@ class EventBus:
             LOG.debug(f'No subscriptions found for {event.event_type}')
 
             self.event_responder.response(
-                event=event,
+                event=event.to_dict(),
                 failure_reason='No active subscriptions found',
                 status=EventResponseStatus.NO_ROUTE,
             )

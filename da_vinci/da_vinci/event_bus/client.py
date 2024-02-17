@@ -75,7 +75,7 @@ class EventResponder(RESTClientBase):
     def __init__(self):
         super().__init__(resource_name='event_bus_responses')
 
-    def response(self, event: Event, status: Union[EventResponseStatus, str],
+    def response(self, event: Union[Event, Dict], status: Union[EventResponseStatus, str],
                  failure_reason: Optional[str] = None,
                  failure_traceback: Optional[str] = None):
         """
@@ -86,6 +86,9 @@ class EventResponder(RESTClientBase):
             status: Status of the response
             failure_reason: Reason for failure (if applicable)
         """
+
+        if isinstance(event, Event):
+            event = event.to_dict()
 
         response_body = EventResponse(
             event=event,
