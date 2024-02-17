@@ -11,20 +11,38 @@ from aws_cdk.custom_resources import (
 
 from constructs import Construct
 
-from da_vinci.event_bus.tables.event_bus_subscriptions import EventBusSubscription
+from da_vinci.core.resource_discovery import ResourceType
 
-from da_vinci_cdk.constructs.access_management import ResourceAccessPolicy, ResourceAccessRequest
+from da_vinci.event_bus.tables.event_bus_subscriptions import (
+    EventBusSubscription as EventBusSubscriptionTblObj,
+)
+
+from da_vinci_cdk.constructs.access_management import ResourceAccessRequest
+from da_vinci_cdk.constructs.base import custom_type_name
 from da_vinci_cdk.constructs.dynamodb import DynamoDBTable
 from da_vinci_cdk.constructs.lambda_function import LambdaFunction
+
 
 class EventBusSubscription(Construct):
     '''Event Bus Event Subscription CDK Construct'''
 
-    def __init__(self, event_type: str, function_name: str, scope: Construct, subscribed_to: str,
-                  active: Optional[bool] = False, generates_events: Optional[List[str]] = None,
-                  table_name: Optional[str] = None):
+    def __init__(self, construct_id: str, event_type: str, function_name: str, scope: Construct,
+                 active: Optional[bool] = False, generates_events: Optional[List[str]] = None,
+                 table_name: Optional[str] = None):
+        """
+        Creates a subscription to an event bus event in DynamoDB. This construct will create
+        the necessary DynamoDB table if it does not exist and will create the subscription
+        in the table.
 
-        construct_id = f'{function_name}-event-bus-subscription-{subscribed_to}'
+        Keyword Arguments:
+            construct_id: ID of the construct
+            event_type: Type of event to subscribe to
+            function_name: Name of the function
+            scope: Parent construct for the EventBusSubscription
+            active: Whether or not the subscription is active (default: False)
+            generates_events: List of event types that the function generates (default: None)
+            table_name: Name of the DynamoDB table to use (default: None)
+        """
 
         super().__init__(scope, construct_id)
 
@@ -36,12 +54,11 @@ class EventBusSubscription(Construct):
                 table_name='event_bus_subscriptions',
             )
 
-        event_bus_subscription = EventBusSubscription(
+        event_bus_subscription = EventBusSubscriptionTblObj(
             active=active,
             event_type=event_type,
             function_name=function_name,
             generates_events=generates_events,
-            subscribed_to=subscribed_to,
         )
 
         table_arn = f'arn:aws:dynamodb:*:*:table/{self.table_name}'
@@ -55,11 +72,12 @@ class EventBusSubscription(Construct):
             on_create=self._create(event_bus_subscription),
             on_delete=self._delete(event_bus_subscription),
             on_update=self._update(event_bus_subscription),
-            resource_type='DaVinciFramework::EventBusSubscription',
+            resource_type=custom_type_name(name='EventBusSubscription'),
         )
 
-    def _create(self, event_bus_subscription: EventBusSubscription):
+    def _create(self, event_bus_subscription: EventBusSubscriptionTblObj):
         '''Create the event bus subscription'''
+        subscription_id = event_bus_subscription.event_type + '-' + event_bus_subscription.function_name
 
         return AwsSdkCall(
             action='putItem',
@@ -68,11 +86,12 @@ class EventBusSubscription(Construct):
                 'TableName': self.table_name,
                 'Item': event_bus_subscription.to_dynamodb_item(),
             },
-            physical_resource_id=PhysicalResourceId.of(event_bus_subscription.subscription_id),
+            physical_resource_id=PhysicalResourceId.of(subscription_id),
         )
 
-    def _delete(self, event_bus_subscription: EventBusSubscription):
+    def _delete(self, event_bus_subscription: EventBusSubscriptionTblObj):
         '''Delete the event bus subscription'''
+        subscription_id = event_bus_subscription.event_type + '-' + event_bus_subscription.function_name
 
         return AwsSdkCall(
             action='deleteItem',
@@ -84,11 +103,12 @@ class EventBusSubscription(Construct):
                     'function_name': event_bus_subscription.function_name,
                 },
             },
-            physical_resource_id=PhysicalResourceId.of(event_bus_subscription.subscription_id),
+            physical_resource_id=PhysicalResourceId.of(subscription_id),
         )
 
-    def _update(self, event_bus_subscription: EventBusSubscription):
+    def _update(self, event_bus_subscription: EventBusSubscriptionTblObj):
         '''Update the event bus subscription'''
+        subscription_id = event_bus_subscription.event_type + '-' + event_bus_subscription.function_name
 
         return AwsSdkCall(
             action='putItem',
@@ -97,17 +117,17 @@ class EventBusSubscription(Construct):
                 'TableName': self.table_name,
                 'Item': event_bus_subscription.to_dynamodb_item(),
             },
-            physical_resource_id=PhysicalResourceId.of(event_bus_subscription.subscription_id),
+            physical_resource_id=PhysicalResourceId.of(subscription_id),
         )
 
 
 class EventBusSubscriptionFunction(Construct):
     '''Event Bus Event Subscription Function CDK Construct'''
 
-    def __init__(self, construct_id: str, event_type: str, scope: Construct,
-                 subscribed_to: str, active: Optional[bool] = False,
-                 generates_events: Optional[List[str]] = None,
-                 managed_policies: Optional[List] = None, **function_config):
+    def __init__(self, construct_id: str, event_type: str, function_name: str, scope: Construct,
+                 active: Optional[bool] = False, generates_events: Optional[List[str]] = None,
+                 managed_policies: Optional[List] = None,
+                 resource_access_requests: Optional[List[ResourceAccessRequest]] = None, **function_config):
         """
         Creates a Lambda function that subscribes to an event bus event. Handles the creation
         of the subscription in DynamoDB as well as the Lambda Function itself. This construct
@@ -118,62 +138,65 @@ class EventBusSubscriptionFunction(Construct):
         Keyword Arguments:
             construct_id: ID of the construct
             event_type: Type of event to subscribe to
+            function_name: Name of the function
             scope: Parent construct for the EventBusSubscriptionFunction
-            subscribed_to: Name of the service that is subscribed to the event
             active: Whether or not the subscription is active (default: False)
             generates_events: List of event types that the function generates (default: None)
             managed_policies: List of managed policies to attach to the Lambda function
             function_config: Additional arguments supported by CDK to pass to the Lambda function
         """
-
-        construct_id = f'{construct_id}-event-bus-subscription-{subscribed_to}'
-
         super().__init__(scope, construct_id)
 
-        self.function = LambdaFunction(
+        add_event_bus_access = generates_events != None
+
+        add_event_response_access = True
+
+        if resource_access_requests:
+                for existing_req in resource_access_requests:
+                    if existing_req.resource_name == 'event_bus':
+                        add_event_bus_access = False
+
+                    if existing_req.resource_name == 'event_bus_responses':
+                        add_event_response_access = False
+        else:
+            resource_access_requests = []
+
+        if add_event_bus_access:
+            resource_access_requests.append(
+                ResourceAccessRequest(
+                    resource_name='event_bus',
+                    resource_type=ResourceType.ASYNC_SERVICE,
+                )
+            )
+
+        if add_event_response_access:
+            resource_access_requests.append(
+                ResourceAccessRequest(
+                    resource_name='event_bus_responses',
+                    resource_type=ResourceType.REST_SERVICE,
+                )
+            )
+
+        self.handler = LambdaFunction(
             scope=self,
             construct_id=f'{construct_id}-fn',
+            function_name=function_name,
             managed_policies=managed_policies,
+            resource_access_requests=resource_access_requests,
             **function_config,
         )
 
-        Tags.of(self.function).add(
+        Tags.of(self.handler.function).add(
             key='DaVinciFramework::FunctionPurpose',
             value='EventSubscription',
             priority=200
         )
 
-        event_response_policy_req = ResourceAccessRequest(
-            resource_name='event_bus_responses',
-            resource_type='rest_service',
-        )
-
-        event_response_policy = ResourceAccessPolicy.policy_from_resource_name(
-            request=event_response_policy_req,
-        )
-
-        if event_response_policy not in managed_policies:
-            self.function.role.add_managed_policy(event_response_policy)
-
-        # Grant acccess to the event bus if the function generates events
-        if generates_events:
-            event_bus_policy_req = ResourceAccessRequest(
-                resource_name='event_bus',
-                resource_type='async_service',
-            )
-
-            event_bus_policy = ResourceAccessPolicy.policy_from_resource_name(
-                request=event_bus_policy_req,
-            )
-
-            if event_bus_policy not in managed_policies:
-                self.function.role.add_managed_policy(event_bus_policy)
-
         self.subscription = EventBusSubscription(
             active=active,
+            construct_id=f'{construct_id}-subscription',
             event_type=event_type,
-            function_name=self.function.function_name,
+            function_name=self.handler.function.function_name,
             generates_events=generates_events,
-            subscribed_to=subscribed_to,
             scope=self,
         )

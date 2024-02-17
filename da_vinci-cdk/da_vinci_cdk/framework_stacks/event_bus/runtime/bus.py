@@ -1,4 +1,4 @@
-'''Event Bus runtime'''
+'''Event Bus runtime.'''
 from typing import Dict
 
 import boto3

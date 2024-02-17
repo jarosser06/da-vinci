@@ -64,14 +64,14 @@ class EventBusSubscription(TableObject):
         super().__init__(**kwargs)
 
         self._validate_legal_subscription(
-            self.generates_events,
-            self.function_name,
-            self.event_type,
+            generates_events=self.generates_events,
+            function_name=self.function_name,
+            subscribed_event_type=self.event_type,
         )
 
     @staticmethod
-    def _validate_legal_subscription(self, generates_events: List[str], function_name: str,
-                                     subscribed_event_type: str):
+    def _validate_legal_subscription(function_name: str, subscribed_event_type: str,
+                                     generates_events: List[str] = None):
         """
         Validate the event subscription is legal. This means that the event subscription does not
         create a circular dependency.
@@ -81,6 +81,9 @@ class EventBusSubscription(TableObject):
             function_name: The name of the subscribed function.
             subscription_event_type: The event type of the subscription.
         """
+        if not generates_events:
+            return 
+
         if subscribed_event_type in generates_events:
             raise CircularDependencyException(subscribed_event_type, function_name)
 

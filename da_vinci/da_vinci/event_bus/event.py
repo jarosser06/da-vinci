@@ -55,14 +55,7 @@ class Event:
             Event
         """
 
-        body = event['body']
-
-        if isinstance(body, str):
-            body = json.loads(body)
-        else:
-            body = body
-
-        return Event(**body)
+        return Event(**event)
 
     def next_event(self, event_type: str, body: Union[Dict, str]) -> 'Event':
         """
