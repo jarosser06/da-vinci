@@ -7,7 +7,7 @@ import traceback
 
 from dataclasses import asdict, dataclass
 from collections.abc import Callable
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from da_vinci.core.exceptions import DuplicateRouteDefinitionError
 from da_vinci.core.json import DateTimeEncoder
@@ -203,7 +203,7 @@ class SimpleRESTServiceBase:
                 status_code=500,
             )
 
-    def respond(self, body: Dict, status_code: int,
+    def respond(self, body: Union[Dict, str], status_code: int,
                 headers: Dict = None) -> Dict:
         '''
         Respond to a request

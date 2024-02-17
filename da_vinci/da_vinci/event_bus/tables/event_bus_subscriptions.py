@@ -117,7 +117,7 @@ class EventBusSubscriptions(TableClient):
 
         all_items = []
 
-        for page in self.paginated(call='query', params=params):
+        for page in self.paginated(call='query', parameters=params):
             all_items.extend(page)
 
         return all_items
