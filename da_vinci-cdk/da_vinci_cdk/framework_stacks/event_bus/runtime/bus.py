@@ -1,4 +1,6 @@
-'''Event Bus runtime.'''
+'''Event Bus runtime'''
+import json
+
 from typing import Dict
 
 import boto3
@@ -74,6 +76,6 @@ def handler(event: Dict, context: Dict):
     for record in event['Records']:
         LOG.debug(f'Record recieved: {record}')
 
-        event = Event.from_lambda_event(record)
+        event = Event.from_lambda_event(json.loads(record['body']))
 
         bus.invoke_subscriptions(event)
