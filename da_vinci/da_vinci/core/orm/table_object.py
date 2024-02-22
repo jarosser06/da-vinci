@@ -431,9 +431,11 @@ class TableObject:
 
     @classmethod
     def define(cls, partition_key_attribute: TableObjectAttribute,
+               object_name: str, table_name: str,
                sort_key_attribute: Optional[TableObjectAttribute] = None,
                attributes: Optional[List[TableObjectAttribute]] = None,
-               description: Optional[str] = None) -> 'TableObject':
+               description: Optional[str] = None,
+               ttl_attribute: Optional[TableObjectAttribute] = None) -> 'TableObject':
         """
         Define a TableObject
 
@@ -443,9 +445,13 @@ class TableObject:
         obj_klass = cls
 
         obj_klass.partition_key_attribute = partition_key_attribute
+        obj_klass.object_name = object_name
+        obj_klass.table_name = table_name
+
         obj_klass.sort_key_attribute = sort_key_attribute
         obj_klass.attributes = attributes or []
         obj_klass.description = description
+        obj_klass.ttl_attribute = ttl_attribute
 
         return obj_klass
 
