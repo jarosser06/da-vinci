@@ -338,6 +338,7 @@ class TableObject:
     Base class for Table object definitions
 
     Class Attributes:
+        attribute_lookup_prefix: Attribute lookup prefix, prefixes the attribute name when retrieving attributes
         attributes: List of attributes
         description: Description of the table
         execute_on_update: Function to execute when the object is updated
@@ -384,6 +385,7 @@ class TableObject:
     partition_key_attribute: TableObjectAttribute
     table_name: str
 
+    attribute_lookup_prefix: Optional[str] = None
     attributes: List[TableObjectAttribute] = []
     description: Optional[str] = None
     execute_on_update: Optional[Callable] = None
@@ -432,28 +434,55 @@ class TableObject:
     @classmethod
     def define(cls, partition_key_attribute: TableObjectAttribute,
                object_name: str, table_name: str,
-               sort_key_attribute: Optional[TableObjectAttribute] = None,
+               attribute_lookup_prefix: Optional[str] = None,
                attributes: Optional[List[TableObjectAttribute]] = None,
                description: Optional[str] = None,
+               sort_key_attribute: Optional[TableObjectAttribute] = None,
                ttl_attribute: Optional[TableObjectAttribute] = None) -> 'TableObject':
         """
         Define a TableObject
 
         Keyword Arguments:
-            kwargs -- Attributes to define
+            attribute_lookup_prefix: Attribute lookup prefix
+            attributes: List of attributes
+            description: Description of the table
+            partition_key_attribute: Partition key attribute
+            object_name: Name of the object
+            sort_key_attribute: Sort key attribute
+            table_name: Name of the table
+            ttl_attribute: Optional TTL attribute
         """
-        obj_klass = cls
+        obj_klass = type(object_name, (cls,), {})
 
         obj_klass.partition_key_attribute = partition_key_attribute
         obj_klass.object_name = object_name
         obj_klass.table_name = table_name
 
+        obj_klass.attribute_lookup_prefix = attribute_lookup_prefix
         obj_klass.sort_key_attribute = sort_key_attribute
         obj_klass.attributes = attributes or []
         obj_klass.description = description
         obj_klass.ttl_attribute = ttl_attribute
 
         return obj_klass
+
+    def __getattr__(self, name: str) -> Any:
+        """
+        Get an attribute by name
+
+        Keyword Arguments:
+            name -- Name of the attribute
+
+        Returns:
+            Any
+        """
+        if self.attribute_lookup_prefix:
+            val = getattr(self, f'{self.attribute_lookup_prefix}_{name}', None)
+
+            if val is not None:
+                return val
+
+        return super().__getattribute__(name)
 
     def attribute_value(self, name: str) -> Any:
         """
