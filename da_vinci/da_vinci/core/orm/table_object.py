@@ -573,12 +573,18 @@ class TableObject:
 
     @classmethod
     def all_attributes(cls) -> List[TableObjectAttribute]:
+        """
+        Class method that returns all defined attributes on the class
+        """
         attributes = deepcopy(cls.attributes)
 
         attributes.append(cls.partition_key_attribute)
 
         if cls.sort_key_attribute:
             attributes.append(cls.sort_key_attribute)
+
+        if cls.ttl_attribute:
+            attributes.append(cls.ttl_attribute)
 
         return attributes
 
