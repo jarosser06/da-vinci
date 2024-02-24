@@ -116,6 +116,7 @@ class AsyncService(Construct):
             index=index,
             resource_access_requests=resource_access_requests,
             scope=self,
+            timeout=timeout,
             **kwargs,
         )
 
