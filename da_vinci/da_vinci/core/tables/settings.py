@@ -139,7 +139,7 @@ class Settings(TableClient):
         Arguments:
             setting: The setting to delete
         """
-        self.remove_object(setting)
+        self.delete_object(setting)
 
     def get(self, namespace: str, setting_key: str) -> Union[Setting, None]:
         """

@@ -184,7 +184,6 @@ class TableObjectAttribute:
         Returns:
             str
         """
-
         dynamodb_type_label = 'S'
         if self.attribute_type is TableObjectAttributeType.NUMBER \
                 or self.attribute_type is TableObjectAttributeType.DATETIME:
@@ -206,7 +205,6 @@ class TableObjectAttribute:
         Returns:
             Any
         """
-
         if self.custom_exporter:
             return self.custom_exporter(value)
 

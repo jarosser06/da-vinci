@@ -133,7 +133,7 @@ class EventBusSubscriptions(TableClient):
             event_subscription: The event subscription
         """
 
-        return self.remove_object(event_subscription)
+        return self.delete_object(event_subscription)
 
     def get(self, event_type: str, function_name: str) -> EventBusSubscription:
         """

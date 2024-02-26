@@ -100,7 +100,7 @@ class EventBusResponses(TableClient):
         Keyword Arguments:
             EventResponse: The event bus subscription response to delete
         """
-        self.remove_object(EventResponse)
+        self.delete_object(EventResponse)
 
     def get(self, event_type: str, response_id: str) -> EventBusResponse:
         """

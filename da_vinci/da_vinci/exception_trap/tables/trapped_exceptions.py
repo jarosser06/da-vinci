@@ -121,7 +121,7 @@ class TrappedExceptions(TableClient):
         Keyword Arguments:
             trapped_exception: The trapped exception to delete
         """
-        self.remove_object(
+        self.delete_object(
             table_object=trapped_exception,
         )
 
