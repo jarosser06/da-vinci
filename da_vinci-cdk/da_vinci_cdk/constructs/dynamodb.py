@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from aws_cdk import (
     aws_dynamodb as cdk_dynamodb,
@@ -29,6 +29,7 @@ class DynamoDBTable(Construct):
                  table_name: str, construct_id: Optional[str] = None,
                  removal_policy: Optional[RemovalPolicy] = None,
                  sort_key: Optional[cdk_dynamodb.Attribute] = None,
+                 tags: List[Dict[str, Any]] = None,
                  time_to_live_attribute: Optional[str] = None,
                  **kwargs):
         """
@@ -75,19 +76,33 @@ class DynamoDBTable(Construct):
 
         super().__init__(scope, construct_id)
 
+        additional_tags = {
+            'DaVinciFramework::ApplicationName': scope.node.get_context('app_name'),
+            'DaVinciFramework::DeploymentId': scope.node.get_context('deployment_id'),
+            'DaVinciFrameworkManaged': 'True',
+        }
+
+        if not tags:
+            tags = []
+
+        for additional_tag in additional_tags:
+            tags.append({
+                'key': additional_tag,
+                'value': additional_tags[additional_tag]
+            })
+
         self.table = cdk_dynamodb.TableV2(
-            scope=scope,
+            scope=self,
             id=f'{construct_id}-table',
             billing=cdk_dynamodb.Billing.on_demand(),
             partition_key=partition_key,
             removal_policy=removal_policy,
             sort_key=sort_key,
             table_name=resource_namer(name=table_name, scope=scope),
+            tags=tags,
             time_to_live_attribute=time_to_live_attribute,
             **kwargs,
         )
-
-        apply_framework_tags(resource=self.table, scope=self)
 
         self._discovery_resource = DiscoverableResource(
             construct_id=f'{construct_id}-resource',
@@ -181,7 +196,8 @@ class DynamoDBTable(Construct):
     @classmethod
     def from_orm_table_object(cls, table_object: TableObject, scope: Construct,
                               construct_id: Optional[str] = None,
-                              removal_policy: Optional[RemovalPolicy] = None) -> 'DynamoDBTable':
+                              removal_policy: Optional[RemovalPolicy] = None,
+                              tags: List[Dict[str, Any]] = None) -> 'DynamoDBTable':
         """
         Lazy constructor that allows defining a DynamoDBTable from a TableObject
 
@@ -190,6 +206,7 @@ class DynamoDBTable(Construct):
             construct_id: Identifier for the construct
             removal_policy: Removal policy for the DynamoDB table
             scope: Parent construct for the DynamoDBTable
+            tags: Tags to apply to the DynamoDB table
             kwargs: Additional arguments to pass to the DynamoDB table
 
         Returns:
@@ -235,6 +252,7 @@ class DynamoDBTable(Construct):
             'removal_policy': removal_policy,
             'scope': scope,
             'table_name': table_object.table_name,
+            'tags': tags,
         }
 
         if table_object.sort_key_attribute:

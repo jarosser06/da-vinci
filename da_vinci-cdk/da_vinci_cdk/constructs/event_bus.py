@@ -98,10 +98,10 @@ class EventBusSubscription(Construct):
             service='DynamoDB',
             parameters={
                 'TableName': self.table_name,
-                'Key': {
-                    'event_type': event_bus_subscription.event_type,
-                    'function_name': event_bus_subscription.function_name,
-                },
+                'Key': event_bus_subscription.gen_dynamodb_key(
+                    partition_key_value=event_bus_subscription.event_type,
+                    sort_key_value=event_bus_subscription.function_name,
+                ),
             },
             physical_resource_id=PhysicalResourceId.of(subscription_id),
         )
