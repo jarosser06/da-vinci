@@ -10,6 +10,7 @@ import requests
 
 from requests_auth_aws_sigv4 import AWSSigV4
 
+from da_vinci.core.json import DateTimeEncoder
 from da_vinci.core.resource_discovery import (
     resource_endpoint_lookup,
     ResourceType,
