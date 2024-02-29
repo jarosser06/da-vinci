@@ -56,7 +56,7 @@ class AsyncClientBase(BaseClient):
         formatted_body = body
 
         if isinstance(body, dict):
-            formatted_body = json.dumps(body) 
+            formatted_body = json.dumps(body, cls=DateTimeEncoder) 
 
         self.boto_client.send_message(
             QueueUrl=self.endpoint,
@@ -150,7 +150,7 @@ class RESTClientBase(BaseClient):
 
         return self._response(result)
 
-    def put(self, body: Dict, headers: Optional[Dict] = None,
+    def put(self, body: Union[Dict, str], headers: Optional[Dict] = None,
             path: Optional[str] = None) -> RESTClientResponse:
         '''
         Perform a PUT request
@@ -160,17 +160,25 @@ class RESTClientBase(BaseClient):
             headers: Headers to include in the request
             path: Path to append to the endpoint (default: None)
         '''
+        if isinstance(body, dict):
+            body = json.dumps(body, cls=DateTimeEncoder)
+
+        if not headers:
+            headers = {}
+
+        headers['Content-Type'] = 'application/json'
+
         result = requests.request(
             'PUT',
             url=self._full_url(path),
             auth=self.aws_auth,
             headers=headers,
-            json=body,
+            data=body,
         )
 
         return self._response(result)
 
-    def post(self, body: Dict, headers: Optional[Dict] = None,
+    def post(self, body: Union[Dict, str], headers: Optional[Dict] = None,
              path: Optional[str] = None) -> RESTClientResponse:
         '''
         Perform a POST request
@@ -180,12 +188,20 @@ class RESTClientBase(BaseClient):
             headers: Headers to include in the request
             path: Path to append to the endpoint (default: None)
         '''
+        if isinstance(body, dict):
+            body = json.dumps(body, cls=DateTimeEncoder)
+
+        if not headers:
+            headers = {}
+
+        headers['Content-Type'] = 'application/json'
+
         result = requests.request(
             'POST',
             url=self._full_url(path),
             auth=self.aws_auth,
             headers=headers,
-            json=body,
+            data=body,
         )
 
         return self._response(result)

@@ -189,7 +189,7 @@ class SimpleRESTServiceBase:
 
             report_fn_name = self.exception_function_name or route.handler.__name__
 
-            if self.exception_reporter:
+            if hasattr(self, 'exception_reporter'):
                 self.exception_reporter.report(
                     exception=str(err),
                     exception_traceback=traceback.format_exc(),
