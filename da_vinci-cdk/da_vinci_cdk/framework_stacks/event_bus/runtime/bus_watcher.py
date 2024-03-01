@@ -29,7 +29,7 @@ class EventBusWatcher(SimpleRESTServiceBase):
                       failure_reason: Optional[str] = None,
                       failure_traceback: Optional[str] = None):
         """
-        Trap an event response
+        Trap an event response to store it in the database
 
         Keyword Arguments:
             event: The originating event
