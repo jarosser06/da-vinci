@@ -150,7 +150,7 @@ class RESTClientBase(BaseClient):
 
         return self._response(result)
 
-    def put(self, body: Union[Dict, str], headers: Optional[Dict] = None,
+    def put(self, body: str, headers: Optional[Dict] = None,
             path: Optional[str] = None) -> RESTClientResponse:
         '''
         Perform a PUT request
@@ -160,25 +160,17 @@ class RESTClientBase(BaseClient):
             headers: Headers to include in the request
             path: Path to append to the endpoint (default: None)
         '''
-        if isinstance(body, dict):
-            body = json.dumps(body, cls=DateTimeEncoder)
-
-        if not headers:
-            headers = {}
-
-        headers['Content-Type'] = 'application/json'
-
         result = requests.request(
             'PUT',
             url=self._full_url(path),
             auth=self.aws_auth,
             headers=headers,
-            data=body,
+            json=body,
         )
 
         return self._response(result)
 
-    def post(self, body: Union[Dict, str], headers: Optional[Dict] = None,
+    def post(self, body: Dict, headers: Optional[Dict] = None,
              path: Optional[str] = None) -> RESTClientResponse:
         '''
         Perform a POST request
@@ -188,20 +180,12 @@ class RESTClientBase(BaseClient):
             headers: Headers to include in the request
             path: Path to append to the endpoint (default: None)
         '''
-        if isinstance(body, dict):
-            body = json.dumps(body, cls=DateTimeEncoder)
-
-        if not headers:
-            headers = {}
-
-        headers['Content-Type'] = 'application/json'
-
         result = requests.request(
             'POST',
             url=self._full_url(path),
             auth=self.aws_auth,
             headers=headers,
-            data=body,
+            json=body,
         )
 
         return self._response(result)
