@@ -1,10 +1,11 @@
-'''Lambda module for the event bus watcher'''
+'''Lambda module for the event bus watcher.'''
 from typing import Dict, Optional
 
 from da_vinci.core.rest_service_base import (
     Route,
     SimpleRESTServiceBase,
 )
+
 from da_vinci.event_bus.tables.event_bus_responses import (
     EventBusResponse,
     EventBusResponses,
