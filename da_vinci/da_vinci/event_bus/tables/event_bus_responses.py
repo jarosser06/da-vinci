@@ -115,8 +115,8 @@ class EventBusResponses(TableClient):
         """
 
         return self.get_object(
-            partition_key=event_type,
-            sort_key=response_id,
+            partition_key_value=event_type,
+            sort_key_value=response_id,
         )
 
     def put(self, event_bus_subscription_response: EventBusResponse):
