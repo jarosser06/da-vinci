@@ -103,11 +103,11 @@ class Setting(TableObject):
         """
         Return the setting value as the correct type
         """
-        if self.setting_type == SettingType.BOOLEAN:
+        if self.setting_type == SettingType.BOOLEAN.name:
             return self.setting_value.lower() == 'true'
-        elif self.setting_type == SettingType.FLOAT:
+        elif self.setting_type == SettingType.FLOAT.name:
             return float(self.setting_value)
-        elif self.setting_type == SettingType.INTEGER:
+        elif self.setting_type == SettingType.INTEGER.name:
             return int(self.setting_value)
         
         return self.setting_value
