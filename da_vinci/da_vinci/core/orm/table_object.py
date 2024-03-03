@@ -474,7 +474,14 @@ class TableObject:
         Returns:
             Any
         """
+        attr_keys = [attr.name for attr in self.all_attributes()]
+
         if self.attribute_lookup_prefix:
+            prefixed_name = f'{self.attribute_lookup_prefix}_{name}'
+
+            if not prefixed_name in attr_keys:
+                raise AttributeError(f'Attribute {name} not found')
+
             val = getattr(self, f'{self.attribute_lookup_prefix}_{name}', None)
 
             if val is not None:
