@@ -30,8 +30,16 @@ class TableScanDefinition:
         'not_equal': '!=',
     }
 
-    def __init__(self, table_object_class: TableObject):
+    def __init__(self, table_object_class: TableObject, attribute_prefix: Optional[str] = None):
+        """
+        Create a new scan definition for a DynamoDB table
+
+        Keyword Arguments:
+            table_object_class: Table object class to scan
+            attribute_prefix: Prefix to use for attribute names (default: None)
+        """
         self._attribute_filters = []
+        self.attribute_prefix = attribute_prefix
         self.table_object_class = table_object_class
 
     def add(self, attribute_name: str, comparison: str, value: Any):
@@ -46,17 +54,21 @@ class TableScanDefinition:
         if comparison not in self.__comparison_operators:
             raise TableScanInvalidComparisonException(comparison)
 
+        attr_name = attribute_name
+        if self.attribute_prefix:
+            attr_name = f'{self.attribute_prefix}_{attribute_name}'
+
         attribute_definition = self.table_object_class.attribute_definition(
-            attribute_name=attribute_name,
+            attribute_name=attr_name,
         )
 
         if not attribute_definition:
-            raise TableScanInvalidAttributeException(attribute_name)
+            raise TableScanInvalidAttributeException(attr_name)
 
         comparison = self.comparison_map[comparison]
 
         self._attribute_filters.append(
-            (attribute_name, comparison, value)
+            (attr_name, comparison, value)
         )
 
     def to_expression(self) -> str:
