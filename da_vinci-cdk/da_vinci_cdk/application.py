@@ -252,6 +252,9 @@ class Application:
         """
         stack_name = self.generate_stack_name(stack)
 
+        if stack_name in self._stacks:
+            return self._stacks[stack_name]
+
         init_args = {
             'architecture': self.architecture,
             'app_name': self.app_name,

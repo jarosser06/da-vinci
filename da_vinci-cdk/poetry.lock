@@ -292,7 +292,7 @@ requests-auth-aws-sigv4 = "0.7"
 type = "git"
 url = "https://github.com/jarosser06/da-vinci"
 reference = "HEAD"
-resolved_reference = "b36d52f3eb5b19e845dde2dc808325237cc248a7"
+resolved_reference = "df3a1157a8a400b385b16810bd26d60828261946"
 subdirectory = "da_vinci"
 
 [[package]]
