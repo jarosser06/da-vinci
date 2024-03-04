@@ -71,7 +71,6 @@ class EventBusSubscription(Construct):
             ),
             on_create=self._create(event_bus_subscription),
             on_delete=self._delete(event_bus_subscription),
-            on_update=self._update(event_bus_subscription),
             resource_type=custom_type_name(name='EventBusSubscription'),
         )
 
@@ -102,20 +101,6 @@ class EventBusSubscription(Construct):
                     partition_key_value=event_bus_subscription.event_type,
                     sort_key_value=event_bus_subscription.function_name,
                 ),
-            },
-            physical_resource_id=PhysicalResourceId.of(subscription_id),
-        )
-
-    def _update(self, event_bus_subscription: EventBusSubscriptionTblObj):
-        '''Update the event bus subscription'''
-        subscription_id = event_bus_subscription.event_type + '-' + event_bus_subscription.function_name
-
-        return AwsSdkCall(
-            action='putItem',
-            service='DynamoDB',
-            parameters={
-                'TableName': self.table_name,
-                'Item': event_bus_subscription.to_dynamodb_item(),
             },
             physical_resource_id=PhysicalResourceId.of(subscription_id),
         )

@@ -479,13 +479,8 @@ class TableObject:
         if self.attribute_lookup_prefix:
             prefixed_name = f'{self.attribute_lookup_prefix}_{name}'
 
-            if not prefixed_name in attr_keys:
-                raise AttributeError(f'Attribute {name} not found')
-
-            val = getattr(self, f'{self.attribute_lookup_prefix}_{name}', None)
-
-            if val is not None:
-                return val
+            if prefixed_name in attr_keys:
+                return getattr(self, prefixed_name, None)
 
         return super().__getattribute__(name)
 
