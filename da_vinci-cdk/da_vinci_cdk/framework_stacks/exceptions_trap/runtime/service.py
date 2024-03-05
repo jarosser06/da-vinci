@@ -72,7 +72,7 @@ def api(event: Dict, context: Dict):
     """
     logger = Logger('da_vinci.exception_trap_service')
 
-    logger.debug(f'Event: {event}')
+    logger.debug(f'Exception event: {event}')
 
     trapper = ExceptionTrapService()
 

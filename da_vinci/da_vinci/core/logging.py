@@ -4,12 +4,6 @@ import logging
 from os import environ
 from typing import Optional
 
-from da_vinci.core.global_settings import (
-    global_settings_available,
-    setting_value,
-)
-
-
 DEFAULT_LOG_LEVEL_NAME = 'INFO'
 
 

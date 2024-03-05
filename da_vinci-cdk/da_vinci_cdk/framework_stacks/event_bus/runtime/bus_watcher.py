@@ -1,4 +1,4 @@
-'''Lambda module for the event bus watcher.'''
+'''Lambda module for the event bus watcher'''
 from typing import Dict, Optional
 
 from da_vinci.core.rest_service_base import (
@@ -14,6 +14,9 @@ from da_vinci.event_bus.tables.event_bus_responses import (
 
 class EventBusWatcher(SimpleRESTServiceBase):
     def __init__(self):
+        """
+        Initialize the EventBusWatcher
+        """
         self.event_responses = EventBusResponses()
 
         super().__init__(

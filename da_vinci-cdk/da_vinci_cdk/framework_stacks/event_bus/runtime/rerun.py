@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict
 
 from da_vinci.core.rest_service_base import (
     Route,

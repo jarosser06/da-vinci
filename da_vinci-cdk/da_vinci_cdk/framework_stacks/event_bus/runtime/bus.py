@@ -11,7 +11,9 @@ from da_vinci.event_bus.client import (
     EventResponder,
     EventResponseStatus,
 )
+
 from da_vinci.event_bus.event import Event
+
 from da_vinci.event_bus.tables.event_bus_subscriptions import (
     EventBusSubscriptions
 )
