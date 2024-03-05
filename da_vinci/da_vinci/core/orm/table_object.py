@@ -51,7 +51,8 @@ class TableObjectAttribute:
                  argument_names: Optional[List[str]] = None, custom_exporter: Optional[Callable] = None,
                  custom_importer: Optional[Callable] = None, description: Optional[str] = None,
                  dynamodb_key_name: Optional[str] = None, default: Optional[Any] = None,
-                 exclude_from_dict: Optional[bool] = False, is_indexed: bool = True, optional: bool = False):
+                 exclude_from_dict: Optional[bool] = False, exclude_from_schema_description: Optional[bool] = False,
+                 is_indexed: bool = True, optional: bool = False):
         """
         Object representing an attribute of a TableObject
 
@@ -69,6 +70,7 @@ class TableObjectAttribute:
             default -- Default value for the attribute, attribute is considered optional when this is set.
                        Accepts a value or a callable that returns a value.
             exclude_from_dict -- Attribute is not added to a resulting Dict when calling to_dict()
+            exclude_from_schema_description -- Attribute is not included in the table object schema description
             is_indexed -- Whether the attribute is able to be used to query with, defaults to True
             optional -- Whether the attribute optional, defaults to False unless a default is provided
         """
@@ -76,6 +78,7 @@ class TableObjectAttribute:
         self.description = description
         self.attribute_type = attribute_type
         self.exclude_from_dict = exclude_from_dict
+        self.exclude_from_schema_description = exclude_from_schema_description
 
         self.is_indexed = is_indexed
 
@@ -89,6 +92,7 @@ class TableObjectAttribute:
             self.dynamodb_key_name = self.default_dynamodb_key_name(self.name)
 
         self.argument_names = argument_names
+
         if self.attribute_type == TableObjectAttributeType.COMPOSITE_STRING and not self.argument_names:
             raise ValueError('argument_names must be provided when attribute_type is COMPOSITE_STRING')
 
@@ -162,10 +166,10 @@ class TableObjectAttribute:
             str
         """
 
-        descr = f'{self.name} - type:{self.attribute_type.to_str()}'
+        descr = f'{self.name} - type: {self.attribute_type.to_str()}'
 
         if self.description:
-            descr += f' description:{self.description}'
+            descr += f' description: {self.description}'
 
         return descr
 
@@ -664,9 +668,9 @@ class TableObject:
         return key
 
     @classmethod
-    def full_description(cls) -> str:
+    def schema_description(cls) -> str:
         """
-        Get the schema name for the object
+        Get the schema for the object in a human readable format
 
         Returns:
             str
@@ -675,6 +679,12 @@ class TableObject:
 
         if cls.description:
             full_descr += f' - {cls.description}'
+
+        for attr in cls.all_attributes():
+            if attr.exclude_from_schema_description:
+                continue
+
+            full_descr += f'\n  - {attr.schema_to_str()}'
 
         return full_descr
 
