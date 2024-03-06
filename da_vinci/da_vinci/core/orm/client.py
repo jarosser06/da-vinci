@@ -20,7 +20,7 @@ LOG = logging.getLogger(__name__)
 
 
 class TableScanDefinition:
-    __comparison_operators = {
+    _comparison_operators = {
         'contains': 'contains',
         'equal': '=',
         'greater_than': '>',
@@ -51,7 +51,7 @@ class TableScanDefinition:
             comparison: Comparison operator to use (ex: equal or greater_than)
             value: Value to compare against
         """
-        if comparison not in self.__comparison_operators:
+        if comparison not in self._comparison_operators:
             raise TableScanInvalidComparisonException(comparison)
 
         attr_name = attribute_name
@@ -59,13 +59,13 @@ class TableScanDefinition:
             attr_name = f'{self.attribute_prefix}_{attribute_name}'
 
         attribute_definition = self.table_object_class.attribute_definition(
-            attribute_name=attr_name,
+            name=attr_name,
         )
 
         if not attribute_definition:
             raise TableScanInvalidAttributeException(attr_name)
 
-        comparison = self.comparison_map[comparison]
+        comparison = self._comparison_operators[comparison]
 
         self._attribute_filters.append(
             (attr_name, comparison, value)
@@ -124,7 +124,7 @@ class TableScanDefinition:
             else:
                 attr_dynamodb = attr.as_dynamodb_attribute(value)
 
-            expression_attributes[attr_key] = attr_dynamodb
+            expression_attributes[attr_key] = attr_dynamodb[attr.dynamodb_key_name]
             expression.append(expr_part)
 
         return ' AND '.join(expression), expression_attributes
@@ -158,7 +158,7 @@ class TableScanDefinition:
         Keyword Arguments:
             attr: Name of the attribute to filter on
         """
-        if attr in self.__comparison_operators:
+        if attr in self._comparison_operators:
             def add_filter(attribute_name: str, value: Any):
                 self.add(
                     attribute_name=attribute_name,
