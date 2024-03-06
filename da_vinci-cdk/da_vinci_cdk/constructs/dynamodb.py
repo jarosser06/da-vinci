@@ -189,9 +189,8 @@ class DynamoDBTable(Construct):
         Keyword Arguments:
             resource: Resource to grant access to
         """
-
         self.table.grant_read_write_data(resource)
-        self._resource.parameter.grant_read(resource)
+        self._discovery_resource.parameter.grant_read(resource)
 
     @classmethod
     def from_orm_table_object(cls, table_object: TableObject, scope: Construct,
