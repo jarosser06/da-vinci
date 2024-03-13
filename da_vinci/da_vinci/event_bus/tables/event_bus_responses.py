@@ -34,7 +34,7 @@ class EventBusResponse(TableObject):
     ttl_attribute = TableObjectAttribute(
         'time_to_live',
         TableObjectAttributeType.DATETIME,
-        default=lambda: datetime.utcnow() + timedelta(hours=4),
+        default=lambda: datetime.utcnow() + timedelta(hours=8),
         description='The time to live for the table object',
     )
 
