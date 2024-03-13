@@ -276,7 +276,7 @@ typeguard = ">=2.13.3,<2.14.0"
 
 [[package]]
 name = "da-vinci"
-version = "1.2.1"
+version = "1.2.2"
 description = "Da Vinci is used to rapidly build AWS Cloud Native based systems"
 optional = false
 python-versions = "^3.11"
@@ -292,7 +292,7 @@ requests-auth-aws-sigv4 = "0.7"
 type = "git"
 url = "https://github.com/jarosser06/da-vinci"
 reference = "HEAD"
-resolved_reference = "21ad260715904d4d5b22d41abb1fa8f0bf25b4c4"
+resolved_reference = "4ae760c20401efd777fe391dd5313cb6d48c19a5"
 subdirectory = "da_vinci"
 
 [[package]]
