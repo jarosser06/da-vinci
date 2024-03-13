@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "da-vinci-cdk"
-version = "1.2.0"
+version = "1.2.1"
 description = "Da Vinci CDK components"
 authors = ["Jim Rosser"]
 license = "MIT"
