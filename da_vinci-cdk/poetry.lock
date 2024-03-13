@@ -69,13 +69,13 @@ typeguard = ">=2.13.3,<2.14.0"
 
 [[package]]
 name = "aws-cdk-lib"
-version = "2.131.0"
+version = "2.132.1"
 description = "Version 2 of the AWS Cloud Development Kit library"
 optional = false
 python-versions = "~=3.8"
 files = [
-    {file = "aws-cdk-lib-2.131.0.tar.gz", hash = "sha256:9137a078812e173d970086595cc9a2dd45f81e82fc48ed84b9ffbfe6a9af3214"},
-    {file = "aws_cdk_lib-2.131.0-py3-none-any.whl", hash = "sha256:2459f8d191ee5e04a274f62b75117d402c5a4f123dbf316da8a9dc375d266d88"},
+    {file = "aws-cdk-lib-2.132.1.tar.gz", hash = "sha256:62822d7552825d00aeab3f0c0618051a4c5880569d9b64f8cf5c95f91efe8fb7"},
+    {file = "aws_cdk_lib-2.132.1-py3-none-any.whl", hash = "sha256:b3519d105973ac80d6f9d8c964a24a5fde6024dfee63801f78e3f1367d830049"},
 ]
 
 [package.dependencies]
@@ -89,17 +89,17 @@ typeguard = ">=2.13.3,<2.14.0"
 
 [[package]]
 name = "boto3"
-version = "1.34.55"
+version = "1.34.61"
 description = "The AWS SDK for Python"
 optional = false
 python-versions = ">= 3.8"
 files = [
-    {file = "boto3-1.34.55-py3-none-any.whl", hash = "sha256:ee2c96e8a4a741ecb3380e0a406baa67bfea6186be99b75bdeca3e1b5044c088"},
-    {file = "boto3-1.34.55.tar.gz", hash = "sha256:9a6d59e035fac4366dbdaf909c4f66fc817dfbec044fa71564dcf036ad46bb19"},
+    {file = "boto3-1.34.61-py3-none-any.whl", hash = "sha256:992e994c7e481a5d3259c699574882b79d631a46f7c369bea350b7ccb0651317"},
+    {file = "boto3-1.34.61.tar.gz", hash = "sha256:4b40bf2c8494647c9e88c180537dc9fc0c1047a9fffbb1e5b0da6596f1e59b7b"},
 ]
 
 [package.dependencies]
-botocore = ">=1.34.55,<1.35.0"
+botocore = ">=1.34.61,<1.35.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.10.0,<0.11.0"
 
@@ -108,13 +108,13 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.34.55"
+version = "1.34.61"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">= 3.8"
 files = [
-    {file = "botocore-1.34.55-py3-none-any.whl", hash = "sha256:07044c3cbfb86d0ecb9c56d887b8ad63a72eff0e4f6ab329cf335f1fd867ea0b"},
-    {file = "botocore-1.34.55.tar.gz", hash = "sha256:bb333e3845bfe65600f36bf92d09668306e224fa9f4e4f87b77f6957192ae59f"},
+    {file = "botocore-1.34.61-py3-none-any.whl", hash = "sha256:079f3288d38f97fd5656c25c44a94bea0e7090b938abfdeea463eaadb210c4a0"},
+    {file = "botocore-1.34.61.tar.gz", hash = "sha256:72df4af7e4e6392552c882d48c74e4be9bf7be4cd8d829711b312fbae13d7034"},
 ]
 
 [package.dependencies]
@@ -276,7 +276,7 @@ typeguard = ">=2.13.3,<2.14.0"
 
 [[package]]
 name = "da-vinci"
-version = "1.2.0"
+version = "1.2.1"
 description = "Da Vinci is used to rapidly build AWS Cloud Native based systems"
 optional = false
 python-versions = "^3.11"
@@ -292,7 +292,7 @@ requests-auth-aws-sigv4 = "0.7"
 type = "git"
 url = "https://github.com/jarosser06/da-vinci"
 reference = "HEAD"
-resolved_reference = "da6c02ffa78df7044b0ccaee3be42a6726940fb6"
+resolved_reference = "21ad260715904d4d5b22d41abb1fa8f0bf25b4c4"
 subdirectory = "da_vinci"
 
 [[package]]
@@ -308,18 +308,18 @@ files = [
 
 [[package]]
 name = "importlib-resources"
-version = "6.1.2"
+version = "6.3.0"
 description = "Read resources from Python packages"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "importlib_resources-6.1.2-py3-none-any.whl", hash = "sha256:9a0a862501dc38b68adebc82970140c9e4209fc99601782925178f8386339938"},
-    {file = "importlib_resources-6.1.2.tar.gz", hash = "sha256:308abf8474e2dba5f867d279237cd4076482c3de7104a40b41426370e891549b"},
+    {file = "importlib_resources-6.3.0-py3-none-any.whl", hash = "sha256:783407aa1cd05550e3aa123e8f7cfaebee35ffa9cb0242919e2d1e4172222705"},
+    {file = "importlib_resources-6.3.0.tar.gz", hash = "sha256:166072a97e86917a9025876f34286f549b9caf1d10b35a1b372bffa1600c6569"},
 ]
 
 [package.extras]
 docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (<7.2.5)", "sphinx (>=3.5)", "sphinx-lint"]
-testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-mypy", "pytest-ruff (>=0.2.1)", "zipp (>=3.17)"]
+testing = ["jaraco.collections", "pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-mypy", "pytest-ruff (>=0.2.1)", "zipp (>=3.17)"]
 
 [[package]]
 name = "jmespath"
@@ -334,13 +334,13 @@ files = [
 
 [[package]]
 name = "jsii"
-version = "1.94.0"
+version = "1.95.0"
 description = "Python client for jsii runtime"
 optional = false
 python-versions = "~=3.8"
 files = [
-    {file = "jsii-1.94.0-py3-none-any.whl", hash = "sha256:1105bae271ae47c27cf31c1565c5157306efed5ad9323c9a27336f962f465716"},
-    {file = "jsii-1.94.0.tar.gz", hash = "sha256:175abc356603d98f18ab6f6aa74bfeae253e4e56340aef9dc40bbb1a6a59868b"},
+    {file = "jsii-1.95.0-py3-none-any.whl", hash = "sha256:456fe823847e1ebbb49ab4737b181cdb8eeb623058de4669283fba7bb261e8f4"},
+    {file = "jsii-1.95.0.tar.gz", hash = "sha256:f2461a0c1fdd6bb400caac5825596b0068a8c3adb9184549366adcf272815172"},
 ]
 
 [package.dependencies]
