@@ -294,6 +294,26 @@ class TableClient:
             Item=table_object.to_dynamodb_item(),
         )
 
+    def delete_object_by_key(self, partition_key_value: Any, sort_key_value: Any = None):
+        """
+        Delete a single object from the table by partition and sort key
+
+        Keyword Arguments:
+            partition_key_value: Value of the partition key
+            sort_key_value: Value of the sort key (default: None)
+        """
+        key_args = {
+            'partition_key_value': partition_key_value,
+        }
+
+        if sort_key_value:
+            key_args['sort_key_value'] = sort_key_value
+
+        self.client.delete_item(
+            TableName=self.table_endpoint_name,
+            Key=self.default_object_class.gen_dynamodb_key(**key_args),
+        )
+
     def delete_object(self, table_object: TableObject):
         """
         Delete a single object from the table
