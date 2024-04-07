@@ -163,7 +163,7 @@ class AsyncService(Construct):
         Keyword Arguments:
             resource: The resource to grant publish permissions to
         '''
-        self._discovery_resource.parameter.grant_read(resource)
+        self.discovery_resource.parameter.grant_read(resource)
         self.queue.grant_send_messages(resource)
 
 
@@ -292,7 +292,7 @@ class SimpleRESTService(Construct):
         Keyword Arguments:
             resource: The resource to grant invoke permissions to
         '''
-        self._discovery_resource.parameter.grant_read(resource)
+        self.discovery_resource.parameter.grant_read(resource)
         self.function_url.grant_invoke_url(resource)
 
 
