@@ -130,7 +130,7 @@ class AsyncService(Construct):
             priority=200
         )
 
-        self._discovery_resource = DiscoverableResource(
+        self.discovery_resource = DiscoverableResource(
             construct_id=f'{construct_id}-discovery-resource',
             scope=self,
             resource_endpoint=self.queue.queue_url,
@@ -140,7 +140,7 @@ class AsyncService(Construct):
 
         self.grant_publish(self.handler.function)
 
-        queue_access_statement = cdk_iam.PolicyStatement(
+        self.queue_access_statement = cdk_iam.PolicyStatement(
             actions=['sqs:SendMessage'],
             resources=[self.queue.queue_arn],
         )
@@ -148,8 +148,8 @@ class AsyncService(Construct):
         self.default_access_policy = ResourceAccessPolicy(
             scope=scope,
             policy_statements=[
-                queue_access_statement,
-                self._discovery_resource.parameter.access_statement(),
+                self.queue_access_statement,
+                self.discovery_resource.parameter.access_statement(),
             ],
             resource_name=service_name,
             resource_type=ResourceType.ASYNC_SERVICE,
@@ -262,7 +262,7 @@ class SimpleRESTService(Construct):
             auth_type=auth_type,
         )
 
-        self._discovery_resource = DiscoverableResource(
+        self.discovery_resource = DiscoverableResource(
             construct_id=f'{construct_id}-discovery-resource',
             scope=self,
             resource_endpoint=self.function_url.url,
@@ -270,7 +270,7 @@ class SimpleRESTService(Construct):
             resource_type=ResourceType.REST_SERVICE,
         )
 
-        fn_url_access_statement = cdk_iam.PolicyStatement(
+        self.fn_url_access_statement = cdk_iam.PolicyStatement(
             actions=['lambda:InvokeFunctionURL'],
             resources=[self.function_url.function_arn],
         )
@@ -278,8 +278,8 @@ class SimpleRESTService(Construct):
         self.default_access_policy = ResourceAccessPolicy(
             scope=scope,
             policy_statements=[
-                fn_url_access_statement,
-                self._discovery_resource.parameter.access_statement(),
+                self.fn_url_access_statement,
+                self.discovery_resource.parameter.access_statement(),
             ],
             resource_name=service_name,
             resource_type=ResourceType.REST_SERVICE,
