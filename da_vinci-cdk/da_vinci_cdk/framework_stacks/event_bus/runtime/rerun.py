@@ -7,13 +7,13 @@ from da_vinci.core.rest_service_base import (
 from da_vinci.event_bus.client import EventPublisher
 from da_vinci.event_bus.event import Event
 from da_vinci.event_bus.tables.event_bus_responses import (
-    EventBusSubscriptionResponses,
+    EventBusResponses,
 )
 
 
 class EventRerun(SimpleRESTServiceBase):
     def __init__(self):
-        self.event_responses = EventBusSubscriptionResponses()
+        self.event_responses = EventBusResponses()
         self.publisher = EventPublisher()
 
         super().__init__(
