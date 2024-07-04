@@ -23,7 +23,7 @@ from da_vinci_cdk.constructs.access_management import (
 from da_vinci_cdk.constructs.base import apply_framework_tags
 
 
-_DEFAULT_BASE_IMAGE = 'public.ecr.aws/lambda/python:3.11.2023.11.18.02'
+_DEFAULT_BASE_IMAGE = 'public.ecr.aws/lambda/python:3.12'
 
 
 class LambdaFunction(Construct):
