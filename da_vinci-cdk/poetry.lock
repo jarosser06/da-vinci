@@ -69,13 +69,13 @@ typeguard = ">=2.13.3,<2.14.0"
 
 [[package]]
 name = "aws-cdk-lib"
-version = "2.147.3"
+version = "2.151.0"
 description = "Version 2 of the AWS Cloud Development Kit library"
 optional = false
 python-versions = "~=3.8"
 files = [
-    {file = "aws-cdk-lib-2.147.3.tar.gz", hash = "sha256:1734532c094310d6a2a884db4c2566f7163b8ecb1a669efaffc1e07b5783dd71"},
-    {file = "aws_cdk_lib-2.147.3-py3-none-any.whl", hash = "sha256:0e8c26fc0817b549a78c7f3ae82ede4fb4aebde57391f1625e50c89498a552e0"},
+    {file = "aws-cdk-lib-2.151.0.tar.gz", hash = "sha256:de4e48c88cc7cc78dd7bf9552d2fb16c23b138389413ecdc339afe4d269e2b59"},
+    {file = "aws_cdk_lib-2.151.0-py3-none-any.whl", hash = "sha256:53592054de115cdd38b581b669be700232bff11855d47c1b2308abcf9d845519"},
 ]
 
 [package.dependencies]
@@ -83,23 +83,23 @@ files = [
 "aws-cdk.asset-kubectl-v20" = ">=2.1.2,<3.0.0"
 "aws-cdk.asset-node-proxy-agent-v6" = ">=2.0.3,<3.0.0"
 constructs = ">=10.0.0,<11.0.0"
-jsii = ">=1.99.0,<2.0.0"
+jsii = ">=1.101.0,<2.0.0"
 publication = ">=0.0.3"
 typeguard = ">=2.13.3,<2.14.0"
 
 [[package]]
 name = "boto3"
-version = "1.34.139"
+version = "1.34.161"
 description = "The AWS SDK for Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "boto3-1.34.139-py3-none-any.whl", hash = "sha256:98b2a12bcb30e679fa9f60fc74145a39db5ec2ca7b7c763f42896e3bd9b3a38d"},
-    {file = "boto3-1.34.139.tar.gz", hash = "sha256:32b99f0d76ec81fdca287ace2c9744a2eb8b92cb62bf4d26d52a4f516b63a6bf"},
+    {file = "boto3-1.34.161-py3-none-any.whl", hash = "sha256:4ef285334a0edc3047e27a04caf00f7742e32c0f03a361101e768014ac5709dd"},
+    {file = "boto3-1.34.161.tar.gz", hash = "sha256:a872d8fdb3203c1eb0b12fa9e9d879e6f7fd02983a485f02189e6d5914ccd834"},
 ]
 
 [package.dependencies]
-botocore = ">=1.34.139,<1.35.0"
+botocore = ">=1.34.161,<1.35.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.10.0,<0.11.0"
 
@@ -108,13 +108,13 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.34.139"
+version = "1.34.161"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "botocore-1.34.139-py3-none-any.whl", hash = "sha256:dd1e085d4caa2a4c1b7d83e3bc51416111c8238a35d498e9d3b04f3b63b086ba"},
-    {file = "botocore-1.34.139.tar.gz", hash = "sha256:df023d8cf8999d574214dad4645cb90f9d2ccd1494f6ee2b57b1ab7522f6be77"},
+    {file = "botocore-1.34.161-py3-none-any.whl", hash = "sha256:6c606d2da6f62fde06880aff1190566af208875c29938b6b68741e607817975a"},
+    {file = "botocore-1.34.161.tar.gz", hash = "sha256:16381bfb786142099abf170ce734b95a402a3a7f8e4016358712ac333c5568b2"},
 ]
 
 [package.dependencies]
@@ -123,7 +123,7 @@ python-dateutil = ">=2.1,<3.0.0"
 urllib3 = {version = ">=1.25.4,<2.2.0 || >2.2.0,<3", markers = "python_version >= \"3.10\""}
 
 [package.extras]
-crt = ["awscrt (==0.20.11)"]
+crt = ["awscrt (==0.21.2)"]
 
 [[package]]
 name = "cattrs"
@@ -292,7 +292,7 @@ requests-auth-aws-sigv4 = "0.7"
 type = "git"
 url = "https://github.com/jarosser06/da-vinci"
 reference = "HEAD"
-resolved_reference = "4076329ef691354810ab765d259e0a9690a5234f"
+resolved_reference = "aed4881b4b9b25474ef93d88fe31bf2792d75772"
 subdirectory = "da_vinci"
 
 [[package]]
@@ -334,13 +334,13 @@ files = [
 
 [[package]]
 name = "jsii"
-version = "1.101.0"
+version = "1.102.0"
 description = "Python client for jsii runtime"
 optional = false
 python-versions = "~=3.8"
 files = [
-    {file = "jsii-1.101.0-py3-none-any.whl", hash = "sha256:b78b87f8316560040ad0b9dca1682d73b6532a33acf4ecf56185d1ae5edb54fa"},
-    {file = "jsii-1.101.0.tar.gz", hash = "sha256:043c4d3d0d09af3c7265747f4da9c95770232477f75c846640df4c63d01b19cb"},
+    {file = "jsii-1.102.0-py3-none-any.whl", hash = "sha256:9e0f54acd55d8ea7a0bfd7e4a3dccacf6ca3466a8d67d47703594cffedad382a"},
+    {file = "jsii-1.102.0.tar.gz", hash = "sha256:ee044964a0db600d9dcde85b4763beb996b3f56a4c951911eb3ff073deeb8603"},
 ]
 
 [package.dependencies]
