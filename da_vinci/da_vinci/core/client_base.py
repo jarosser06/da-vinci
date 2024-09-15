@@ -117,8 +117,6 @@ class RESTClientBase(BaseClient):
             response: requests.Response object
             expect_body: Whether or not to expect a response body (default: True)
         '''
-        response.raise_for_status()
-
         if expect_body:
             response_body = response.json()
         else:
