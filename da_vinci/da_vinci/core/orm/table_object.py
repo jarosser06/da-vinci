@@ -20,6 +20,8 @@ class TableObjectAttributeType(StrEnum):
     NUMBER_LIST = auto()
     JSON_LIST = auto()
     COMPOSITE_STRING = auto()
+    STRING_SET = auto()
+    NUMBER_SET = auto()
 
     @classmethod
     def is_list(cls, attribute_type: 'TableObjectAttributeType') -> bool:
@@ -189,13 +191,23 @@ class TableObjectAttribute:
             str
         """
         dynamodb_type_label = 'S'
+
+        # Handle number and datetime types
         if self.attribute_type is TableObjectAttributeType.NUMBER \
                 or self.attribute_type is TableObjectAttributeType.DATETIME:
             dynamodb_type_label = 'N'
+
+        # Handle boolean types
         elif self.attribute_type is TableObjectAttributeType.BOOLEAN:
             dynamodb_type_label = 'BOOL'
+
+        # Handle list types
         elif TableObjectAttributeType.is_list(self.attribute_type):
             dynamodb_type_label = 'L'
+
+        # Handle set types
+        elif self.attribute_type in (TableObjectAttributeType.STRING_SET, TableObjectAttributeType.NUMBER_SET):
+            dynamodb_type_label = 'SS' if self.attribute_type == TableObjectAttributeType.STRING_SET else 'NS'
 
         return dynamodb_type_label
 
@@ -212,17 +224,21 @@ class TableObjectAttribute:
         if self.custom_exporter:
             return self.custom_exporter(value)
 
+        # Handle number types
         if self.attribute_type is TableObjectAttributeType.NUMBER:
             return str(value)
 
+        # Handle datetime types
         elif self.attribute_type is TableObjectAttributeType.DATETIME:
             if not value:
                 return str(0)
             return str(float(self.datetime_to_timestamp(value)))
 
+        # Handle JSON types
         elif self.attribute_type is TableObjectAttributeType.JSON:
             return json.dumps(value, cls=DateTimeEncoder)
 
+        # Handle composite string types
         elif self.attribute_type is TableObjectAttributeType.COMPOSITE_STRING:
             if isinstance(value, str):
                 return value
@@ -234,6 +250,7 @@ class TableObjectAttribute:
 
             return TableObjectAttribute.composite_string_value(arg_values)
 
+        # Handle list types
         elif TableObjectAttributeType.is_list(self.attribute_type):
             if not value:
                 return []
@@ -247,6 +264,15 @@ class TableObjectAttribute:
 
             return [{label: str(val)} for val in value]
 
+        # Handle string set types
+        elif self.attribute_type == TableObjectAttributeType.STRING_SET:
+            return list(value)  # DynamoDB stores sets as lists in JSON format
+
+        # Handle number set types
+        elif self.attribute_type == TableObjectAttributeType.NUMBER_SET:
+            return [str(val) for val in value]
+
+        # Handle boolean types
         elif not isinstance(value, bool) and not value:
             return str(value)
 
@@ -296,6 +322,12 @@ class TableObjectAttribute:
                     return [json.loads(val[label]) for val in value]
 
                 return [val[label] for val in value]
+
+        elif self.attribute_type == TableObjectAttributeType.STRING_SET:
+            return set(value)  # Convert list back to set
+
+        elif self.attribute_type == TableObjectAttributeType.NUMBER_SET:
+            return set(map(int, value))
 
         elif self.attribute_type is TableObjectAttributeType.COMPOSITE_STRING:
             return tuple(value.split('-'))
