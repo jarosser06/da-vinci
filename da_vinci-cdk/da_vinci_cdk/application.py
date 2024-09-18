@@ -1,5 +1,3 @@
-import logging
-
 from os import getenv
 from os.path import (
     join as path_join,
@@ -18,13 +16,11 @@ from constructs import Construct
 
 from da_vinci_cdk.constructs.dns import PublicDomain
 from da_vinci_cdk.constructs.global_setting import GlobalSetting
+from da_vinci_cdk.constructs.s3 import Bucket
 from da_vinci_cdk.framework_stacks.event_bus.stack import EventBusStack
 from da_vinci_cdk.framework_stacks.global_settings.stack import GlobalSettingsStack
 from da_vinci_cdk.framework_stacks.exceptions_trap.stack import ExceptionsTrapStack
 from da_vinci_cdk.stack import Stack
-
-
-LOG = logging.getLogger(__name__)
 
 
 DA_VINCI_DISABLE_DOCKER_CACHE = getenv('DA_VINCI_DISABLE_DOCKER_CACHE', False)
@@ -33,7 +29,8 @@ DA_VINCI_DISABLE_DOCKER_CACHE = getenv('DA_VINCI_DISABLE_DOCKER_CACHE', False)
 class CoreStack(Stack):
     def __init__(self, app_name: str, deployment_id: str, scope: Construct, stack_name: str,
                  create_hosted_zone: bool = True, global_settings_enabled: bool = True,
-                 root_domain_name: Optional[str] = None):
+                 root_domain_name: Optional[str] = None, s3_logging_bucket_name: str = None,
+                 s3_logging_bucket_object_retention_days: Optional[int] = None, using_external_logging_bucket: bool = False):
         """
         Bootstrap the initial infrastructure required to stand up a DaVinci
 
@@ -45,6 +42,9 @@ class CoreStack(Stack):
             root_domain_name: Root domain name for the application (default: None)
             scope: Parent construct for the stack
             stack_name: Name of the stack
+            s3_logging_bucket_name: Name of the S3 bucket to use for logging (default: None)
+            s3_logging_bucket_object_retention_days: Number of days before objects in the bucket expire (default: None)
+            using_external_logging_bucket: Whether or not a pre-existing bucket is being used for logging(default: False)
         """
 
         super().__init__(
@@ -59,9 +59,17 @@ class CoreStack(Stack):
 
             GlobalSetting(
                 description='Whether Global settings are enabled. Managed by framework deployment, do not modify!',
-                namespace='core',
+                namespace='da_vinci_framework::core',
                 setting_key='global_settings_enabled',
                 setting_value=True,
+                scope=self,
+            )
+
+            GlobalSetting(
+                description='The name of the S3 Logging Bucket, null if not used. Managed by framework deployment, modify at your own risk!',
+                namespace='da_vinci_framework::core',
+                setting_key='s3_logging_bucket',
+                setting_value=s3_logging_bucket_name,
                 scope=self,
             )
 
@@ -73,18 +81,32 @@ class CoreStack(Stack):
 
             for setting_key in core_str_setting_keys:
                 GlobalSetting(
-                    description=f'The {setting_key} available to all components of the application. ONLY MODIFY THROUGH DEPLOYMENT!',
-                    namespace='core',
+                    description=f'The {setting_key} available to all components of the application.',
+                    namespace='da_vinci_framework::core',
                     setting_key=setting_key,
                     setting_value=self.node.get_context(setting_key),
                     scope=self,
                 )
 
+        if s3_logging_bucket_name:
+            if using_external_logging_bucket:
+                Bucket.deploy_access(construct_id='app-logging-bucket', scope=self,
+                                     bucket_name=s3_logging_bucket_name)
+
+            else:
+                self.logging_bucket = Bucket(
+                    bucket_name=s3_logging_bucket_name,
+                    construct_id='app-logging-bucket',
+                    object_expiration_days=s3_logging_bucket_object_retention_days,
+                    scope=self,
+                    use_specified_bucket_name=True,
+                )
+
         if root_domain_name:
             if global_settings_enabled:
                 GlobalSetting(
-                    description='The root domain for the application. Managed through employment process only!',
-                    namespace='core',
+                    description='The root domain for the application. Managed for deployment process only!',
+                    namespace='da_vinci_framework::core',
                     setting_key='root_domain_name',
                     setting_value=root_domain_name,
                     scope=self,
@@ -106,10 +128,17 @@ class Application:
                  create_hosted_zone: Optional[bool] = False,
                  disable_docker_image_cache: Optional[bool] = DA_VINCI_DISABLE_DOCKER_CACHE,
                  enable_exception_trap: Optional[bool] = True, enable_global_settings: Optional[bool] = True,
-                 include_event_bus: Optional[bool] = False, 
-                 log_level: Optional[str] = 'INFO', root_domain_name: Optional[str] = None):
+                 existing_s3_logging_bucket_name: Optional[str] = None,
+                 include_event_bus: Optional[bool] = False, log_level: Optional[str] = 'INFO',
+                 root_domain_name: Optional[str] = None, s3_logging_bucket_name_postfix: Optional[str] = None,
+                 s3_logging_bucket_name_prefix: Optional[str] = None,
+                 s3_logging_bucket_object_retention_days: Optional[int] = None):
         """
         Initialize a new Application object
+
+        S3 Logging Bucket Note:
+            When using an existing S3 logging bucket, the framework will deploy access for itself but it will not manage the bucket
+            or its lifecycle. This is useful for when the bucket is managed by another process or team.
 
         Keyword Arguments:
             app_entry: Path to the application entry point (default: None)
@@ -119,9 +148,12 @@ class Application:
             deployment_id: Identifier assigned to the installation
             enable_exception_trap: Whether to enable the exception trap (default: True)
             enable_global_settings: Whether to build the global settings stack as part of the application (default: True)
+            existing_s3_logging_bucket_name: Name of an existing S3 bucket to use for logging (default: None)
             include_event_bus: Whether to build the event bus stack as part of the application (default: False)
             log_level: Logging level to use for the application (default: INFO)
             root_domain_name: Root domain name for the application (default: None)
+            s3_logging_bucket_name_postfix: Postfix name of the S3 bucket to use for logging, appends the deployment_id (default: None)
+            s3_logging_bucket_name_prefix: Prefix name of the S3 bucket to use for logging, appends the deployment_id (default: None)
 
         Example:
             ```
@@ -139,11 +171,17 @@ class Application:
             ```
         """
         self.app_entry = app_entry
+
         self.app_name = app_name
+
         self.architecture = architecture
+
         self.deployment_id = deployment_id
+
         self.log_level = log_level
+
         self.global_settings_enabled = enable_global_settings
+
         self.root_domain_name = root_domain_name
 
         self.lib_docker_image = DockerImage.from_build(
@@ -169,11 +207,29 @@ class Application:
 
         self._stacks = {}
 
+        external_logging_bucket = False
+
+        if existing_s3_logging_bucket_name:
+            external_logging_bucket = True
+
+            if s3_logging_bucket_name_prefix:
+                raise ValueError('Both existing_s3_logging_bucket_name and s3_logging_bucket_name_prefix cannot be set')
+
+            s3_logging_bucket_name = existing_s3_logging_bucket_name
+
+        else:
+            prefix = s3_logging_bucket_name_prefix or ''
+
+            postfix = s3_logging_bucket_name_postfix or ''
+
+            s3_logging_bucket_name = f'{prefix}{app_name}-{deployment_id}{postfix}'
+
         context = {
             'app_name': self.app_name,
             'architecture': self.architecture,
             'deployment_id': self.deployment_id,
             'global_settings_enabled': self.global_settings_enabled,
+            's3_logging_bucket_name': s3_logging_bucket_name,
             'exception_trap_enabled': enable_exception_trap,
             'log_level': self.log_level,
             'root_domain_name': self.root_domain_name,
@@ -191,14 +247,6 @@ class Application:
 
             self.dependency_stacks.append(global_settings_stack)
 
-        if enable_exception_trap:
-            exceptions_trap_stack = self.add_uninitialized_stack(
-                stack=ExceptionsTrapStack,
-                include_core_dependencies=False,
-            )
-
-            self.dependency_stacks.append(exceptions_trap_stack)
-
         self.core_stack = CoreStack(
             app_name=self.app_name,
             create_hosted_zone=create_hosted_zone,
@@ -207,9 +255,20 @@ class Application:
             scope=self.cdk_app,
             stack_name=self.generate_stack_name(CoreStack),
             root_domain_name=self.root_domain_name,
+            using_external_logging_bucket=external_logging_bucket,
+            s3_logging_bucket_name=s3_logging_bucket_name,
+            s3_logging_bucket_object_retention_days=s3_logging_bucket_object_retention_days,
         )
 
         self.dependency_stacks.append(self.core_stack)
+
+        if enable_exception_trap:
+            exceptions_trap_stack = self.add_uninitialized_stack(
+                stack=ExceptionsTrapStack,
+                include_core_dependencies=False,
+            )
+
+            self.dependency_stacks.append(exceptions_trap_stack)
 
         if include_event_bus:
             self.add_uninitialized_stack(EventBusStack)

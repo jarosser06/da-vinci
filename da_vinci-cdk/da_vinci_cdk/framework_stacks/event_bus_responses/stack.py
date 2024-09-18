@@ -10,7 +10,7 @@ from da_vinci_cdk.constructs.dynamodb import (
 )
 
 
-class EventBusResponsesTable(Stack):
+class EventBusResponsesTableStack(Stack):
     def __init__(self, app_name: str, deployment_id: str, scope: Construct, stack_name: str):
             
         super().__init__(

@@ -1,16 +1,16 @@
 [tool.poetry]
 name = "da-vinci-cdk"
-version = "1.5.0"
+version = "2.0.0"
 description = "Da Vinci CDK components"
 authors = ["Jim Rosser"]
 license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.12"
 aws-cdk-lib = "^2.115.0"
 constructs = "^10.0.0"
-da-vinci = { git = "https://github.com/jarosser06/da-vinci", develop = true, subdirectory = "da_vinci" }
+da-vinci = { git = "https://github.com/jarosser06/da-vinci", develop = true, subdirectory = "da_vinci", branch = "madness" }
 
 
 [build-system]

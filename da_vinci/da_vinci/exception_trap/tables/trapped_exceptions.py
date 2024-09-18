@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC as utc_tz
 from typing import List, Optional 
 from uuid import uuid4
 
@@ -12,7 +12,9 @@ from da_vinci.core.orm import (
 
 
 class TrappedException(TableObject):
-    description = 'Trapped Exceptions'
+    table_name = 'trapped_exceptions'
+
+    description = 'Holds exceptions that have been trapped'
 
     partition_key_attribute = TableObjectAttribute(
         'function_name',
@@ -27,12 +29,11 @@ class TrappedException(TableObject):
         default=lambda: str(uuid4()),
     )
 
-    table_name = 'trapped_exceptions'
     ttl_attribute = TableObjectAttribute(
         'time_to_live',
-        TableObjectAttributeType.NUMBER,
+        TableObjectAttributeType.DATETIME,
         description='The TTL for the record',
-        default=lambda: int((datetime.utcnow() + timedelta(days=7)).timestamp()),
+        default=lambda: datetime.now(tz=utc_tz) + timedelta(days=2)
     )
 
     attributes = [
@@ -55,22 +56,37 @@ class TrappedException(TableObject):
         ),
 
         TableObjectAttribute(
+            'log_execution_id',
+            TableObjectAttributeType.STRING,
+            description='The execution ID of the log',
+            optional=True,
+        ),
+
+        TableObjectAttribute(
+            'log_namespace',
+            TableObjectAttributeType.STRING,
+            description='The namespace of the log',
+            optional=True,
+        ),
+
+        TableObjectAttribute(
             'metadata',
-            TableObjectAttributeType.JSON,
+            TableObjectAttributeType.JSON_STRING,
             description='Any additional information about the exception',
             default={},
+            optional=True,
         ),
 
         TableObjectAttribute(
             'originating_event',
-            TableObjectAttributeType.JSON,
+            TableObjectAttributeType.JSON_STRING,
             description='The originating event that caused the exception',
         ),
 
         TableObjectAttribute(
-            'trapped_ts',
+            'trapped_on',
             TableObjectAttributeType.DATETIME,
-            default=lambda: datetime.utcnow(),
+            default=lambda: datetime.now(tz=utc_tz),
             description='The datetime the exception was trapped',
         )
     ]
@@ -110,8 +126,8 @@ class TrappedExceptions(TableClient):
             exception_id: The ID of the exception
         """
         return self.get_object(
-            partition_key=function_name,
-            sort_key=exception_id,
+            partition_key_value=function_name,
+            sort_key_value=exception_id,
         )
 
     def delete(self, trapped_exception: TrappedException):
