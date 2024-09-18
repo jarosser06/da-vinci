@@ -1,6 +1,6 @@
 '''Event Bus  Responses Table'''
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC as utc_tz
 from typing import List, Optional
 from uuid import uuid4
 
@@ -34,7 +34,7 @@ class EventBusResponse(TableObject):
     ttl_attribute = TableObjectAttribute(
         'time_to_live',
         TableObjectAttributeType.DATETIME,
-        default=lambda: datetime.utcnow() + timedelta(hours=8),
+        default=lambda: datetime.now(tz=utc_tz) + timedelta(hours=8),
         description='The time to live for the table object',
     )
 
@@ -42,7 +42,7 @@ class EventBusResponse(TableObject):
         TableObjectAttribute(
             'created',
             TableObjectAttributeType.DATETIME,
-            default=lambda: datetime.utcnow(),
+            default=lambda: datetime.now(tz=utc_tz),
             description='The datetime the response was created',
         ),
 
@@ -66,7 +66,7 @@ class EventBusResponse(TableObject):
 
         TableObjectAttribute(
             'original_event_body',
-            TableObjectAttributeType.JSON,
+            TableObjectAttributeType.JSON_STRING,
             description='The original event body',
         ),
 

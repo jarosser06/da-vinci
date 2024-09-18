@@ -118,7 +118,13 @@ class RESTClientBase(BaseClient):
             expect_body: Whether or not to expect a response body (default: True)
         '''
         if expect_body:
-            response_body = response.json()
+            if response.status_code < 200 or response.status_code >= 300:
+                raise ValueError(f'Failed to make request: {response.text}')
+
+            try:
+                response_body = response.json()
+            except json.JSONDecodeError as json_error:
+                raise ValueError(f'Failed to parse response body: {response.text}\n{json_error}')
         else:
             response_body = None
 

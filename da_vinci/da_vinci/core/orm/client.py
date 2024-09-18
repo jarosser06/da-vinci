@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional, Union
 
 import boto3
 
+from botocore.exceptions import ClientError
+
 from da_vinci.core.exceptions import ResourceNotFoundError
 from da_vinci.core.resource_discovery import resource_endpoint_lookup
 from da_vinci.core.orm.exceptions import (
@@ -14,9 +16,6 @@ from da_vinci.core.orm.table_object import (
     TableObject,
     TableObjectAttributeType,
 )
-
-
-LOG = logging.getLogger(__name__)
 
 
 class TableScanDefinition:
@@ -258,13 +257,15 @@ class TableClient:
 
         return all
 
-    def get_object(self, partition_key_value: Any, sort_key_value: Any = None) -> Union[TableObject, None]:
+    def get_object(self, partition_key_value: Any, sort_key_value: Any = None,
+                   consistent_read: Optional[bool] = False) -> Union[TableObject, None]:
         """
         Retrieve a single object from the table by partition and sort key
 
         Keyword Arguments:
             partition_key_value: Value of the partition key
             sort_key_value: Value of the sort key (default: None)
+            consistent_read: Whether to use consistent read (default: False)
         """
         dynamodb_key = self.default_object_class.gen_dynamodb_key(
             partition_key_value=partition_key_value,
@@ -274,7 +275,10 @@ class TableClient:
         results = self.client.get_item(
             TableName=self.table_endpoint_name,
             Key=dynamodb_key,
+            ConsistentRead=consistent_read,
         )
+
+        logging.debug(f"Get object results: {results}")
 
         if 'Item' not in results:
             return None
@@ -289,10 +293,26 @@ class TableClient:
             table_object: Object to save
         """
 
-        self.client.put_item(
-            TableName=self.table_endpoint_name,
-            Item=table_object.to_dynamodb_item(),
-        )
+        logging.debug(f"Saving object: {table_object.to_dynamodb_item()}")
+
+        try:
+            self.client.put_item(
+                TableName=self.table_endpoint_name,
+                Item=table_object.to_dynamodb_item(),
+            )
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ValidationException':
+                error_message = e.response['Error']['Message']
+
+                if "Supplied AttributeValue is empty" in error_message:
+                    raise Exception(f"Empty attribute value detected, if using JSON type, attributes cannot be empty. Original Error: {error_message}")
+
+                else:
+                    raise
+
+            else:
+                # Re-raise the error if it's not a ValidationException
+                raise
 
     def delete_object_by_key(self, partition_key_value: Any, sort_key_value: Any = None):
         """
@@ -361,7 +381,7 @@ class TableClient:
 
     def full_scan(self, scan_definition: TableScanDefinition) -> List[TableObject]:
         """
-        Perform a full scan on the table, works similar to the paginator.
+        Perform a full scan on the table, returns all items matching the scan definition at once.
 
         Keyword Arguments:
             scan_definition: Scan definition to use (default: None)
@@ -372,3 +392,125 @@ class TableClient:
             all.extend(page)
 
         return all
+
+    def update_object(self, partition_key_value: Any, sort_key_value: Any,
+                      updates: Dict[str, Any] = None, remove_keys: List[str] = None) -> None:
+        """
+        Updates an item in the DynamoDB table by applying SET and REMOVE operations.
+
+        This method allows partial updates to items by setting new values for attributes or 
+        removing existing ones. It supports dot notation for nested JSON map updates, enabling 
+        the modification of specific keys within a JSON-like structure in DynamoDB.
+
+        Arguments:
+            partition_key_value (Any): The value of the partition key for the item to be updated.
+            sort_key_value (Any): The value of the sort key for the item to be updated.
+            updates (Dict[str, Any], optional): A dictionary containing attribute names (as keys) 
+                and their new values (as values) to be updated in the table. If dot notation is 
+                used in the attribute name (e.g., 'json_map.sub_key'), it will update a nested key 
+                within a DynamoDB MAP type.
+            remove_keys (List[str], optional): A list of attribute names to be removed from the item. 
+                Dot notation can be used to remove nested attributes from a DynamoDB MAP.
+
+        Example Usage:
+            - To update a nested key inside a JSON map:
+                updates = {'json_map.sub_key': 'new_value'}
+                remove_keys = ['json_map.another_sub_key']
+
+            - To update a top-level attribute and remove another:
+                updates = {'attribute1': 'new_value'}
+                remove_keys = ['attribute2']
+
+        Notes:
+            - This method generates DynamoDB UpdateExpressions to execute the SET and REMOVE 
+            operations in a single request.
+            - If both updates and remove_keys are provided, they are combined in the final 
+            update expression.
+            - Dot notation in updates or remove_keys will handle nested attributes within DynamoDB 
+            MAP types.
+            - This method assumes the object's table schema is already defined in the `default_object_class`.
+
+        Raises:
+            ClientError: If a client error occurs during the DynamoDB update operation.
+            Exception: If an attribute with an empty value is provided for a DynamoDB JSON attribute.
+
+        Returns:
+            None
+        """
+        update_expressions = []
+
+        expression_attribute_values = {}
+
+        expression_attribute_names = {}
+
+        # Handle updates (SET operations)
+        if updates:
+            for attribute_name, value in updates.items():
+                # Check for dot notation (e.g. 'json_map.sub_key')
+                if '.' in attribute_name:
+                    parts = attribute_name.split('.')
+
+                    dynamo_key = f"#{parts[0]}"
+
+                    nested_key = '.'.join([f"#{part}" for part in parts[1:]])
+
+                    dynamo_value = f":val_{attribute_name.replace('.', '_')}"
+
+                    # Construct the SET expression for nested MAP
+                    update_expressions.append(f"SET {dynamo_key}.{nested_key} = {dynamo_value}")
+
+                    # Prepare the attribute value and name mappings
+                    expression_attribute_values[dynamo_value] = value
+
+                    expression_attribute_names.update({f"#{part}": part for part in parts})
+                else:
+                    # Regular attribute (non-nested)
+                    dynamo_key = f"#{attribute_name}"
+
+                    dynamo_value = f":val_{attribute_name}"
+
+                    update_expressions.append(f"SET {dynamo_key} = {dynamo_value}")
+
+                    expression_attribute_values[dynamo_value] = self.default_object_class.attribute_definition(attribute_name).dynamodb_value(value)
+
+                    expression_attribute_names[dynamo_key] = attribute_name
+
+        # Handle removals (REMOVE operations)
+        if remove_keys:
+            for attribute_name in remove_keys:
+                if '.' in attribute_name:
+                    # Dot notation for removing nested MAP attributes
+                    parts = attribute_name.split('.')
+
+                    dynamo_key = f"#{parts[0]}"
+
+                    nested_key = '.'.join([f"#{part}" for part in parts[1:]])
+
+                    update_expressions.append(f"REMOVE {dynamo_key}.{nested_key}")
+
+                    expression_attribute_names.update({f"#{part}": part for part in parts})
+                else:
+                    # Regular attribute (non-nested)
+                    dynamo_key = f"#{attribute_name}"
+
+                    update_expressions.append(f"REMOVE {dynamo_key}")
+
+                    expression_attribute_names[dynamo_key] = attribute_name
+
+        # Combine all expressions into a single DynamoDB expression
+        update_expression = " ".join(update_expressions)
+
+        # Generate the DynamoDB key for the object
+        dynamodb_key = self.default_object_class.gen_dynamodb_key(
+            partition_key_value=partition_key_value,
+            sort_key_value=sort_key_value,
+        )
+
+        # Execute the update in DynamoDB
+        self.client.update_item(
+            TableName=self.table_endpoint_name,
+            Key=dynamodb_key,
+            UpdateExpression=update_expression,
+            ExpressionAttributeValues=expression_attribute_values,
+            ExpressionAttributeNames=expression_attribute_names
+        )

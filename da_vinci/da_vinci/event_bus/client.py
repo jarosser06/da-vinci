@@ -1,7 +1,6 @@
 '''Event Bus Clients'''
 
 import json
-import logging
 import traceback
 
 from collections.abc import Callable
@@ -17,8 +16,6 @@ from da_vinci.core.logging import Logger
 from da_vinci.event_bus.event import Event
 
 from da_vinci.exception_trap.client import ExceptionReporter
-
-
 
 
 class EventPublisher(AsyncClientBase):
@@ -105,7 +102,7 @@ class EventResponder(RESTClientBase):
 
 
 def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
-                      function_name: Optional[str] = None):
+                      function_name: Optional[str] = None, logger: Optional[Logger] = None):
     """
     Wraps a function that tracks event responses. When wrapped, the function
     will report any results to the event watcher.
@@ -113,18 +110,21 @@ def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
     Keyword Arguments:
         exception_reporter: ExceptionReporter to use for reporting exceptions, optional
         function_name: Name of the function to report exceptions for, required if exception_reporter is provided
+        logger: Logger to use for logging, optional
     """
     def event_response_wrapper(func: Callable):
         @wraps(func)
         def wrapper(event: Dict, context: Dict):
-            logger = Logger('da_vinci.event_bus.response_wrapper')
+            _logger = logger or Logger('da_vinci.event_bus.response_wrapper')
 
             event_responder = EventResponder()
 
             event_obj = Event.from_lambda_event(event=event)
 
+            _logger.s3_log_handler.put_metadata('originating_event', event_obj.to_dict())
+
             try:
-                logger.debug(f'Executing function with event {event}')
+                _logger.debug(f'Executing function with event {event}')
 
                 func(event, context)
 
@@ -149,8 +149,14 @@ def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
                         exception_traceback=traceback.format_exc(),
                         function_name=function_name,
                         originating_event=event,
+                        log_execution_id=_logger.execution_id,
+                        log_namespace=_logger.namespace,
                     )
 
                 traceback.print_exc()
+
+            _logger.finalize()
+
         return wrapper
+
     return event_response_wrapper

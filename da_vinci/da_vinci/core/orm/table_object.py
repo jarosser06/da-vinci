@@ -2,11 +2,10 @@ import json
 
 from collections.abc import Callable
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, UTC as utc_tz
 from enum import auto, StrEnum
 from typing import Any, Dict, List, Optional, Union
 
-from da_vinci.core.json import DateTimeEncoder
 from da_vinci.core.orm.exceptions import MissingTableObjectAttributeException
 
 
@@ -15,11 +14,15 @@ class TableObjectAttributeType(StrEnum):
     NUMBER = auto()
     BOOLEAN = auto()
     DATETIME = auto()
-    JSON = auto()
+    JSON = auto() # Not safe for storing empty attributes, native
+    JSON_STRING = auto() # Safe for storing empty attributes
     STRING_LIST = auto()
     NUMBER_LIST = auto()
-    JSON_LIST = auto()
+    JSON_LIST = auto() # Not safe for storing empty attributes, native
+    JSON_STRING_LIST = auto() # Safe for storing empty attributes
     COMPOSITE_STRING = auto()
+    STRING_SET = auto()
+    NUMBER_SET = auto()
 
     @classmethod
     def is_list(cls, attribute_type: 'TableObjectAttributeType') -> bool:
@@ -75,19 +78,24 @@ class TableObjectAttribute:
             optional -- Whether the attribute optional, defaults to False unless a default is provided
         """
         self.name = name
+
         self.description = description
+
         self.attribute_type = attribute_type
+
         self.exclude_from_dict = exclude_from_dict
+
         self.exclude_from_schema_description = exclude_from_schema_description
 
         self.is_indexed = is_indexed
 
-        if self.attribute_type is TableObjectAttributeType.JSON or \
-                self.attribute_type is TableObjectAttributeType.JSON_LIST:
+        if self.attribute_type is TableObjectAttributeType.JSON_STRING or \
+                self.attribute_type is TableObjectAttributeType.JSON_STRING_LIST:
             self.is_indexed = False
 
         if dynamodb_key_name:
             self.dynamodb_key_name = dynamodb_key_name
+
         else:
             self.dynamodb_key_name = self.default_dynamodb_key_name(self.name)
 
@@ -97,12 +105,15 @@ class TableObjectAttribute:
             raise ValueError('argument_names must be provided when attribute_type is COMPOSITE_STRING')
 
         self._default = default
+
         if self._default is None:
             self.optional = optional
+
         else:
             self.optional = True
 
         self.custom_exporter = custom_exporter
+
         self.custom_importer = custom_importer
 
     @staticmethod
@@ -189,15 +200,57 @@ class TableObjectAttribute:
             str
         """
         dynamodb_type_label = 'S'
+
+        # Handle number and datetime types
         if self.attribute_type is TableObjectAttributeType.NUMBER \
                 or self.attribute_type is TableObjectAttributeType.DATETIME:
             dynamodb_type_label = 'N'
+
+        # Handle JSON types
+        elif self.attribute_type is TableObjectAttributeType.JSON:
+            dynamodb_type_label = 'M'
+
+        # Handle boolean types
         elif self.attribute_type is TableObjectAttributeType.BOOLEAN:
             dynamodb_type_label = 'BOOL'
+
+        # Handle list types
         elif TableObjectAttributeType.is_list(self.attribute_type):
             dynamodb_type_label = 'L'
 
+        # Handle set types
+        elif self.attribute_type in (TableObjectAttributeType.STRING_SET, TableObjectAttributeType.NUMBER_SET):
+            dynamodb_type_label = 'SS' if self.attribute_type == TableObjectAttributeType.STRING_SET else 'NS'
+
         return dynamodb_type_label
+
+    def _infer_dynamodb_value(self, value: Any) -> Dict:
+        """
+        Helper method to infer DynamoDB value type for nested structures.
+        """
+        if isinstance(value, str):
+            return {"S": value}
+
+        elif isinstance(value, bool):
+            return {"BOOL": value}
+
+        elif isinstance(value, (int, float)):
+            return {"N": str(value)}
+
+        elif isinstance(value, dict):
+            if 'M' in value:
+                return value
+
+            return {"M": {k: self._infer_dynamodb_value(v) for k, v in value.items()}}
+
+        elif isinstance(value, list):
+            return {"L": [self._infer_dynamodb_value(v) for v in value]}
+
+        elif value is None:
+            return {"NULL": True}
+
+        else:
+            raise ValueError(f"Unsupported value type: {type(value)}")
 
     def dynamodb_value(self, value: Any) -> Any:
         """
@@ -212,17 +265,38 @@ class TableObjectAttribute:
         if self.custom_exporter:
             return self.custom_exporter(value)
 
+        # Handle number types
         if self.attribute_type is TableObjectAttributeType.NUMBER:
             return str(value)
 
+        # Handle datetime types
         elif self.attribute_type is TableObjectAttributeType.DATETIME:
             if not value:
                 return str(0)
             return str(float(self.datetime_to_timestamp(value)))
 
+        # Handle JSON types
         elif self.attribute_type is TableObjectAttributeType.JSON:
-            return json.dumps(value, cls=DateTimeEncoder)
+            if isinstance(value, str):
+                value = json.loads(value)
 
+            elif not value:
+                return None
+
+            return  {k: self._infer_dynamodb_value(v) for k, v in value.items()}
+
+        elif self.attribute_type is TableObjectAttributeType.JSON_STRING or \
+                self.attribute_type is TableObjectAttributeType.JSON_STRING_LIST:
+            if not value:
+                if self.attribute_type is TableObjectAttributeType.JSON_STRING_LIST:
+                    return "[]"
+
+                else:
+                    return "{}"
+
+            return json.dumps(value)
+
+        # Handle composite string types
         elif self.attribute_type is TableObjectAttributeType.COMPOSITE_STRING:
             if isinstance(value, str):
                 return value
@@ -234,19 +308,42 @@ class TableObjectAttribute:
 
             return TableObjectAttribute.composite_string_value(arg_values)
 
+        # Handle list types
         elif TableObjectAttributeType.is_list(self.attribute_type):
+            # Specifically handle JSON_LIST
+            if self.attribute_type is TableObjectAttributeType.JSON_LIST:
+                if not value:
+                    return None
+
+                # Ensure each element in the list is converted properly
+                return [{"M": json.loads(item) if isinstance(item, str) else item} for item in value]
+
             if not value:
                 return []
+
             if self.attribute_type is TableObjectAttributeType.NUMBER_LIST:
                 label = 'N'
+
             else:
                 label = 'S'
 
-            if self.attribute_type is TableObjectAttributeType.JSON_LIST:
-                return [{label: json.dumps(val, cls=DateTimeEncoder)} for val in value]
-
             return [{label: str(val)} for val in value]
 
+        # Handle string set types
+        elif self.attribute_type == TableObjectAttributeType.STRING_SET:
+            if not value:
+                return None
+
+            return list(value)  # DynamoDB stores sets as lists in JSON format
+
+        # Handle number set types
+        elif self.attribute_type == TableObjectAttributeType.NUMBER_SET:
+            if not value:
+                return None
+
+            return [str(val) for val in value]
+
+        # Handle boolean types
         elif not isinstance(value, bool) and not value:
             return str(value)
 
@@ -259,11 +356,51 @@ class TableObjectAttribute:
         Keyword Arguments:
             value -- Value to convert
         """
+        # Skip None values or empty sets/dictionaries for JSON and Set types
+        if (self.attribute_type in (TableObjectAttributeType.STRING_SET, TableObjectAttributeType.NUMBER_SET)
+                and (value is None or not value)):
+            return None  # Skip empty sets
+
+        if self.attribute_type in (TableObjectAttributeType.JSON, TableObjectAttributeType.JSON_LIST) and \
+                (value is None or (isinstance(value, dict) and not value)):
+            return None  # Skip empty JSON or JSON_LIST
+
         return {
             self.dynamodb_key_name: {
                 self.dynamodb_type_label: self.dynamodb_value(value),
             }
         }
+
+    def _infer_python_value(self, value: Dict) -> Any:
+        """
+        Helper method to convert DynamoDB types back to Python values.
+        """
+        if 'S' in value:
+            return value['S']
+
+        elif 'N' in value:
+            return float(value['N']) if '.' in value['N'] else int(value['N'])
+
+        elif 'BOOL' in value:
+            return value['BOOL']
+
+        elif 'M' in value:
+            return {k: self._infer_python_value(v) for k, v in value['M'].items()}
+
+        elif 'L' in value:
+            return [self._infer_python_value(v) for v in value['L']]
+
+        elif 'NULL' in value:
+            return None
+
+        elif 'SS' in value:
+            return set(value['SS'])
+
+        elif 'NS' in value:
+            return set(map(int, value['NS']))
+
+        else:
+            raise ValueError(f"Unsupported DynamoDB value type: {value}")
 
     def true_value(self, value: Any) -> Any:
         """
@@ -286,28 +423,44 @@ class TableObjectAttribute:
 
             return self.timestamp_to_datetime(float(value))
 
+        # Handle JSON_LIST
+        elif self.attribute_type is TableObjectAttributeType.JSON_LIST:
+            # Convert each item in the list from DynamoDB format to a Python dictionary
+            return [self._infer_python_value(item) for item in value]
+
+        # Handle other list types
         elif TableObjectAttributeType.is_list(self.attribute_type):
             if self.attribute_type is TableObjectAttributeType.NUMBER_LIST:
-                label = 'N'
+                label = 'N'  
             else:
                 label = 'S'
 
-                if self.attribute_type is TableObjectAttributeType.JSON_LIST:
-                    return [json.loads(val[label]) for val in value]
+            return [item[label] for item in value]
 
-                return [val[label] for val in value]
+        elif self.attribute_type == TableObjectAttributeType.STRING_SET:
+            return set(value)  # Convert list back to set
+
+        elif self.attribute_type == TableObjectAttributeType.NUMBER_SET:
+            return set(value)
 
         elif self.attribute_type is TableObjectAttributeType.COMPOSITE_STRING:
             return tuple(value.split('-'))
 
         elif self.attribute_type is TableObjectAttributeType.JSON:
-            j_res = json.loads(value)
+            # If the value is already a dict (DynamoDB MAP), return it as is
+            if isinstance(value, dict):
+                return {k: self._infer_python_value(v) for k, v in value.items()}
 
-            # Deal with twice encoded strings if existing
-            if isinstance(j_res, str):
-                j_res = json.loads(j_res)
+        elif self.attribute_type is TableObjectAttributeType.JSON_STRING or \
+                self.attribute_type is TableObjectAttributeType.JSON_STRING_LIST:
+            if not value:
+                if self.attribute_type is TableObjectAttributeType.JSON_STRING_LIST:
+                    return []
 
-            return j_res
+                else:
+                    return {}
+
+            return json.loads(value)
 
         return value
 
@@ -379,7 +532,7 @@ class TableObject:
                 TableObjectAttribute(
                     name='created_on',
                     attribute_type=TableObjectAttributeType.DATETIME,
-                    default=lambda: datetime.utcnow(),
+                    default=lambda: datetime.now(),
                 ),
             ]
         ```
@@ -523,24 +676,32 @@ class TableObject:
 
         return changed_attrs
 
-    def to_dict(self, convert_datetime_to_str: Optional[bool] = False) -> Dict:
+    def to_dict(self, exclude_attribute_names: Optional[List[str]] = None, json_compatible: Optional[bool] = False) -> Dict:
         """
-        Convert the object to a Dict
+        Convert the object to a dict representation
 
         Keyword Arguments:
-            convert_datetime_to_str: Whether to convert datetime objects to iso format strings
+        exclude_attribute_names -- List of attribute names to exclude from the resulting dict
+        json_compatible -- Convert datetime objects to strings and sets to lists for JSON compatibility
         """
         res = {}
 
+        if exclude_attribute_names is None:
+            exclude_attribute_names = []
+
         for attr in self.all_attributes():
-            if attr.exclude_from_dict:
+            if attr.exclude_from_dict or attr.name in exclude_attribute_names:
                 continue
 
             val = getattr(self, attr.name)
 
-            if attr.attribute_type is TableObjectAttributeType.DATETIME and convert_datetime_to_str \
+            if attr.attribute_type is TableObjectAttributeType.DATETIME and json_compatible \
                 and val is not None:
                 val = val.isoformat()
+
+            if json_compatible and attr.attribute_type is TableObjectAttributeType.STRING_SET or \
+                    attr.attribute_type is TableObjectAttributeType.NUMBER_SET:
+                val = list(val)
 
             if attr.custom_exporter:
                 val = attr.custom_exporter(val)
@@ -561,7 +722,10 @@ class TableObject:
         for attr in self.all_attributes():
             val = getattr(self, attr.name)
 
-            item.update(attr.as_dynamodb_attribute(val))
+            dyn_attr = attr.as_dynamodb_attribute(val)
+
+            if dyn_attr:
+                item.update(dyn_attr)
 
         return item
 
@@ -573,7 +737,7 @@ class TableObject:
             str
         """
 
-        return json.dumps(self.to_dict(), cls=DateTimeEncoder)
+        return json.dumps(self.to_dict(json_compatible=True))
 
     @classmethod
     def all_attributes(cls) -> List[TableObjectAttribute]:
@@ -718,11 +882,11 @@ class TableObject:
         Keyword Arguments:
             date_attribute_names -- Names of the date attributes
             obj -- Object to update
-            to_datetime -- Datetime to set, defaults to datetime.utcnow()
+            to_datetime -- Datetime to set, defaults to datetime.now()
         """
 
         if not to_datetime:
-            to_datetime = datetime.utcnow()
+            to_datetime = datetime.now(tz=utc_tz)
 
         for attr_name in date_attribute_names:
             setattr(obj, attr_name, to_datetime)

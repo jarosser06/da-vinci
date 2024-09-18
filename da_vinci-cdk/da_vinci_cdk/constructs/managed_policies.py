@@ -1,3 +1,5 @@
+import logging
+
 from constructs import Construct
 
 from aws_cdk import (
@@ -14,6 +16,8 @@ class BedrockAccessManagedPolicy(Construct):
             construct_id: The ID of the construct
             scope: The parent of the construct
         """
+        logging.warning("BedrockAccessManagedPolicy is deprecated. Use AWS Provided Managed Policy instead.")
+
         super().__init__(scope, construct_id)
 
         policy_statements = [

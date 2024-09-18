@@ -1,4 +1,5 @@
 import json
+import logging
 import traceback
 
 from collections.abc import Callable
@@ -13,7 +14,6 @@ from da_vinci.core.logging import Logger
 
 
 EXCEPTION_TRAP_ENV_VAR = 'DaVinciFramework_ExceptionTrapEnabled'
-
 
 
 def exception_trap_enabled() -> bool:
@@ -37,6 +37,8 @@ class ReportedException:
     exception_traceback: str
     function_name: str
     originating_event: Dict
+    log_execution_id: Optional[str] = None
+    log_namespace: Optional[str] = None
     metadata: Optional[Dict] = None
 
     def to_dict(self) -> Dict:
@@ -64,7 +66,8 @@ class ExceptionReporter(RESTClientBase):
         super().__init__(resource_name='exceptions_trap')
 
     def report(self, function_name: str, exception: str, exception_traceback: str,
-                 originating_event: Dict, metadata: Optional[Dict] = None):
+                originating_event: Dict, metadata: Optional[Dict] = None,
+                 log_execution_id: Optional[str] = None, log_namespace: Optional[str] = None):
         """
         Report an exception to the exception trap
 
@@ -72,40 +75,50 @@ class ExceptionReporter(RESTClientBase):
             function_name: The name of the function that raised the exception
             exception: The exception that was raised
             exception_traceback: The traceback of the exception
-            originating_event: The event that caused the exception
+            log_execution_id: The execution ID to track the logging
+            log_namespace: The namespace for the logger
             metadata: Any additional metadata about the exception
+            originating_event: The event that caused the exception
         """
-
         req_body = ReportedException(
             exception=exception,
             exception_traceback=exception_traceback,
             function_name=function_name,
             originating_event=originating_event,
             metadata=metadata,
+            log_execution_id=log_execution_id,
+            log_namespace=log_namespace,
         )
 
-        logger = Logger(namespace='da_vinci.exception_trap_client')
-
-        logger.debug(f'Reporting exception: {req_body.to_dict()}')
+        logging.debug(f'Reporting exception: {req_body.to_dict()}')
 
         self.post(body=req_body.to_dict())
 
 
-def fn_exception_reporter(function_name: str, metadata: Optional[Dict] = None):
-    """Wraps a function that handles an event and reports any exception"""
+def fn_exception_reporter(function_name: str, metadata: Optional[Dict] = None, logger: Optional[Logger] = None):
+    """
+    Wraps a function that handles an event and reports any exception
+    
+    Keyword Arguments:
+        function_name: The name of the function that raised the exception
+        metadata: Any additional metadata about the exception
+        logger: The logger to use for logging
+    """
     def reporter_wrapper(func: Callable):
+
         @wraps(func)
         def wrapper(event: Dict, context: Dict):
-            logger = Logger(namespace='da_vinci.exception_trap_client')
+            _logger = logger or Logger(namespace='da_vinci.exception_trap_client')
+
             try:
-                logger.debug(f'Executing function {function_name}({event})')
+                _logger.debug(f'Executing function {function_name}({event})')
 
                 return func(event, context)
             except Exception as exc:
                 if exception_trap_enabled():
                     reporter = ExceptionReporter()
 
-                    logger.debug(f'Function threw exception: {traceback.format_exc()}')
+                    _logger.debug(f'Function threw exception: {traceback.format_exc()}')
 
                     reporter.report(
                         originating_event=event,
@@ -113,8 +126,14 @@ def fn_exception_reporter(function_name: str, metadata: Optional[Dict] = None):
                         exception=str(exc),
                         exception_traceback=traceback.format_exc(),
                         metadata=metadata,
+                        log_execution_id=_logger.execution_id,
+                        log_namespace=_logger.namespace,
                     )
 
                 traceback.print_exc()
+
+            _logger.finalize()
+
         return wrapper
+
     return reporter_wrapper

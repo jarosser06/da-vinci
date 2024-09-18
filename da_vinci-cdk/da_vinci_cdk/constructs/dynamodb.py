@@ -15,12 +15,11 @@ from aws_cdk.custom_resources import (
 
 from constructs import Construct
 
-from da_vinci.core.tables.settings import Setting
 from da_vinci.core.resource_discovery import ResourceType
 from da_vinci.core.orm.table_object import TableObject, TableObjectAttributeType
 
 from da_vinci_cdk.constructs.access_management import ResourceAccessPolicy
-from da_vinci_cdk.constructs.base import apply_framework_tags, custom_type_name, resource_namer
+from da_vinci_cdk.constructs.base import custom_type_name, resource_namer
 from da_vinci_cdk.constructs.resource_discovery import DiscoverableResource
 
 
@@ -178,8 +177,8 @@ class DynamoDBTable(Construct):
         Keyword Arguments:
             resource: Resource to grant access to
         """
-
         self.table.grant_read_data(resource)
+
         self._discovery_resource.parameter.grant_read(resource)
 
     def grant_read_write_access(self, resource: Construct):
@@ -190,6 +189,7 @@ class DynamoDBTable(Construct):
             resource: Resource to grant access to
         """
         self.table.grant_read_write_data(resource)
+
         self._discovery_resource.parameter.grant_read(resource)
 
     @classmethod
