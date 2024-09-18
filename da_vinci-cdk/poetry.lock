@@ -308,8 +308,8 @@ requests-auth-aws-sigv4 = "0.7"
 [package.source]
 type = "git"
 url = "https://github.com/jarosser06/da-vinci"
-reference = "HEAD"
-resolved_reference = "2271c0b562a643eeef9a8122a915a2ed669eb427"
+reference = "madness"
+resolved_reference = "3356df7ec8b19c6ab70ed719b476397d2908f4c2"
 subdirectory = "da_vinci"
 
 [[package]]
@@ -510,4 +510,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "681ea439fd8805d255bb817768c291a7e4f013883a3425fb440c47d4fded385a"
+content-hash = "7220364e024ce8bbd8bbf973aeed3cb619870c3c9430ffdac0a31dfc60810dba"
