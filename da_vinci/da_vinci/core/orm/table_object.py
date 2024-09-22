@@ -236,7 +236,9 @@ class TableObjectAttribute:
 
         # Handle JSON types
         elif self.attribute_type is TableObjectAttributeType.JSON:
-            return json.dumps(value, cls=DateTimeEncoder)
+            if isinstance(value, str):
+                value = json.loads(value)
+            return value  # Return the dictionary (DynamoDB MAP)
 
         # Handle composite string types
         elif self.attribute_type is TableObjectAttributeType.COMPOSITE_STRING:
@@ -259,8 +261,10 @@ class TableObjectAttribute:
             else:
                 label = 'S'
 
+            # Specifically handle JSON_LIST
             if self.attribute_type is TableObjectAttributeType.JSON_LIST:
-                return [{label: json.dumps(val, cls=DateTimeEncoder)} for val in value]
+                # Ensure each element in the list is converted properly
+                return [{"M": json.loads(item) if isinstance(item, str) else item} for item in value]
 
             return [{label: str(val)} for val in value]
 
@@ -312,16 +316,16 @@ class TableObjectAttribute:
 
             return self.timestamp_to_datetime(float(value))
 
+        # Handle JSON_LIST
+        elif self.attribute_type is TableObjectAttributeType.JSON_LIST:
+            # Convert each item from DynamoDB MAP to a Python dictionary
+            return [json.loads(item['M']) if isinstance(item, dict) and 'M' in item else item for item in value]
+
+        # Handle other list types
         elif TableObjectAttributeType.is_list(self.attribute_type):
-            if self.attribute_type is TableObjectAttributeType.NUMBER_LIST:
-                label = 'N'
-            else:
-                label = 'S'
+            label = 'N' if self.attribute_type is TableObjectAttributeType.NUMBER_LIST else 'S'
 
-                if self.attribute_type is TableObjectAttributeType.JSON_LIST:
-                    return [json.loads(val[label]) for val in value]
-
-                return [val[label] for val in value]
+            return [item[label] for item in value]
 
         elif self.attribute_type == TableObjectAttributeType.STRING_SET:
             return set(value)  # Convert list back to set
@@ -332,14 +336,13 @@ class TableObjectAttribute:
         elif self.attribute_type is TableObjectAttributeType.COMPOSITE_STRING:
             return tuple(value.split('-'))
 
+            # Handle JSON (convert from DynamoDB MAP)
         elif self.attribute_type is TableObjectAttributeType.JSON:
-            j_res = json.loads(value)
 
-            # Deal with twice encoded strings if existing
-            if isinstance(j_res, str):
-                j_res = json.loads(j_res)
+            if isinstance(value, dict):
+                return value  # Already a map (dictionary)
 
-            return j_res
+            return json.loads(value)
 
         return value
 

@@ -372,3 +372,83 @@ class TableClient:
             all.extend(page)
 
         return all
+
+    def update_object(self, partition_key_value: Any, sort_key_value: Any,
+                  updates: Dict[str, Any] = None, remove_keys: List[str] = None) -> None:
+        update_expressions = []
+
+        expression_attribute_values = {}
+
+        expression_attribute_names = {}
+
+        # Handle updates (SET operations)
+        if updates:
+            for attribute_name, value in updates.items():
+                # Check for dot notation (e.g. 'json_map.sub_key')
+                if '.' in attribute_name:
+                    parts = attribute_name.split('.')
+
+                    dynamo_key = f"#{parts[0]}"
+
+                    nested_key = '.'.join([f"#{part}" for part in parts[1:]])
+
+                    dynamo_value = f":val_{attribute_name.replace('.', '_')}"
+
+                    # Construct the SET expression for nested MAP
+                    update_expressions.append(f"SET {dynamo_key}.{nested_key} = {dynamo_value}")
+
+                    # Prepare the attribute value and name mappings
+                    expression_attribute_values[dynamo_value] = value
+
+                    expression_attribute_names.update({f"#{part}": part for part in parts})
+                else:
+                    # Regular attribute (non-nested)
+                    dynamo_key = f"#{attribute_name}"
+
+                    dynamo_value = f":val_{attribute_name}"
+
+                    update_expressions.append(f"SET {dynamo_key} = {dynamo_value}")
+
+                    expression_attribute_values[dynamo_value] = self.default_object_class.attribute_definition(attribute_name).dynamodb_value(value)
+
+                    expression_attribute_names[dynamo_key] = attribute_name
+
+        # Handle removals (REMOVE operations)
+        if remove_keys:
+            for attribute_name in remove_keys:
+                if '.' in attribute_name:
+                    # Dot notation for removing nested MAP attributes
+                    parts = attribute_name.split('.')
+
+                    dynamo_key = f"#{parts[0]}"
+
+                    nested_key = '.'.join([f"#{part}" for part in parts[1:]])
+
+                    update_expressions.append(f"REMOVE {dynamo_key}.{nested_key}")
+
+                    expression_attribute_names.update({f"#{part}": part for part in parts})
+                else:
+                    # Regular attribute (non-nested)
+                    dynamo_key = f"#{attribute_name}"
+
+                    update_expressions.append(f"REMOVE {dynamo_key}")
+
+                    expression_attribute_names[dynamo_key] = attribute_name
+
+        # Combine all expressions into a single DynamoDB expression
+        update_expression = " ".join(update_expressions)
+
+        # Generate the DynamoDB key for the object
+        dynamodb_key = self.default_object_class.gen_dynamodb_key(
+            partition_key_value=partition_key_value,
+            sort_key_value=sort_key_value,
+        )
+
+        # Execute the update in DynamoDB
+        self.client.update_item(
+            TableName=self.table_endpoint_name,
+            Key=dynamodb_key,
+            UpdateExpression=update_expression,
+            ExpressionAttributeValues=expression_attribute_values,
+            ExpressionAttributeNames=expression_attribute_names
+        )
