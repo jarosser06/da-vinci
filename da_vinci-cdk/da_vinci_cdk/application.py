@@ -12,12 +12,15 @@ from aws_cdk import App as CDKApp
 from aws_cdk import (
     aws_lambda as cdk_lambda,
     DockerImage,
+    aws_s3 as cdk_s3,
+    RemovalPolicy,
 )
 
 from constructs import Construct
 
 from da_vinci_cdk.constructs.dns import PublicDomain
 from da_vinci_cdk.constructs.global_setting import GlobalSetting
+from da_vinci_cdk.constructs.s3 import Bucket
 from da_vinci_cdk.framework_stacks.event_bus.stack import EventBusStack
 from da_vinci_cdk.framework_stacks.global_settings.stack import GlobalSettingsStack
 from da_vinci_cdk.framework_stacks.exceptions_trap.stack import ExceptionsTrapStack
@@ -33,7 +36,7 @@ DA_VINCI_DISABLE_DOCKER_CACHE = getenv('DA_VINCI_DISABLE_DOCKER_CACHE', False)
 class CoreStack(Stack):
     def __init__(self, app_name: str, deployment_id: str, scope: Construct, stack_name: str,
                  create_hosted_zone: bool = True, global_settings_enabled: bool = True,
-                 root_domain_name: Optional[str] = None):
+                 root_domain_name: Optional[str] = None, s3_logging_bucket_name: str = None):
         """
         Bootstrap the initial infrastructure required to stand up a DaVinci
 
@@ -42,9 +45,11 @@ class CoreStack(Stack):
             create_hosted_zone: Whether to create a hosted zone for the application if the root_domain_name is set (default: True)
             deployment_id: Identifier assigned to the installation
             global_settings_enabled: Whether to build the global settings stack as part of the application (default: True)
+            enable_s3_logging: Whether to enable S3 logging (default: False)
             root_domain_name: Root domain name for the application (default: None)
             scope: Parent construct for the stack
             stack_name: Name of the stack
+            s3_logging_bucket_name: Name of the S3 bucket to use for logging (default: None)
         """
 
         super().__init__(
@@ -65,6 +70,14 @@ class CoreStack(Stack):
                 scope=self,
             )
 
+            GlobalSetting(
+                description='The name of the S3 Logging Bucket, null if not used. Managed by framework deployment, do not modify!',
+                namespace='core',
+                setting_key='s3_logging_bucket',
+                setting_value=s3_logging_bucket_name,
+                scope=self,
+            )
+
             core_str_setting_keys = [
                 'app_name',
                 'deployment_id',
@@ -79,6 +92,13 @@ class CoreStack(Stack):
                     setting_value=self.node.get_context(setting_key),
                     scope=self,
                 )
+
+        if s3_logging_bucket_name:
+            self.logging_bucket = Bucket(
+                bucket_name=s3_logging_bucket_name,
+                removal_policy=RemovalPolicy.DESTROY,
+                scope=self,
+            )
 
         if root_domain_name:
             if global_settings_enabled:
@@ -106,8 +126,9 @@ class Application:
                  create_hosted_zone: Optional[bool] = False,
                  disable_docker_image_cache: Optional[bool] = DA_VINCI_DISABLE_DOCKER_CACHE,
                  enable_exception_trap: Optional[bool] = True, enable_global_settings: Optional[bool] = True,
-                 include_event_bus: Optional[bool] = False, 
-                 log_level: Optional[str] = 'INFO', root_domain_name: Optional[str] = None):
+                 enable_s3_logging: Optional[bool] = False,
+                 include_event_bus: Optional[bool] = False, log_level: Optional[str] = 'INFO',
+                 root_domain_name: Optional[str] = None, s3_logging_bucket_name: Optional[str] = None):
         """
         Initialize a new Application object
 
@@ -119,9 +140,11 @@ class Application:
             deployment_id: Identifier assigned to the installation
             enable_exception_trap: Whether to enable the exception trap (default: True)
             enable_global_settings: Whether to build the global settings stack as part of the application (default: True)
+            enable_s3_logging: Whether to enable S3 logging (default: False)
             include_event_bus: Whether to build the event bus stack as part of the application (default: False)
             log_level: Logging level to use for the application (default: INFO)
             root_domain_name: Root domain name for the application (default: None)
+            s3_logging_bucket_name: Name of the S3 bucket to use for logging (default: None)
 
         Example:
             ```
@@ -169,11 +192,16 @@ class Application:
 
         self._stacks = {}
 
+        if enable_s3_logging and not s3_logging_bucket_name:
+            s3_logging_bucket_name = f'{app_name}-{deployment_id}-logging'
+
         context = {
             'app_name': self.app_name,
             'architecture': self.architecture,
             'deployment_id': self.deployment_id,
             'global_settings_enabled': self.global_settings_enabled,
+            's3_logging_enabled': enable_s3_logging,
+            's3_logging_bucket_name': s3_logging_bucket_name,
             'exception_trap_enabled': enable_exception_trap,
             'log_level': self.log_level,
             'root_domain_name': self.root_domain_name,
@@ -207,6 +235,7 @@ class Application:
             scope=self.cdk_app,
             stack_name=self.generate_stack_name(CoreStack),
             root_domain_name=self.root_domain_name,
+            s3_logging_bucket_name=s3_logging_bucket_name,
         )
 
         self.dependency_stacks.append(self.core_stack)

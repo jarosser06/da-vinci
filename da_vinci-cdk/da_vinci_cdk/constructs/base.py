@@ -33,8 +33,8 @@ def resource_namer(name: str, scope: Construct):
     Keyword Arguments:
         name: The base name of the resource
     """
-
     app_name = scope.node.get_context('app_name')
+
     deployment_id = scope.node.get_context('deployment_id')
 
     return f'{app_name}-{deployment_id}-{name}'

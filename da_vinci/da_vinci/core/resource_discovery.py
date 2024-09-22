@@ -31,6 +31,7 @@ logger.setLevel(logging.INFO)
 class ResourceType(StrEnum):
     '''Resource types registered with service discovery'''
     ASYNC_SERVICE = 'async_service'
+    BUCKET = 'bucket'
     DOMAIN = 'domain'
     REST_SERVICE = 'rest_service'
     TABLE = 'table'
