@@ -21,19 +21,19 @@ tests-mypy = ["mypy (>=1.11.1)", "pytest-mypy-plugins"]
 
 [[package]]
 name = "aws-cdk-asset-awscli-v1"
-version = "2.2.202"
+version = "2.2.203"
 description = "A library that contains the AWS CLI for use in Lambda Layers"
 optional = false
 python-versions = "~=3.8"
 files = [
-    {file = "aws-cdk.asset-awscli-v1-2.2.202.tar.gz", hash = "sha256:3ef87d6530736b3a7b0f777fe3b4297994dd40c3ce9306d95f80f48fb18036e8"},
-    {file = "aws_cdk.asset_awscli_v1-2.2.202-py3-none-any.whl", hash = "sha256:96205ea2e5e132ec52fabfff37ea25b9b859498f167d05b32564c949822cd331"},
+    {file = "aws_cdk.asset_awscli_v1-2.2.203-py3-none-any.whl", hash = "sha256:15be8dc3af714dd8c9f2b0e27a0087a236fd5457a6b8fb942435ba683e971a05"},
+    {file = "aws_cdk_asset_awscli_v1-2.2.203.tar.gz", hash = "sha256:6d7d70c6e23894cda1110233672a50cbd3d986cf5448ef89a2a039f68599d1e1"},
 ]
 
 [package.dependencies]
-jsii = ">=1.93.0,<2.0.0"
+jsii = ">=1.103.1,<2.0.0"
 publication = ">=0.0.3"
-typeguard = ">=2.13.3,<2.14.0"
+typeguard = ">=2.13.3,<5.0.0"
 
 [[package]]
 name = "aws-cdk-asset-kubectl-v20"
@@ -85,13 +85,13 @@ typeguard = ">=2.13.3,<5.0.0"
 
 [[package]]
 name = "aws-cdk-lib"
-version = "2.158.0"
+version = "2.159.1"
 description = "Version 2 of the AWS Cloud Development Kit library"
 optional = false
 python-versions = "~=3.8"
 files = [
-    {file = "aws_cdk_lib-2.158.0-py3-none-any.whl", hash = "sha256:24b93419211e99dd9109223b9a9ba6496af3c5dee8add6cbb35c8aef82082758"},
-    {file = "aws_cdk_lib-2.158.0.tar.gz", hash = "sha256:7917ef871914b027e3b4b5e29ddb219d21c53878cec0b2e629faefdbef095564"},
+    {file = "aws_cdk_lib-2.159.1-py3-none-any.whl", hash = "sha256:485b28b3416a1a3f25dd6df6a94c6ce88b73ab1c263d99e844e6caa54efac914"},
+    {file = "aws_cdk_lib-2.159.1.tar.gz", hash = "sha256:b13d628a9f9847dbe00369831aa5438807bee7945a2e55267fdbcafa154a8f6c"},
 ]
 
 [package.dependencies]
@@ -106,17 +106,17 @@ typeguard = ">=2.13.3,<5.0.0"
 
 [[package]]
 name = "boto3"
-version = "1.35.21"
+version = "1.35.24"
 description = "The AWS SDK for Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "boto3-1.35.21-py3-none-any.whl", hash = "sha256:247f88eedce9ae4e014a8fc14a9473759bb8e391460d49396a3b600fb649f33b"},
-    {file = "boto3-1.35.21.tar.gz", hash = "sha256:db5fbbd10248db060f2ccce3ae17764f1641c99c8b9f51d422c26ebe25703a1e"},
+    {file = "boto3-1.35.24-py3-none-any.whl", hash = "sha256:97fcc1a14cbc759e4ba9535ced703a99fcf652c9c4b8dfcd06f292c80551684b"},
+    {file = "boto3-1.35.24.tar.gz", hash = "sha256:be7807f30f26d6c0057e45cfd09dad5968e664488bf4f9138d0bb7a0f6d8ed40"},
 ]
 
 [package.dependencies]
-botocore = ">=1.35.21,<1.36.0"
+botocore = ">=1.35.24,<1.36.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.10.0,<0.11.0"
 
@@ -125,13 +125,13 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.35.21"
+version = "1.35.24"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "botocore-1.35.21-py3-none-any.whl", hash = "sha256:3db9ddfe521edc0753fc8c68caef71c7806e1d2d21ce8cbabc2065b7d79192f2"},
-    {file = "botocore-1.35.21.tar.gz", hash = "sha256:db917e7d7b3a2eed1310c6496784bc813c91f020a021c2ab5f9df7d28cdb4f1d"},
+    {file = "botocore-1.35.24-py3-none-any.whl", hash = "sha256:eb9ccc068255cc3d24c36693fda6aec7786db05ae6c2b13bcba66dce6a13e2e3"},
+    {file = "botocore-1.35.24.tar.gz", hash = "sha256:1e59b0f14f4890c4f70bd6a58a634b9464bed1c4c6171f87c8795d974ade614b"},
 ]
 
 [package.dependencies]
@@ -293,7 +293,7 @@ typeguard = ">=2.13.3,<2.14.0"
 
 [[package]]
 name = "da-vinci"
-version = "1.6.0"
+version = "2.0.0"
 description = "Da Vinci is used to rapidly build AWS Cloud Native based systems"
 optional = false
 python-versions = "^3.11"
@@ -309,7 +309,7 @@ requests-auth-aws-sigv4 = "0.7"
 type = "git"
 url = "https://github.com/jarosser06/da-vinci"
 reference = "madness"
-resolved_reference = "ea59ec0b8879a6ca582c4adf9af1038a4b714600"
+resolved_reference = "90ad631daee8fa20e0546e0fb213c1661fb47f75"
 subdirectory = "da_vinci"
 
 [[package]]
