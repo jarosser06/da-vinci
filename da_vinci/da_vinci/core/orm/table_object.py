@@ -425,7 +425,10 @@ class TableObjectAttribute:
 
         # Handle other list types
         elif TableObjectAttributeType.is_list(self.attribute_type):
-            label = 'N' if self.attribute_type is TableObjectAttributeType.NUMBER_LIST else 'S'
+            if self.attribute_type is TableObjectAttributeType.NUMBER_LIST:
+                label = 'N'  
+            else:
+                label = 'S'
 
             return [item[label] for item in value]
 
