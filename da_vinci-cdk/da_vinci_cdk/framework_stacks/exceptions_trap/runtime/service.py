@@ -79,7 +79,7 @@ def api(event: Dict, context: Dict):
 
     Keyword Arguments:
         event: The event
-        context: The context
+        context: The context, not used
     """
     logger = Logger('da_vinci.exception_trap_service')
 

@@ -125,8 +125,8 @@ class TrappedExceptions(TableClient):
             exception_id: The ID of the exception
         """
         return self.get_object(
-            partition_key=function_name,
-            sort_key=exception_id,
+            partition_key_value=function_name,
+            sort_key_value=exception_id,
         )
 
     def delete(self, trapped_exception: TrappedException):

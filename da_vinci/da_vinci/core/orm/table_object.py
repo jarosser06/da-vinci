@@ -230,13 +230,16 @@ class TableObjectAttribute:
         if isinstance(value, str):
             return {"S": value}
 
-        elif isinstance(value, (int, float)):
-            return {"N": str(value)}
-
         elif isinstance(value, bool):
             return {"BOOL": value}
 
+        elif isinstance(value, (int, float)):
+            return {"N": str(value)}
+
         elif isinstance(value, dict):
+            if 'M' in value:
+                return value
+
             return {"M": {k: self._infer_dynamodb_value(v) for k, v in value.items()}}
 
         elif isinstance(value, list):
@@ -279,7 +282,7 @@ class TableObjectAttribute:
             elif value is None:
                 return {"M": {}}
 
-            return {"M": {k: self._infer_dynamodb_value(v) for k, v in value.items()}}  # Convert dict to DynamoDB MAP
+            return  {k: self._infer_dynamodb_value(v) for k, v in value.items()}
 
         # Handle composite string types
         elif self.attribute_type is TableObjectAttributeType.COMPOSITE_STRING:
