@@ -44,7 +44,7 @@ class S3LogHandler(logging.Handler):
 
 
 class Logger:
-    def __init__(self, namespace: str, log_level_name: Optional[str] = None, s3_logging_enabled: bool = True,
+    def __init__(self, namespace: str, log_level_name: Optional[str] = None, s3_logging_enabled: Optional[bool] = False,
                  s3_logging_bucket_name: Optional[str] = None):
         """
         Initialize the logger with the namespace and log level name.
@@ -52,7 +52,7 @@ class Logger:
         Keyword Arguments:
         namespace -- The namespace for the logger
         log_level_name -- The log level name (default: INFO)
-        s3_logging_enabled -- Enable logging to S3 (default: True)
+        s3_logging_enabled -- Enable logging to S3 (default: False)
         s3_logging_bucket_name -- The S3 bucket name for logging (default: None)
         """
         self.namespace = namespace
@@ -73,7 +73,7 @@ class Logger:
         self.pylogger.addHandler(self.s3_log_handler)
 
         # S3 logging configuration
-        self.s3_logging_enabled = s3_logging_enabled and S3_BUCKET_ENV_VAR in environ
+        self.s3_logging_enabled = s3_logging_enabled or S3_BUCKET_ENV_VAR in environ
 
         if self.s3_logging_enabled:
             self.s3_bucket = s3_logging_bucket_name or environ.get(S3_BUCKET_ENV_VAR)
