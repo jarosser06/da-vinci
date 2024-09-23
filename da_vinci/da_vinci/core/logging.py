@@ -125,7 +125,7 @@ class Logger:
         Keyword Arguments:
         message -- The log message
         """
-        self._log('DEBUG', message)
+        self.pylogger.debug(message)
 
     def info(self, message: str) -> None:
         """
