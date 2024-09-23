@@ -21,11 +21,7 @@ class ExceptionTrapService(SimpleRESTServiceBase):
 
         super().__init__(
             routes=[
-                Route(
-                    handler=self.trap_exception,
-                    method='POST',
-                    path='/',
-                )
+                Route(handler=self.trap_exception, method='POST', path='/')
             ]
         )
 

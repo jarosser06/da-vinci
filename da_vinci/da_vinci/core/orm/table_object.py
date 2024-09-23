@@ -1,5 +1,4 @@
 import json
-import logging
 
 from collections.abc import Callable
 from copy import deepcopy
@@ -281,7 +280,7 @@ class TableObjectAttribute:
             if isinstance(value, str):
                 value = json.loads(value)
 
-            elif value is None:
+            elif not value:
                 return {"M": {}}
 
             return  {k: self._infer_dynamodb_value(v) for k, v in value.items()}
