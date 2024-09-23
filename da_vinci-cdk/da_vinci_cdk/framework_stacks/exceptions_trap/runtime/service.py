@@ -18,6 +18,9 @@ from da_vinci.exception_trap.tables.trapped_exceptions import (
 
 class ExceptionTrapService(SimpleRESTServiceBase):
     def __init__(self):
+        """
+        Exception trap service
+        """
         self.trapped_exceptions = TrappedExceptions()
 
         super().__init__(

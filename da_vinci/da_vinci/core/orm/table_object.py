@@ -223,6 +223,31 @@ class TableObjectAttribute:
 
         return dynamodb_type_label
 
+    def _infer_dynamodb_value(self, value: Any) -> Dict:
+        """
+        Helper method to infer DynamoDB value type for nested structures.
+        """
+        if isinstance(value, str):
+            return {"S": value}
+
+        elif isinstance(value, (int, float)):
+            return {"N": str(value)}
+
+        elif isinstance(value, bool):
+            return {"BOOL": value}
+
+        elif isinstance(value, dict):
+            return {"M": {k: self._infer_dynamodb_value(v) for k, v in value.items()}}
+
+        elif isinstance(value, list):
+            return {"L": [self._infer_dynamodb_value(v) for v in value]}
+
+        elif value is None:
+            return {"NULL": True}
+
+        else:
+            raise ValueError(f"Unsupported value type: {type(value)}")
+
     def dynamodb_value(self, value: Any) -> Any:
         """
         Convert a value to a DynamoDB supported value
@@ -247,10 +272,11 @@ class TableObjectAttribute:
             return str(float(self.datetime_to_timestamp(value)))
 
         # Handle JSON types
+        # With this:
         elif self.attribute_type is TableObjectAttributeType.JSON:
             if isinstance(value, str):
                 value = json.loads(value)
-            return value  # Return the dictionary (DynamoDB MAP)
+            return {"M": {k: self._infer_dynamodb_value(v) for k, v in value.items()}}  # Convert dict to DynamoDB MAP
 
         # Handle composite string types
         elif self.attribute_type is TableObjectAttributeType.COMPOSITE_STRING:
@@ -307,6 +333,37 @@ class TableObjectAttribute:
             }
         }
 
+    def _infer_python_value(self, value: Dict) -> Any:
+        """
+        Helper method to convert DynamoDB types back to Python values.
+        """
+        if 'S' in value:
+            return value['S']
+
+        elif 'N' in value:
+            return float(value['N']) if '.' in value['N'] else int(value['N'])
+
+        elif 'BOOL' in value:
+            return value['BOOL']
+
+        elif 'M' in value:
+            return {k: self._infer_python_value(v) for k, v in value['M'].items()}
+
+        elif 'L' in value:
+            return [self._infer_python_value(v) for v in value['L']]
+
+        elif 'NULL' in value:
+            return None
+
+        elif 'SS' in value:
+            return set(value['SS'])
+
+        elif 'NS' in value:
+            return set(map(int, value['NS']))
+
+        else:
+            raise ValueError(f"Unsupported DynamoDB value type: {value}")
+
     def true_value(self, value: Any) -> Any:
         """
         Return the attribute value as a Python value
@@ -330,8 +387,8 @@ class TableObjectAttribute:
 
         # Handle JSON_LIST
         elif self.attribute_type is TableObjectAttributeType.JSON_LIST:
-            # Convert each item from DynamoDB MAP to a Python dictionary
-            return [json.loads(item['M']) if isinstance(item, dict) and 'M' in item else item for item in value]
+            # Convert each item in the list from DynamoDB format to a Python dictionary
+            return [self._infer_python_value(item) for item in value]
 
         # Handle other list types
         elif TableObjectAttributeType.is_list(self.attribute_type):
@@ -348,13 +405,10 @@ class TableObjectAttribute:
         elif self.attribute_type is TableObjectAttributeType.COMPOSITE_STRING:
             return tuple(value.split('-'))
 
-            # Handle JSON (convert from DynamoDB MAP)
         elif self.attribute_type is TableObjectAttributeType.JSON:
-
+            # If the value is already a dict (DynamoDB MAP), return it as is
             if isinstance(value, dict):
-                return value  # Already a map (dictionary)
-
-            return json.loads(value)
+                return {k: self._infer_python_value(v) for k, v in value.items()}
 
         return value
 
