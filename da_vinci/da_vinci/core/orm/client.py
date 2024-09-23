@@ -395,6 +395,48 @@ class TableClient:
 
     def update_object(self, partition_key_value: Any, sort_key_value: Any,
                       updates: Dict[str, Any] = None, remove_keys: List[str] = None) -> None:
+        """
+        Updates an item in the DynamoDB table by applying SET and REMOVE operations.
+
+        This method allows partial updates to items by setting new values for attributes or 
+        removing existing ones. It supports dot notation for nested JSON map updates, enabling 
+        the modification of specific keys within a JSON-like structure in DynamoDB.
+
+        Arguments:
+            partition_key_value (Any): The value of the partition key for the item to be updated.
+            sort_key_value (Any): The value of the sort key for the item to be updated.
+            updates (Dict[str, Any], optional): A dictionary containing attribute names (as keys) 
+                and their new values (as values) to be updated in the table. If dot notation is 
+                used in the attribute name (e.g., 'json_map.sub_key'), it will update a nested key 
+                within a DynamoDB MAP type.
+            remove_keys (List[str], optional): A list of attribute names to be removed from the item. 
+                Dot notation can be used to remove nested attributes from a DynamoDB MAP.
+
+        Example Usage:
+            - To update a nested key inside a JSON map:
+                updates = {'json_map.sub_key': 'new_value'}
+                remove_keys = ['json_map.another_sub_key']
+
+            - To update a top-level attribute and remove another:
+                updates = {'attribute1': 'new_value'}
+                remove_keys = ['attribute2']
+
+        Notes:
+            - This method generates DynamoDB UpdateExpressions to execute the SET and REMOVE 
+            operations in a single request.
+            - If both updates and remove_keys are provided, they are combined in the final 
+            update expression.
+            - Dot notation in updates or remove_keys will handle nested attributes within DynamoDB 
+            MAP types.
+            - This method assumes the object's table schema is already defined in the `default_object_class`.
+
+        Raises:
+            ClientError: If a client error occurs during the DynamoDB update operation.
+            Exception: If an attribute with an empty value is provided for a DynamoDB JSON attribute.
+
+        Returns:
+            None
+        """
         update_expressions = []
 
         expression_attribute_values = {}
