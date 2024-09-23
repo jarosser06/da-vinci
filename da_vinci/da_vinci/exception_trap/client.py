@@ -1,4 +1,5 @@
 import json
+import logging
 import traceback
 
 from collections.abc import Callable
@@ -13,7 +14,6 @@ from da_vinci.core.logging import Logger
 
 
 EXCEPTION_TRAP_ENV_VAR = 'DaVinciFramework_ExceptionTrapEnabled'
-
 
 
 def exception_trap_enabled() -> bool:
@@ -84,28 +84,35 @@ class ExceptionReporter(RESTClientBase):
             metadata=metadata,
         )
 
-        logger = Logger(namespace='da_vinci.exception_trap_client')
-
-        logger.debug(f'Reporting exception: {req_body.to_dict()}')
+        logging.debug(f'Reporting exception: {req_body.to_dict()}')
 
         self.post(body=req_body.to_dict())
 
 
-def fn_exception_reporter(function_name: str, metadata: Optional[Dict] = None):
-    """Wraps a function that handles an event and reports any exception"""
+def fn_exception_reporter(function_name: str, metadata: Optional[Dict] = None, logger: Optional[Logger] = None):
+    """
+    Wraps a function that handles an event and reports any exception
+    
+    Keyword Arguments:
+        function_name: The name of the function that raised the exception
+        metadata: Any additional metadata about the exception
+        logger: The logger to use for logging
+    """
     def reporter_wrapper(func: Callable):
+
         @wraps(func)
         def wrapper(event: Dict, context: Dict):
-            logger = Logger(namespace='da_vinci.exception_trap_client')
+            _logger = logger or Logger(namespace='da_vinci.exception_trap_client')
+
             try:
-                logger.debug(f'Executing function {function_name}({event})')
+                _logger.debug(f'Executing function {function_name}({event})')
 
                 return func(event, context)
             except Exception as exc:
                 if exception_trap_enabled():
                     reporter = ExceptionReporter()
 
-                    logger.debug(f'Function threw exception: {traceback.format_exc()}')
+                    _logger.debug(f'Function threw exception: {traceback.format_exc()}')
 
                     reporter.report(
                         originating_event=event,
@@ -116,5 +123,9 @@ def fn_exception_reporter(function_name: str, metadata: Optional[Dict] = None):
                     )
 
                 traceback.print_exc()
+
+            _logger.finalize()
+
         return wrapper
+
     return reporter_wrapper

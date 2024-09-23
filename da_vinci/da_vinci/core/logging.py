@@ -94,16 +94,20 @@ class Logger:
         """
         if not self.s3_logging_enabled:
             self.pylogger.warning("S3 logging is disabled. Skipping S3 log upload.")
+
             return
 
         log_filename = f"logs/{self.namespace}/{self.execution_id}.json"
+
         try:
             log_data = json.dumps(self.s3_log_handler.get_log_entries(), indent=4)
+
             self.s3_client.put_object(
                 Bucket=self.s3_bucket,
                 Key=log_filename,
                 Body=log_data
             )
+
             self.pylogger.info(f"Log successfully uploaded to S3: {log_filename}")
         except Exception as e:
             self.pylogger.error(f"Failed to upload log to S3: {e}")
