@@ -78,7 +78,7 @@ class TrappedException(TableObject):
 
         TableObjectAttribute(
             'originating_event',
-            TableObjectAttributeType.JSON,
+            TableObjectAttributeType.JSON_STRING,
             description='The originating event that caused the exception',
         ),
 

@@ -16,6 +16,7 @@ class TableObjectAttributeType(StrEnum):
     BOOLEAN = auto()
     DATETIME = auto()
     JSON = auto()
+    JSON_STRING = auto()
     STRING_LIST = auto()
     NUMBER_LIST = auto()
     JSON_LIST = auto()
@@ -284,6 +285,12 @@ class TableObjectAttribute:
 
             return  {k: self._infer_dynamodb_value(v) for k, v in value.items()}
 
+        elif self.attribute_type is TableObjectAttributeType.JSON_STRING:
+            if not value:
+                return "{}"
+
+            return json.dumps(value)
+
         # Handle composite string types
         elif self.attribute_type is TableObjectAttributeType.COMPOSITE_STRING:
             if isinstance(value, str):
@@ -415,6 +422,12 @@ class TableObjectAttribute:
             # If the value is already a dict (DynamoDB MAP), return it as is
             if isinstance(value, dict):
                 return {k: self._infer_python_value(v) for k, v in value.items()}
+
+        elif self.attribute_type is TableObjectAttributeType.JSON_STRING:
+            if not value:
+                return {}
+
+            return json.loads(value)
 
         return value
 

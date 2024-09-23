@@ -45,7 +45,7 @@ class ExceptionTrapService(SimpleRESTServiceBase):
             function_name: The name of the function that raised the exception
             exception: The exception that was raised
             exception_traceback: The traceback of the exception
-            originating_event: The event that caused the exception
+            originating_event: The event that caused the exception, stored as a JSON string
             log_execution_id: The execution ID to track the logging
             log_namespace: The namespace for the logger
             metadata: Any additional metadata about the exception
