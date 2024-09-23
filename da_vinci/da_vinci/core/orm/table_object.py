@@ -205,6 +205,10 @@ class TableObjectAttribute:
                 or self.attribute_type is TableObjectAttributeType.DATETIME:
             dynamodb_type_label = 'N'
 
+        # Handle JSON types
+        elif self.attribute_type is TableObjectAttributeType.JSON:
+            dynamodb_type_label = 'M'
+
         # Handle boolean types
         elif self.attribute_type is TableObjectAttributeType.BOOLEAN:
             dynamodb_type_label = 'BOOL'
