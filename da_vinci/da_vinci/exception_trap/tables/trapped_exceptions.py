@@ -73,6 +73,7 @@ class TrappedException(TableObject):
             TableObjectAttributeType.JSON,
             description='Any additional information about the exception',
             default={},
+            optional=True,
         ),
 
         TableObjectAttribute(

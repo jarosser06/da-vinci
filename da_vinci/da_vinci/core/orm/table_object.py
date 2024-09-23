@@ -77,9 +77,13 @@ class TableObjectAttribute:
             optional -- Whether the attribute optional, defaults to False unless a default is provided
         """
         self.name = name
+
         self.description = description
+
         self.attribute_type = attribute_type
+
         self.exclude_from_dict = exclude_from_dict
+
         self.exclude_from_schema_description = exclude_from_schema_description
 
         self.is_indexed = is_indexed
@@ -90,6 +94,7 @@ class TableObjectAttribute:
 
         if dynamodb_key_name:
             self.dynamodb_key_name = dynamodb_key_name
+
         else:
             self.dynamodb_key_name = self.default_dynamodb_key_name(self.name)
 
@@ -99,12 +104,15 @@ class TableObjectAttribute:
             raise ValueError('argument_names must be provided when attribute_type is COMPOSITE_STRING')
 
         self._default = default
+
         if self._default is None:
             self.optional = optional
+
         else:
             self.optional = True
 
         self.custom_exporter = custom_exporter
+
         self.custom_importer = custom_importer
 
     @staticmethod
