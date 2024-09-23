@@ -7,10 +7,7 @@ from typing import Dict, Optional
 from da_vinci.core.logging import Logger
 from da_vinci.core.rest_service_base import Route, SimpleRESTServiceBase
 
-from da_vinci.exception_trap.tables.trapped_exceptions import (
-    TrappedException,
-    TrappedExceptions,
-)
+from da_vinci.exception_trap.tables.trapped_exceptions import TrappedException, TrappedExceptions
 
 
 class ExceptionTrapService(SimpleRESTServiceBase):

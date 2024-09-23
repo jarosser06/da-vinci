@@ -291,7 +291,7 @@ class TableClient:
             table_object: Object to save
         """
 
-        LOG.debug(f"Saving object: {table_object}")
+        LOG.debug(f"Saving object: {table_object.to_dynamodb_item()}")
 
         self.client.put_item(
             TableName=self.table_endpoint_name,
