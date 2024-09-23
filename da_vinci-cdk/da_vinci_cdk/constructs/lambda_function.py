@@ -21,6 +21,8 @@ from da_vinci_cdk.constructs.access_management import (
     ResourceAccessPolicy,
 )
 from da_vinci_cdk.constructs.base import apply_framework_tags
+from da_vinci_cdk.constructs.resource_discovery import DiscoverableResource
+
 
 
 DEFAULT_BASE_IMAGE = 'public.ecr.aws/lambda/python:3.12'
@@ -106,12 +108,10 @@ class LambdaFunction(Construct):
 
         environment[EXCEPTION_TRAP_ENV_VAR] = str(exception_trap_enabled)
 
-        s3_logging_enabled = scope.node.get_context('s3_logging_enabled')
+        s3_logging_bucket_name = scope.node.try_get_context('s3_logging_bucket_name') or None
 
-        if s3_logging_enabled:
-            s3_logging_bucket = scope.node.get_context('s3_logging_bucket_name')
-
-            environment['DA_VINCI_S3_LOGGING_BUCKET'] = s3_logging_bucket
+        if s3_logging_bucket_name:
+            environment['DA_VINCI_S3_LOGGING_BUCKET'] = s3_logging_bucket_name
 
         else:
             s3_logging_bucket = None
@@ -160,12 +160,12 @@ class LambdaFunction(Construct):
         if not resource_access_requests:
             resource_access_requests = []
 
-        if s3_logging_enabled:
+        if s3_logging_bucket_name:
             resource_access_requests.append(
                 ResourceAccessRequest(
                     policy_name='write',
                     resource_type=ResourceType.BUCKET,
-                    resource_name=s3_logging_bucket,
+                    resource_name=s3_logging_bucket_name,
                 )
             )
 

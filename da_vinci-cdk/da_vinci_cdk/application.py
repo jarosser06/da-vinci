@@ -97,8 +97,8 @@ class CoreStack(Stack):
             self.logging_bucket = Bucket(
                 bucket_name=s3_logging_bucket_name,
                 construct_id='logging-bucket',
-                removal_policy=RemovalPolicy.DESTROY,
                 scope=self,
+                use_specified_bucket_name=True,
             )
 
         if root_domain_name:
@@ -127,7 +127,6 @@ class Application:
                  create_hosted_zone: Optional[bool] = False,
                  disable_docker_image_cache: Optional[bool] = DA_VINCI_DISABLE_DOCKER_CACHE,
                  enable_exception_trap: Optional[bool] = True, enable_global_settings: Optional[bool] = True,
-                 enable_s3_logging: Optional[bool] = False,
                  include_event_bus: Optional[bool] = False, log_level: Optional[str] = 'INFO',
                  root_domain_name: Optional[str] = None, s3_logging_bucket_name: Optional[str] = None):
         """
@@ -193,15 +192,11 @@ class Application:
 
         self._stacks = {}
 
-        if enable_s3_logging and not s3_logging_bucket_name:
-            s3_logging_bucket_name = f'{app_name}-{deployment_id}-logging'
-
         context = {
             'app_name': self.app_name,
             'architecture': self.architecture,
             'deployment_id': self.deployment_id,
             'global_settings_enabled': self.global_settings_enabled,
-            's3_logging_enabled': enable_s3_logging,
             's3_logging_bucket_name': s3_logging_bucket_name,
             'exception_trap_enabled': enable_exception_trap,
             'log_level': self.log_level,
