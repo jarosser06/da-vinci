@@ -121,6 +121,8 @@ def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
 
             event_obj = Event.from_lambda_event(event=event)
 
+            _logger.s3_log_handler.put_metadata('originating_event', event_obj.to_dict())
+
             try:
                 _logger.debug(f'Executing function with event {event}')
 
@@ -147,6 +149,8 @@ def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
                         exception_traceback=traceback.format_exc(),
                         function_name=function_name,
                         originating_event=event,
+                        log_execution_id=_logger.execution_id,
+                        log_namespace=_logger.namespace,
                     )
 
                 traceback.print_exc()

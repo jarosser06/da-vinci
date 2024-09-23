@@ -37,6 +37,8 @@ class ReportedException:
     exception_traceback: str
     function_name: str
     originating_event: Dict
+    log_execution_id: Optional[str] = None
+    log_namespace: Optional[str] = None
     metadata: Optional[Dict] = None
 
     def to_dict(self) -> Dict:
@@ -64,7 +66,8 @@ class ExceptionReporter(RESTClientBase):
         super().__init__(resource_name='exceptions_trap')
 
     def report(self, function_name: str, exception: str, exception_traceback: str,
-                 originating_event: Dict, metadata: Optional[Dict] = None):
+                 originating_event: Dict, metadata: Optional[Dict] = None,
+                 log_execution_id: Optional[str] = None, log_namespace: Optional[str] = None):
         """
         Report an exception to the exception trap
 
@@ -72,8 +75,10 @@ class ExceptionReporter(RESTClientBase):
             function_name: The name of the function that raised the exception
             exception: The exception that was raised
             exception_traceback: The traceback of the exception
-            originating_event: The event that caused the exception
+            log_execution_id: The execution ID to track the logging
+            log_namespace: The namespace for the logger
             metadata: Any additional metadata about the exception
+            originating_event: The event that caused the exception
         """
 
         req_body = ReportedException(
@@ -82,6 +87,8 @@ class ExceptionReporter(RESTClientBase):
             function_name=function_name,
             originating_event=originating_event,
             metadata=metadata,
+            log_execution_id=log_execution_id,
+            log_namespace=log_namespace,
         )
 
         logging.debug(f'Reporting exception: {req_body.to_dict()}')
@@ -120,6 +127,8 @@ def fn_exception_reporter(function_name: str, metadata: Optional[Dict] = None, l
                         exception=str(exc),
                         exception_traceback=traceback.format_exc(),
                         metadata=metadata,
+                        log_execution_id=_logger.execution_id,
+                        log_namespace=_logger.namespace,
                     )
 
                 traceback.print_exc()

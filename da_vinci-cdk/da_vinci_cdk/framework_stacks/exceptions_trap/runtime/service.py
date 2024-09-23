@@ -30,7 +30,8 @@ class ExceptionTrapService(SimpleRESTServiceBase):
         self.logger = Logger('da_vinci.exception_trap_service')
 
     def trap_exception(self, function_name: str, exception: str, exception_traceback: str,
-                       originating_event: Dict, metadata: Optional[Dict] = None):
+                       originating_event: Dict, log_execution_id: Optional[str] = None, 
+                       log_namespace: Optional[str] = None, metadata: Optional[Dict] = None):
         """
         Trap an exception
 
@@ -39,6 +40,8 @@ class ExceptionTrapService(SimpleRESTServiceBase):
             exception: The exception that was raised
             exception_traceback: The traceback of the exception
             originating_event: The event that caused the exception
+            log_execution_id: The execution ID to track the logging
+            log_namespace: The namespace for the logger
             metadata: Any additional metadata about the exception
         """
         self.logger.debug(f'Trapping exception from {originating_event}')
@@ -49,6 +52,8 @@ class ExceptionTrapService(SimpleRESTServiceBase):
             exception_traceback=exception_traceback,
             function_name=function_name,
             originating_event=originating_event,
+            log_execution_id=log_execution_id,
+            log_namespace=log_namespace,
             metadata=metadata,
         )
 

@@ -55,6 +55,20 @@ class TrappedException(TableObject):
         ),
 
         TableObjectAttribute(
+            'log_execution_id',
+            TableObjectAttributeType.STRING,
+            description='The execution ID of the log',
+            optional=True,
+        ),
+
+        TableObjectAttribute(
+            'log_namespace',
+            TableObjectAttributeType.STRING,
+            description='The namespace of the log',
+            optional=True,
+        ),
+
+        TableObjectAttribute(
             'metadata',
             TableObjectAttributeType.JSON,
             description='Any additional information about the exception',
