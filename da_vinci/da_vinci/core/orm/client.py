@@ -276,6 +276,8 @@ class TableClient:
             Key=dynamodb_key,
         )
 
+        LOG.debug(f"Get object results: {results}")
+
         if 'Item' not in results:
             return None
 
@@ -288,6 +290,8 @@ class TableClient:
         Keyword Arguments:
             table_object: Object to save
         """
+
+        LOG.debug(f"Saving object: {table_object}")
 
         self.client.put_item(
             TableName=self.table_endpoint_name,
