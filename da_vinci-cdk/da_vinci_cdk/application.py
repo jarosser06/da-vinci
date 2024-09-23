@@ -96,6 +96,7 @@ class CoreStack(Stack):
         if s3_logging_bucket_name:
             self.logging_bucket = Bucket(
                 bucket_name=s3_logging_bucket_name,
+                construct_id='logging-bucket',
                 removal_policy=RemovalPolicy.DESTROY,
                 scope=self,
             )
