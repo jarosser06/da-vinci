@@ -137,7 +137,7 @@ class Logger:
                 Body=log_data
             )
 
-            self.pylogger.info(f"Log successfully uploaded to S3: {log_filename}")
+            self.pylogger.info(f"Log successfully uploaded to S3: s3://{self.s3_bucket}/{log_filename}")
         except Exception as e:
             self.pylogger.error(f"Failed to upload log to S3: {e}")
 
