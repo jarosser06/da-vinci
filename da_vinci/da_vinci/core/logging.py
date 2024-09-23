@@ -3,7 +3,7 @@ import logging
 
 from datetime import datetime, UTC as utc_tz
 from os import environ
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 import boto3
@@ -15,7 +15,15 @@ S3_BUCKET_ENV_VAR = 'DA_VINCI_S3_LOGGING_BUCKET'
 
 class S3LogHandler(logging.Handler):
     """Custom log handler to store logs in memory and offload them to S3."""
-    def __init__(self, execution_id: str, namespace: str):
+    def __init__(self, execution_id: str, namespace: str, metadata: Optional[Dict[str, Any]] = None):
+        """
+        Set up the S3 log handler with the execution ID and namespace.
+
+        Keyword Arguments:
+        execution_id -- The execution ID
+        namespace -- The namespace for the logs
+        metadata -- Additional metadata to store with the logs
+        """
         super().__init__()
 
         self.execution_id = execution_id
@@ -23,6 +31,8 @@ class S3LogHandler(logging.Handler):
         self.namespace = namespace
 
         self.log_entries = []
+
+        self.metadata = metadata or {}
 
     def emit(self, record) -> None:
         """Capture log records and store them in memory."""
@@ -40,12 +50,23 @@ class S3LogHandler(logging.Handler):
         """
         return self.log_entries
 
+    def put_metadata(self, key: str, value: Any) -> None:
+        """
+        Add metadata to the log handler.
+
+        Keyword Arguments:
+        key -- The key for the metadata
+        value -- The value for the metadata
+        """
+        self.metadata[key] = value
+
     def to_dict(self) -> dict:
         """
         Return the collected log entries as a dictionary.
         """
         return {
             'execution_id': self.execution_id,
+            'metadata': self.metadata,
             'namespace': self.namespace,
             'entries': self.log_entries
         }
