@@ -36,7 +36,8 @@ DA_VINCI_DISABLE_DOCKER_CACHE = getenv('DA_VINCI_DISABLE_DOCKER_CACHE', False)
 class CoreStack(Stack):
     def __init__(self, app_name: str, deployment_id: str, scope: Construct, stack_name: str,
                  create_hosted_zone: bool = True, global_settings_enabled: bool = True,
-                 root_domain_name: Optional[str] = None, s3_logging_bucket_name: str = None):
+                 root_domain_name: Optional[str] = None, s3_logging_bucket_name: str = None,
+                 s3_logging_bucket_object_retention_days: Optional[int] = None):
         """
         Bootstrap the initial infrastructure required to stand up a DaVinci
 
@@ -50,6 +51,7 @@ class CoreStack(Stack):
             scope: Parent construct for the stack
             stack_name: Name of the stack
             s3_logging_bucket_name: Name of the S3 bucket to use for logging (default: None)
+            s3_logging_bucket_object_retention_days: Number of days before objects in the bucket expire (default: None)
         """
 
         super().__init__(
@@ -97,6 +99,7 @@ class CoreStack(Stack):
             self.logging_bucket = Bucket(
                 bucket_name=s3_logging_bucket_name,
                 construct_id='logging-bucket',
+                object_expiration_days=s3_logging_bucket_object_retention_days,
                 scope=self,
                 use_specified_bucket_name=True,
             )
@@ -128,7 +131,8 @@ class Application:
                  disable_docker_image_cache: Optional[bool] = DA_VINCI_DISABLE_DOCKER_CACHE,
                  enable_exception_trap: Optional[bool] = True, enable_global_settings: Optional[bool] = True,
                  include_event_bus: Optional[bool] = False, log_level: Optional[str] = 'INFO',
-                 root_domain_name: Optional[str] = None, s3_logging_bucket_name: Optional[str] = None):
+                 root_domain_name: Optional[str] = None, s3_logging_bucket_name: Optional[str] = None,
+                 s3_logging_bucket_object_retention_days: Optional[int] = None):
         """
         Initialize a new Application object
 
@@ -232,6 +236,7 @@ class Application:
             stack_name=self.generate_stack_name(CoreStack),
             root_domain_name=self.root_domain_name,
             s3_logging_bucket_name=s3_logging_bucket_name,
+            s3_logging_bucket_object_retention_days=s3_logging_bucket_object_retention_days,
         )
 
         self.dependency_stacks.append(self.core_stack)

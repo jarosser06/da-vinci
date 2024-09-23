@@ -1,9 +1,12 @@
 
+from typing import Optional
+
 from constructs import Construct
 
 from aws_cdk import (
     aws_iam as cdk_iam,
     aws_s3 as cdk_s3,
+    Duration,
 )
 
 from da_vinci.core.resource_discovery import ResourceType
@@ -13,8 +16,8 @@ from da_vinci_cdk.constructs.resource_discovery import DiscoverableResource
 
 
 class Bucket(Construct):
-    def __init__(self, bucket_name: str, construct_id: str, scope: Construct, use_specified_bucket_name: bool = False,
-                 **s3_kwargs) -> None:
+    def __init__(self, bucket_name: str, construct_id: str, scope: Construct, object_expiration_days: Optional[int] = None,
+                 use_specified_bucket_name: bool = False, **s3_kwargs) -> None:
         """
         Creates an S3 bucket
 
@@ -22,6 +25,7 @@ class Bucket(Construct):
             bucket_name: Name of the bucket construct, used primarily for resource discovery, can be used as the bucket name if use_real_bucket_name is True
             construct_id: ID of the construct
             scope: Parent construct for the Bucket
+            object_expiration_days: Number of days before objects in the bucket expire
             s3_kwargs: Additional keyword arguments for the S3 bucket
             use_specified_bucket_name: Use the bucket_name as the bucket name (default: False)
         """
@@ -31,6 +35,21 @@ class Bucket(Construct):
 
         if use_specified_bucket_name:
             _bucket_name = bucket_name
+
+        lifecycle_rules = None
+
+        if object_expiration_days:
+            lifecycle_rules = [
+                cdk_s3.LifecycleRule(
+                    expiration=Duration.days(object_expiration_days),
+                )
+            ]
+
+            if 'lifecycle_rules' in s3_kwargs: 
+                s3_kwargs['lifecycle_rules'].extend(lifecycle_rules)
+
+            else:
+                s3_kwargs['lifecycle_rules'] = lifecycle_rules
 
         self.bucket = cdk_s3.Bucket(
             self,
