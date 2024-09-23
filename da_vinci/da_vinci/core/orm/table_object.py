@@ -436,7 +436,7 @@ class TableObjectAttribute:
             return set(value)  # Convert list back to set
 
         elif self.attribute_type == TableObjectAttributeType.NUMBER_SET:
-            return set(map(int, value))
+            return set(value)
 
         elif self.attribute_type is TableObjectAttributeType.COMPOSITE_STRING:
             return tuple(value.split('-'))
