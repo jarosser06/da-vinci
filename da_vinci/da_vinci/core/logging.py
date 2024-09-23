@@ -29,9 +29,7 @@ class S3LogHandler(logging.Handler):
         log_entry = {
             'timestamp': datetime.now(tz=utc_tz).isoformat(),
             'level': record.levelname,
-            'namespace': self.namespace,
             'message': record.getMessage(),
-            'execution_id': self.execution_id
         }
 
         self.log_entries.append(log_entry)
@@ -41,6 +39,16 @@ class S3LogHandler(logging.Handler):
         Return the collected log entries.
         """
         return self.log_entries
+
+    def to_dict(self) -> dict:
+        """
+        Return the collected log entries as a dictionary.
+        """
+        return {
+            'execution_id': self.execution_id,
+            'namespace': self.namespace,
+            'entries': self.log_entries
+        }
 
 
 class Logger:
@@ -100,7 +108,7 @@ class Logger:
         log_filename = f"logs/{self.namespace}/{self.execution_id}.json"
 
         try:
-            log_data = json.dumps(self.s3_log_handler.get_log_entries(), indent=4)
+            log_data = json.dumps(self.s3_log_handler.to_dict(), indent=4)
 
             self.s3_client.put_object(
                 Bucket=self.s3_bucket,
