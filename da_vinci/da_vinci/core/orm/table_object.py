@@ -281,7 +281,7 @@ class TableObjectAttribute:
                 value = json.loads(value)
 
             elif not value:
-                return {"M": {}}
+                return None
 
             return  {k: self._infer_dynamodb_value(v) for k, v in value.items()}
 
@@ -305,15 +305,17 @@ class TableObjectAttribute:
 
         # Handle list types
         elif TableObjectAttributeType.is_list(self.attribute_type):
-            if not value:
-                return []
             if self.attribute_type is TableObjectAttributeType.NUMBER_LIST:
                 label = 'N'
+
             else:
                 label = 'S'
 
             # Specifically handle JSON_LIST
             if self.attribute_type is TableObjectAttributeType.JSON_LIST:
+                if not value:
+                    return None
+
                 # Ensure each element in the list is converted properly
                 return [{"M": json.loads(item) if isinstance(item, str) else item} for item in value]
 
@@ -321,10 +323,16 @@ class TableObjectAttribute:
 
         # Handle string set types
         elif self.attribute_type == TableObjectAttributeType.STRING_SET:
+            if not value:
+                return None
+
             return list(value)  # DynamoDB stores sets as lists in JSON format
 
         # Handle number set types
         elif self.attribute_type == TableObjectAttributeType.NUMBER_SET:
+            if not value:
+                return None
+
             return [str(val) for val in value]
 
         # Handle boolean types
@@ -340,6 +348,15 @@ class TableObjectAttribute:
         Keyword Arguments:
             value -- Value to convert
         """
+        # Skip None values or empty sets/dictionaries for JSON and Set types
+        if (self.attribute_type in (TableObjectAttributeType.STRING_SET, TableObjectAttributeType.NUMBER_SET)
+                and (value is None or not value)):
+            return None  # Skip empty sets
+
+        if self.attribute_type in (TableObjectAttributeType.JSON, TableObjectAttributeType.JSON_LIST) and \
+                (value is None or (isinstance(value, dict) and not value)):
+            return None  # Skip empty JSON or JSON_LIST
+
         return {
             self.dynamodb_key_name: {
                 self.dynamodb_type_label: self.dynamodb_value(value),
@@ -681,7 +698,10 @@ class TableObject:
         for attr in self.all_attributes():
             val = getattr(self, attr.name)
 
-            item.update(attr.as_dynamodb_attribute(val))
+            dyn_attr = attr.as_dynamodb_attribute(val)
+
+            if dyn_attr:
+                item.update(dyn_attr)
 
         return item
 

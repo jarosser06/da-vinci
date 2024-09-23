@@ -307,9 +307,8 @@ class TableClient:
                 if "Supplied AttributeValue is empty" in error_message:
                     raise Exception(f"Empty attribute value detected, if using JSON type, attributes cannot be empty. Original Error: {error_message}")
 
-                    return
-
-                LOG.debug(f"ValidationException occurred: {error_message}")
+                else:
+                    raise
 
             else:
                 # Re-raise the error if it's not a ValidationException
@@ -395,7 +394,7 @@ class TableClient:
         return all
 
     def update_object(self, partition_key_value: Any, sort_key_value: Any,
-                  updates: Dict[str, Any] = None, remove_keys: List[str] = None) -> None:
+                      updates: Dict[str, Any] = None, remove_keys: List[str] = None) -> None:
         update_expressions = []
 
         expression_attribute_values = {}
