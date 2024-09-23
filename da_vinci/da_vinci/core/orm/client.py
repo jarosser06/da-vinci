@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional, Union
 
 import boto3
 
+from botocore.exceptions import ClientError
+
 from da_vinci.core.exceptions import ResourceNotFoundError
 from da_vinci.core.resource_discovery import resource_endpoint_lookup
 from da_vinci.core.orm.exceptions import (
@@ -293,10 +295,25 @@ class TableClient:
 
         LOG.debug(f"Saving object: {table_object.to_dynamodb_item()}")
 
-        self.client.put_item(
-            TableName=self.table_endpoint_name,
-            Item=table_object.to_dynamodb_item(),
-        )
+        try:
+            self.client.put_item(
+                TableName=self.table_endpoint_name,
+                Item=table_object.to_dynamodb_item(),
+            )
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ValidationException':
+                error_message = e.response['Error']['Message']
+
+                if "Supplied AttributeValue is empty" in error_message:
+                    raise Exception(f"Empty attribute value detected, if using JSON type, attributes cannot be empty. Original Error: {error_message}")
+
+                    return
+
+                LOG.debug(f"ValidationException occurred: {error_message}")
+
+            else:
+                # Re-raise the error if it's not a ValidationException
+                raise
 
     def delete_object_by_key(self, partition_key_value: Any, sort_key_value: Any = None):
         """

@@ -15,8 +15,8 @@ class TableObjectAttributeType(StrEnum):
     NUMBER = auto()
     BOOLEAN = auto()
     DATETIME = auto()
-    JSON = auto()
-    JSON_STRING = auto()
+    JSON = auto() # Not safe for storing empty attributes
+    JSON_STRING = auto() # Safe for storing empty attributes
     STRING_LIST = auto()
     NUMBER_LIST = auto()
     JSON_LIST = auto()

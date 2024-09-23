@@ -70,7 +70,7 @@ class TrappedException(TableObject):
 
         TableObjectAttribute(
             'metadata',
-            TableObjectAttributeType.JSON,
+            TableObjectAttributeType.JSON_STRING,
             description='Any additional information about the exception',
             default={},
             optional=True,
