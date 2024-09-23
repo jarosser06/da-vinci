@@ -305,12 +305,6 @@ class TableObjectAttribute:
 
         # Handle list types
         elif TableObjectAttributeType.is_list(self.attribute_type):
-            if self.attribute_type is TableObjectAttributeType.NUMBER_LIST:
-                label = 'N'
-
-            else:
-                label = 'S'
-
             # Specifically handle JSON_LIST
             if self.attribute_type is TableObjectAttributeType.JSON_LIST:
                 if not value:
@@ -318,6 +312,15 @@ class TableObjectAttribute:
 
                 # Ensure each element in the list is converted properly
                 return [{"M": json.loads(item) if isinstance(item, str) else item} for item in value]
+
+            if not value:
+                return []
+
+            if self.attribute_type is TableObjectAttributeType.NUMBER_LIST:
+                label = 'N'
+
+            else:
+                label = 'S'
 
             return [{label: str(val)} for val in value]
 
