@@ -23,6 +23,8 @@ class ExceptionTrapService(SimpleRESTServiceBase):
         """
         self.trapped_exceptions = TrappedExceptions()
 
+        self.logger = Logger('da_vinci.exception_trap_service')
+
         super().__init__(
             routes=[
                 Route(
@@ -32,8 +34,6 @@ class ExceptionTrapService(SimpleRESTServiceBase):
                 )
             ]
         )
-
-        self.logger = Logger('da_vinci.exception_trap_service')
 
     def trap_exception(self, function_name: str, exception: str, exception_traceback: str,
                        originating_event: Dict, log_execution_id: Optional[str] = None, 

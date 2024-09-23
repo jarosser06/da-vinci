@@ -272,10 +272,13 @@ class TableObjectAttribute:
             return str(float(self.datetime_to_timestamp(value)))
 
         # Handle JSON types
-        # With this:
         elif self.attribute_type is TableObjectAttributeType.JSON:
             if isinstance(value, str):
                 value = json.loads(value)
+
+            elif value is None:
+                return {"M": {}}
+
             return {"M": {k: self._infer_dynamodb_value(v) for k, v in value.items()}}  # Convert dict to DynamoDB MAP
 
         # Handle composite string types
