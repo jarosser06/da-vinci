@@ -1,7 +1,6 @@
 '''Event Bus Clients'''
 
 import json
-import logging
 import traceback
 
 from collections.abc import Callable
