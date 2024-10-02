@@ -260,13 +260,15 @@ class TableClient:
 
         return all
 
-    def get_object(self, partition_key_value: Any, sort_key_value: Any = None) -> Union[TableObject, None]:
+    def get_object(self, partition_key_value: Any, sort_key_value: Any = None,
+                   consistent_read: Optional[bool] = False) -> Union[TableObject, None]:
         """
         Retrieve a single object from the table by partition and sort key
 
         Keyword Arguments:
             partition_key_value: Value of the partition key
             sort_key_value: Value of the sort key (default: None)
+            consistent_read: Whether to use consistent read (default: False)
         """
         dynamodb_key = self.default_object_class.gen_dynamodb_key(
             partition_key_value=partition_key_value,
@@ -276,6 +278,7 @@ class TableClient:
         results = self.client.get_item(
             TableName=self.table_endpoint_name,
             Key=dynamodb_key,
+            ConsistentRead=consistent_read,
         )
 
         LOG.debug(f"Get object results: {results}")
