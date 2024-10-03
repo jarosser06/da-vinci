@@ -131,7 +131,7 @@ class Application:
                  disable_docker_image_cache: Optional[bool] = DA_VINCI_DISABLE_DOCKER_CACHE,
                  enable_exception_trap: Optional[bool] = True, enable_global_settings: Optional[bool] = True,
                  include_event_bus: Optional[bool] = False, log_level: Optional[str] = 'INFO',
-                 root_domain_name: Optional[str] = None, s3_logging_bucket_name: Optional[str] = None,
+                 root_domain_name: Optional[str] = None, s3_logging_bucket_name_prefix: Optional[str] = None,
                  s3_logging_bucket_object_retention_days: Optional[int] = None):
         """
         Initialize a new Application object
@@ -148,7 +148,7 @@ class Application:
             include_event_bus: Whether to build the event bus stack as part of the application (default: False)
             log_level: Logging level to use for the application (default: INFO)
             root_domain_name: Root domain name for the application (default: None)
-            s3_logging_bucket_name: Name of the S3 bucket to use for logging (default: None)
+            s3_logging_bucket_name_prefix: Prefix name of the S3 bucket to use for logging, appends the deployment_id (default: None)
 
         Example:
             ```
@@ -166,11 +166,17 @@ class Application:
             ```
         """
         self.app_entry = app_entry
+
         self.app_name = app_name
+
         self.architecture = architecture
+
         self.deployment_id = deployment_id
+
         self.log_level = log_level
+
         self.global_settings_enabled = enable_global_settings
+
         self.root_domain_name = root_domain_name
 
         self.lib_docker_image = DockerImage.from_build(
@@ -195,6 +201,8 @@ class Application:
             self.app_docker_image = None
 
         self._stacks = {}
+
+        s3_logging_bucket_name = f'{s3_logging_bucket_name_prefix}-{deployment_id}' if s3_logging_bucket_name_prefix else None
 
         context = {
             'app_name': self.app_name,
