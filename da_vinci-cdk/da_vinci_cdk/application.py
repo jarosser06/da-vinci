@@ -73,7 +73,7 @@ class CoreStack(Stack):
             )
 
             GlobalSetting(
-                description='The name of the S3 Logging Bucket, null if not used. Managed by framework deployment, do not modify!',
+                description='The name of the S3 Logging Bucket, null if not used. Managed by framework deployment, modify at your own risk!',
                 namespace='core',
                 setting_key='s3_logging_bucket',
                 setting_value=s3_logging_bucket_name,
@@ -88,7 +88,7 @@ class CoreStack(Stack):
 
             for setting_key in core_str_setting_keys:
                 GlobalSetting(
-                    description=f'The {setting_key} available to all components of the application. ONLY MODIFY THROUGH DEPLOYMENT!',
+                    description=f'The {setting_key} available to all components of the application.',
                     namespace='core',
                     setting_key=setting_key,
                     setting_value=self.node.get_context(setting_key),
@@ -107,7 +107,7 @@ class CoreStack(Stack):
         if root_domain_name:
             if global_settings_enabled:
                 GlobalSetting(
-                    description='The root domain for the application. Managed through employment process only!',
+                    description='The root domain for the application. Managed for deployment process only!',
                     namespace='core',
                     setting_key='root_domain_name',
                     setting_value=root_domain_name,
@@ -227,14 +227,6 @@ class Application:
 
             self.dependency_stacks.append(global_settings_stack)
 
-        if enable_exception_trap:
-            exceptions_trap_stack = self.add_uninitialized_stack(
-                stack=ExceptionsTrapStack,
-                include_core_dependencies=False,
-            )
-
-            self.dependency_stacks.append(exceptions_trap_stack)
-
         self.core_stack = CoreStack(
             app_name=self.app_name,
             create_hosted_zone=create_hosted_zone,
@@ -248,6 +240,14 @@ class Application:
         )
 
         self.dependency_stacks.append(self.core_stack)
+
+        if enable_exception_trap:
+            exceptions_trap_stack = self.add_uninitialized_stack(
+                stack=ExceptionsTrapStack,
+                include_core_dependencies=False,
+            )
+
+            self.dependency_stacks.append(exceptions_trap_stack)
 
         if include_event_bus:
             self.add_uninitialized_stack(EventBusStack)
