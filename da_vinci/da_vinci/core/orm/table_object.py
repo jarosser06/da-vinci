@@ -677,24 +677,32 @@ class TableObject:
 
         return changed_attrs
 
-    def to_dict(self, convert_datetime_to_str: Optional[bool] = False) -> Dict:
+    def to_dict(self, exclude_attribute_names: Optional[List[str]] = None, json_compatible: Optional[bool] = True) -> Dict:
         """
-        Convert the object to a Dict
+        Convert the object to a Dict representation
 
         Keyword Arguments:
-            convert_datetime_to_str: Whether to convert datetime objects to iso format strings
+        exclude_attribute_names -- List of attribute names to exclude
+        json_compatible -- Convert datetime objects to strings
         """
         res = {}
 
+        if exclude_attribute_names is None:
+            exclude_attribute_names = []
+
         for attr in self.all_attributes():
-            if attr.exclude_from_dict:
+            if attr.exclude_from_dict or attr.name in exclude_attribute_names:
                 continue
 
             val = getattr(self, attr.name)
 
-            if attr.attribute_type is TableObjectAttributeType.DATETIME and convert_datetime_to_str \
+            if attr.attribute_type is TableObjectAttributeType.DATETIME and json_compatible \
                 and val is not None:
                 val = val.isoformat()
+
+            if json_compatible and attr.attribute_type is TableObjectAttributeType.STRING_SET or \
+                    attr.attribute_type is TableObjectAttributeType.NUMBER_SET:
+                val = list(val)
 
             if attr.custom_exporter:
                 val = attr.custom_exporter(val)
@@ -730,7 +738,7 @@ class TableObject:
             str
         """
 
-        return json.dumps(self.to_dict(), cls=DateTimeEncoder)
+        return json.dumps(self.to_dict(json_compatible=True))
 
     @classmethod
     def all_attributes(cls) -> List[TableObjectAttribute]:
