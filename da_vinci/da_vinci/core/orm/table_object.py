@@ -677,13 +677,13 @@ class TableObject:
 
         return changed_attrs
 
-    def to_dict(self, exclude_attribute_names: Optional[List[str]] = None, json_compatible: Optional[bool] = True) -> Dict:
+    def to_dict(self, exclude_attribute_names: Optional[List[str]] = None, json_compatible: Optional[bool] = False) -> Dict:
         """
-        Convert the object to a Dict representation
+        Convert the object to a dict representation
 
         Keyword Arguments:
-        exclude_attribute_names -- List of attribute names to exclude
-        json_compatible -- Convert datetime objects to strings
+        exclude_attribute_names -- List of attribute names to exclude from the resulting dict
+        json_compatible -- Convert datetime objects to strings and sets to lists for JSON compatibility
         """
         res = {}
 
