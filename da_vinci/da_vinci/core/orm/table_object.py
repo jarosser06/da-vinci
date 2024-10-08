@@ -15,11 +15,12 @@ class TableObjectAttributeType(StrEnum):
     NUMBER = auto()
     BOOLEAN = auto()
     DATETIME = auto()
-    JSON = auto() # Not safe for storing empty attributes
+    JSON = auto() # Not safe for storing empty attributes, native
     JSON_STRING = auto() # Safe for storing empty attributes
     STRING_LIST = auto()
     NUMBER_LIST = auto()
-    JSON_LIST = auto()
+    JSON_LIST = auto() # Not safe for storing empty attributes, native
+    JSON_STRING_LIST = auto() # Safe for storing empty attributes
     COMPOSITE_STRING = auto()
     STRING_SET = auto()
     NUMBER_SET = auto()
@@ -89,8 +90,8 @@ class TableObjectAttribute:
 
         self.is_indexed = is_indexed
 
-        if self.attribute_type is TableObjectAttributeType.JSON or \
-                self.attribute_type is TableObjectAttributeType.JSON_LIST:
+        if self.attribute_type is TableObjectAttributeType.JSON_STRING or \
+                self.attribute_type is TableObjectAttributeType.JSON_STRING_LIST:
             self.is_indexed = False
 
         if dynamodb_key_name:
@@ -285,9 +286,14 @@ class TableObjectAttribute:
 
             return  {k: self._infer_dynamodb_value(v) for k, v in value.items()}
 
-        elif self.attribute_type is TableObjectAttributeType.JSON_STRING:
+        elif self.attribute_type is TableObjectAttributeType.JSON_STRING or \
+                self.attribute_type is TableObjectAttributeType.JSON_STRING_LIST:
             if not value:
-                return "{}"
+                if self.attribute_type is TableObjectAttributeType.JSON_STRING_LIST:
+                    return "[]"
+
+                else:
+                    return "{}"
 
             return json.dumps(value)
 
@@ -446,9 +452,14 @@ class TableObjectAttribute:
             if isinstance(value, dict):
                 return {k: self._infer_python_value(v) for k, v in value.items()}
 
-        elif self.attribute_type is TableObjectAttributeType.JSON_STRING:
+        elif self.attribute_type is TableObjectAttributeType.JSON_STRING or \
+                self.attribute_type is TableObjectAttributeType.JSON_STRING_LIST:
             if not value:
-                return {}
+                if self.attribute_type is TableObjectAttributeType.JSON_STRING_LIST:
+                    return []
+
+                else:
+                    return {}
 
             return json.loads(value)
 
