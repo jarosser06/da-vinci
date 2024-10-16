@@ -196,7 +196,11 @@ class Application:
 
         self._stacks = {}
 
+        existing_logging_bucket = False
+
         if existing_s3_logging_bucket_name:
+            existing_logging_bucket = True
+
             if s3_logging_bucket_name_prefix:
                 raise ValueError('Both existing_s3_logging_bucket_name and s3_logging_bucket_name_prefix cannot be set')
 
@@ -236,7 +240,7 @@ class Application:
             scope=self.cdk_app,
             stack_name=self.generate_stack_name(CoreStack),
             root_domain_name=self.root_domain_name,
-            s3_logging_bucket_name=s3_logging_bucket_name,
+            s3_logging_bucket_name=s3_logging_bucket_name if not existing_logging_bucket else None,
             s3_logging_bucket_object_retention_days=s3_logging_bucket_object_retention_days,
         )
 
