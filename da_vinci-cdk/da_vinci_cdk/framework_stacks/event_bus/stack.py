@@ -6,16 +6,16 @@ from aws_cdk import aws_iam as cdk_iam
 from constructs import Construct
 
 from da_vinci_cdk.framework_stacks.event_bus_subscriptions.stack import (
-    EventBusSubscriptionsTable
+    EventBusSubscriptionsTableStack
 )
 from da_vinci_cdk.framework_stacks.event_bus_responses.stack import (
-    EventBusResponsesTable
+    EventBusResponsesTableStack
 )
 
 from da_vinci_cdk.constructs.access_management import (
     ResourceAccessRequest,
 )
-from da_vinci_cdk.constructs.global_setting import GlobalSetting
+from da_vinci_cdk.constructs.global_setting import GlobalSetting, SettingType
 from da_vinci_cdk.constructs.service import AsyncService, SimpleRESTService
 from da_vinci_cdk.stack import Stack
 
@@ -47,8 +47,8 @@ class EventBusStack(Stack):
             stack_name=stack_name,
             library_base_image=library_base_image,
             required_stacks=[
-                EventBusSubscriptionsTable,
-                EventBusResponsesTable,
+                EventBusSubscriptionsTableStack,
+                EventBusResponsesTableStack,
             ],
         )
 
@@ -135,6 +135,7 @@ class EventBusStack(Stack):
             description='The number of hours to retain responses in the event bus',
             namespace='da_vinci_framework::event_bus',
             setting_key='response_retention_hours',
+            setting_type=SettingType.INTEGER,
+            setting_value=8,
             scope=self,
-            value=8,
         )

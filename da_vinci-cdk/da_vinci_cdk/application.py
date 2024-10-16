@@ -1,5 +1,3 @@
-import logging
-
 from os import getenv
 from os.path import (
     join as path_join,

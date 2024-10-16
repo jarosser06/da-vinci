@@ -4,7 +4,7 @@ from constructs import Construct
 
 from aws_cdk import DockerImage, Duration
 
-from da_vinci.core.tables.settings import Setting
+from da_vinci.core.tables.settings import Setting, SettingType
 from da_vinci.exception_trap.tables.trapped_exceptions import TrappedException
 
 from da_vinci_cdk.constructs.access_management import ResourceAccessRequest
@@ -12,7 +12,7 @@ from da_vinci_cdk.constructs.service import SimpleRESTService
 from da_vinci_cdk.stack import Stack
 
 from da_vinci_cdk.framework_stacks.global_settings.stack import GlobalSettingsStack
-from da_vinci_cdk.framework_stacks.trapped_exceptions.stack import TrappedExceptionsStack
+from da_vinci_cdk.framework_stacks.trapped_exceptions.stack import TrappedExceptionsTableStack
 
 
 class ExceptionsTrapStack(Stack):
@@ -43,7 +43,7 @@ class ExceptionsTrapStack(Stack):
             library_base_image=library_base_image,
             required_stacks=[
                 GlobalSettingsStack,
-                TrappedExceptionsStack,
+                TrappedExceptionsTableStack,
             ],
         )
 
@@ -75,6 +75,7 @@ class ExceptionsTrapStack(Stack):
             description='The number of hours to retain responses in the exceptions trap',
             namespace='da_vinci_framework::exceptions_trap',
             setting_key='response_retention_hours',
+            setting_type=SettingType.INTEGER,
+            setting_value=48,
             scope=self,
-            value=48,
         )
