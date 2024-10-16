@@ -12,8 +12,6 @@ from aws_cdk import App as CDKApp
 from aws_cdk import (
     aws_lambda as cdk_lambda,
     DockerImage,
-    aws_s3 as cdk_s3,
-    RemovalPolicy,
 )
 
 from constructs import Construct
@@ -25,9 +23,6 @@ from da_vinci_cdk.framework_stacks.event_bus.stack import EventBusStack
 from da_vinci_cdk.framework_stacks.global_settings.stack import GlobalSettingsStack
 from da_vinci_cdk.framework_stacks.exceptions_trap.stack import ExceptionsTrapStack
 from da_vinci_cdk.stack import Stack
-
-
-LOG = logging.getLogger(__name__)
 
 
 DA_VINCI_DISABLE_DOCKER_CACHE = getenv('DA_VINCI_DISABLE_DOCKER_CACHE', False)
@@ -66,7 +61,7 @@ class CoreStack(Stack):
 
             GlobalSetting(
                 description='Whether Global settings are enabled. Managed by framework deployment, do not modify!',
-                namespace='core',
+                namespace='da_vinci_framework::core',
                 setting_key='global_settings_enabled',
                 setting_value=True,
                 scope=self,
@@ -74,7 +69,7 @@ class CoreStack(Stack):
 
             GlobalSetting(
                 description='The name of the S3 Logging Bucket, null if not used. Managed by framework deployment, modify at your own risk!',
-                namespace='core',
+                namespace='da_vinci_framework::core',
                 setting_key='s3_logging_bucket',
                 setting_value=s3_logging_bucket_name,
                 scope=self,
@@ -89,7 +84,7 @@ class CoreStack(Stack):
             for setting_key in core_str_setting_keys:
                 GlobalSetting(
                     description=f'The {setting_key} available to all components of the application.',
-                    namespace='core',
+                    namespace='da_vinci_framework::core',
                     setting_key=setting_key,
                     setting_value=self.node.get_context(setting_key),
                     scope=self,
@@ -108,7 +103,7 @@ class CoreStack(Stack):
             if global_settings_enabled:
                 GlobalSetting(
                     description='The root domain for the application. Managed for deployment process only!',
-                    namespace='core',
+                    namespace='da_vinci_framework::core',
                     setting_key='root_domain_name',
                     setting_value=root_domain_name,
                     scope=self,
@@ -130,6 +125,7 @@ class Application:
                  create_hosted_zone: Optional[bool] = False,
                  disable_docker_image_cache: Optional[bool] = DA_VINCI_DISABLE_DOCKER_CACHE,
                  enable_exception_trap: Optional[bool] = True, enable_global_settings: Optional[bool] = True,
+                 existing_s3_logging_bucket_name: Optional[str] = None,
                  include_event_bus: Optional[bool] = False, log_level: Optional[str] = 'INFO',
                  root_domain_name: Optional[str] = None, s3_logging_bucket_name_prefix: Optional[str] = None,
                  s3_logging_bucket_object_retention_days: Optional[int] = None):
@@ -202,7 +198,14 @@ class Application:
 
         self._stacks = {}
 
-        s3_logging_bucket_name = f'{s3_logging_bucket_name_prefix}-{deployment_id}' if s3_logging_bucket_name_prefix else None
+        if existing_s3_logging_bucket_name:
+            if s3_logging_bucket_name_prefix:
+                raise ValueError('Both existing_s3_logging_bucket_name and s3_logging_bucket_name_prefix cannot be set')
+
+            s3_logging_bucket_name = existing_s3_logging_bucket_name
+
+        else:
+            s3_logging_bucket_name = f'{s3_logging_bucket_name_prefix}-{deployment_id}' if s3_logging_bucket_name_prefix else None
 
         context = {
             'app_name': self.app_name,

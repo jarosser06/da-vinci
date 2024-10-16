@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC as utc_tz
 from typing import List, Optional 
 from uuid import uuid4
 
@@ -12,7 +12,9 @@ from da_vinci.core.orm import (
 
 
 class TrappedException(TableObject):
-    description = 'Trapped Exceptions'
+    table_name = 'trapped_exceptions'
+
+    description = 'Holds exceptions that have been trapped'
 
     partition_key_attribute = TableObjectAttribute(
         'function_name',
@@ -27,12 +29,11 @@ class TrappedException(TableObject):
         default=lambda: str(uuid4()),
     )
 
-    table_name = 'trapped_exceptions'
     ttl_attribute = TableObjectAttribute(
         'time_to_live',
-        TableObjectAttributeType.NUMBER,
+        TableObjectAttributeType.DATETIME,
         description='The TTL for the record',
-        default=lambda: int((datetime.utcnow() + timedelta(days=7)).timestamp()),
+        default=lambda: datetime.now(tz=utc_tz) + timedelta(days=2)
     )
 
     attributes = [
@@ -83,9 +84,9 @@ class TrappedException(TableObject):
         ),
 
         TableObjectAttribute(
-            'trapped_ts',
+            'trapped_on',
             TableObjectAttributeType.DATETIME,
-            default=lambda: datetime.utcnow(),
+            default=lambda: datetime.now(tz=utc_tz),
             description='The datetime the exception was trapped',
         )
     ]

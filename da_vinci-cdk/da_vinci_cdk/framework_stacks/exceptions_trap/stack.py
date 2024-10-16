@@ -70,3 +70,11 @@ class ExceptionsTrapStack(Stack):
             service_name='exceptions_trap',
             timeout=Duration.seconds(30),
         )
+
+        self.exceptions_ttl_hours = Setting(
+            description='The number of hours to retain responses in the exceptions trap',
+            namespace='da_vinci_framework::exceptions_trap',
+            setting_key='response_retention_hours',
+            scope=self,
+            value=48,
+        )

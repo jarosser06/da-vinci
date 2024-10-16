@@ -13,7 +13,7 @@ from da_vinci.core.execution_environment import (
 )
 from da_vinci.core.exceptions import ResourceNotFoundError
 
-SERVICE_DISCOVERY_PREFIX = '/da_vinci_v1/service_discovery'
+SERVICE_DISCOVERY_PREFIX = '/da_vinci_framework/service_discovery'
 
 # Cache setup
 cache = {}
@@ -21,11 +21,6 @@ cache = {}
 CACHE_TTL = 300  # Cache Time-to-Live in seconds (5 minutes)
 
 cache_timestamps = {}
-
-# Initialize logger
-logger = logging.getLogger('resource_discovery')
-
-logger.setLevel(logging.INFO)
 
 
 class ResourceType(StrEnum):
@@ -79,11 +74,11 @@ def resource_endpoint_lookup(resource_type: Union[ResourceType, str], resource_n
     current_time = time.time()
 
     if param_name in cache and (current_time - cache_timestamps[param_name] < CACHE_TTL):
-        logger.info(f"Cache hit for resource: {resource_name} of type {resource_type}")
+        logging.info(f"Cache hit for resource: {resource_name} of type {resource_type}")
 
         return cache[param_name]
 
-    logger.info(f"Cache miss for resource: {resource_name} of type {resource_type}")
+    logging.info(f"Cache miss for resource: {resource_name} of type {resource_type}")
 
     ssm = boto3.client('ssm')
 
@@ -95,17 +90,17 @@ def resource_endpoint_lookup(resource_type: Union[ResourceType, str], resource_n
 
         cache_timestamps[param_name] = current_time
 
-        logger.info(f"Resource {resource_name} of type {resource_type} fetched from SSM and cached.")
+        logging.info(f"Resource {resource_name} of type {resource_type} fetched from SSM and cached.")
 
         return results['Parameter']['Value']
 
     except ssm.exceptions.ParameterNotFound:
-        logger.error(f"Resource {resource_name} of type {resource_type} not found in SSM.")
+        logging.error(f"Resource {resource_name} of type {resource_type} not found in SSM.")
 
         raise ResourceNotFoundError(resource_name=resource_name, resource_type=resource_type)
 
     except Exception as e:
-        logger.exception(f"An error occurred while fetching resource {resource_name} of type {resource_type}: {e}")
+        logging.exception(f"An error occurred while fetching resource {resource_name} of type {resource_type}: {e}")
 
         raise
 

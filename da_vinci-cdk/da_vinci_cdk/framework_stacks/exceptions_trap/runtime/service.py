@@ -1,10 +1,12 @@
 '''
 Exception Trap Service module
 '''
-from datetime import datetime
+import logging
+
+from datetime import datetime, timedelta, UTC as utc_tz
 from typing import Dict, Optional
 
-from da_vinci.core.logging import Logger
+from da_vinci.core.global_settings import setting_value
 from da_vinci.core.rest_service_base import Route, SimpleRESTServiceBase
 
 from da_vinci.exception_trap.tables.trapped_exceptions import (
@@ -19,8 +21,6 @@ class ExceptionTrapService(SimpleRESTServiceBase):
         Exception trap service
         """
         self.trapped_exceptions = TrappedExceptions()
-
-        self.logger = Logger('da_vinci.exception_trap_service')
 
         super().__init__(
             routes=[
@@ -43,7 +43,9 @@ class ExceptionTrapService(SimpleRESTServiceBase):
             log_namespace: The namespace for the logger
             metadata: Any additional metadata about the exception
         """
-        self.logger.debug(f'Trapping exception from {originating_event}')
+        logging.debug(f'Trapping exception from {originating_event}')
+
+        ttl_hours = setting_value('da_vinci_framework::exception_trap', 'exception_retention_hours')
 
         exception = TrappedException(
             created=datetime.now(),
@@ -54,9 +56,10 @@ class ExceptionTrapService(SimpleRESTServiceBase):
             log_execution_id=log_execution_id,
             log_namespace=log_namespace,
             metadata=metadata,
+            time_to_live=datetime.now(tz=utc_tz) + timedelta(hours=ttl_hours),
         )
 
-        self.logger.debug(f'Trapped exception: {exception.to_dict()}')
+        logging.debug(f'Trapped exception: {exception.to_dict()}')
 
         self.trapped_exceptions.put(exception)
 
@@ -74,9 +77,7 @@ def api(event: Dict, context: Dict):
         event: The event
         context: The context, not used
     """
-    logger = Logger('da_vinci.exception_trap_service')
-
-    logger.debug(f'Exception event: {event}')
+    logging.debug(f'Exception event: {event}')
 
     trapper = ExceptionTrapService()
 

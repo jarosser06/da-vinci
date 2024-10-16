@@ -2,11 +2,10 @@ import json
 
 from collections.abc import Callable
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, UTC as utc_tz
 from enum import auto, StrEnum
 from typing import Any, Dict, List, Optional, Union
 
-from da_vinci.core.json import DateTimeEncoder
 from da_vinci.core.orm.exceptions import MissingTableObjectAttributeException
 
 
@@ -533,7 +532,7 @@ class TableObject:
                 TableObjectAttribute(
                     name='created_on',
                     attribute_type=TableObjectAttributeType.DATETIME,
-                    default=lambda: datetime.utcnow(),
+                    default=lambda: datetime.now(),
                 ),
             ]
         ```
@@ -883,11 +882,11 @@ class TableObject:
         Keyword Arguments:
             date_attribute_names -- Names of the date attributes
             obj -- Object to update
-            to_datetime -- Datetime to set, defaults to datetime.utcnow()
+            to_datetime -- Datetime to set, defaults to datetime.now()
         """
 
         if not to_datetime:
-            to_datetime = datetime.utcnow()
+            to_datetime = datetime.now(tz=utc_tz)
 
         for attr_name in date_attribute_names:
             setattr(obj, attr_name, to_datetime)

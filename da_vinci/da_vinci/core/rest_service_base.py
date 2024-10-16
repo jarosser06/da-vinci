@@ -14,9 +14,6 @@ from da_vinci.core.exceptions import DuplicateRouteDefinitionError
 from da_vinci.exception_trap.client import ExceptionReporter
 
 
-LOG = logging.getLogger(__name__)
-
-
 @dataclass
 class SimpleRESTServiceResponse:
     '''
@@ -97,7 +94,7 @@ class Route:
         if missing_arguments:
             request_dikt = asdict(self)
 
-            LOG.info(f'Request {request_dikt} missing arguments: {missing_arguments}')
+            logging.info(f'Request {request_dikt} missing arguments: {missing_arguments}')
 
             return InvalidRequestResponse(f'Request missing arguments: {missing_arguments}')
 
@@ -185,7 +182,7 @@ class SimpleRESTServiceBase:
             return route.handler(**params)
 
         except Exception as err:
-            LOG.info(f'Exception occurred: {traceback.format_exc()}')
+            logging.info(f'Exception occurred: {traceback.format_exc()}')
 
             report_fn_name = self.exception_function_name or route.handler.__name__
 

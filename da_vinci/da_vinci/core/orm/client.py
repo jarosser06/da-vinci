@@ -18,9 +18,6 @@ from da_vinci.core.orm.table_object import (
 )
 
 
-LOG = logging.getLogger(__name__)
-
-
 class TableScanDefinition:
     _comparison_operators = {
         'contains': 'contains',
@@ -281,7 +278,7 @@ class TableClient:
             ConsistentRead=consistent_read,
         )
 
-        LOG.debug(f"Get object results: {results}")
+        logging.debug(f"Get object results: {results}")
 
         if 'Item' not in results:
             return None
@@ -296,7 +293,7 @@ class TableClient:
             table_object: Object to save
         """
 
-        LOG.debug(f"Saving object: {table_object.to_dynamodb_item()}")
+        logging.debug(f"Saving object: {table_object.to_dynamodb_item()}")
 
         try:
             self.client.put_item(

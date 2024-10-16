@@ -15,6 +15,7 @@ from da_vinci_cdk.framework_stacks.event_bus_responses.stack import (
 from da_vinci_cdk.constructs.access_management import (
     ResourceAccessRequest,
 )
+from da_vinci_cdk.constructs.global_setting import GlobalSetting
 from da_vinci_cdk.constructs.service import AsyncService, SimpleRESTService
 from da_vinci_cdk.stack import Stack
 
@@ -128,4 +129,12 @@ class EventBusStack(Stack):
 
         self.bus_service.grant_publish(
             self.re_run_handler.handler.function,
+        )
+
+        self.response_ttl_in_hours = GlobalSetting(
+            description='The number of hours to retain responses in the event bus',
+            namespace='da_vinci_framework::event_bus',
+            setting_key='response_retention_hours',
+            scope=self,
+            value=8,
         )

@@ -1,6 +1,6 @@
-'''Settings Table Definitions'''
+'''Global Settings Table Definitions'''
 
-from datetime import datetime
+from datetime import datetime, UTC as utc_tz
 from enum import auto, StrEnum
 from typing import Any, List, Optional, Union
 
@@ -47,7 +47,7 @@ class Setting(TableObject):
         TableObjectAttribute(
             name='last_updated',
             attribute_type=TableObjectAttributeType.DATETIME,
-            default=lambda: datetime.utcnow(),
+            default=lambda: datetime.now(tz=utc_tz),
             description='The last time the setting was updated',
         ),
         TableObjectAttribute(
@@ -68,7 +68,7 @@ class Setting(TableObject):
 
         Keyword Arguments:
             description: The description of the setting
-            last_updated: The last time the setting was updated, defaults to datetime.utcnow()
+            last_updated: The last time the setting was updated, defaults to now
             namespace: The namespace that the setting belongs to
             setting_key: The setting key
             setting_type: The type of the setting
@@ -82,7 +82,7 @@ class Setting(TableObject):
 
             setting = Setting(
                 description='The description of the setting',
-                last_updated=datetime.utcnow(),
+                last_updated=datetime.now(),
                 namespace='core',
                 setting_key='global_settings_enabled',
                 setting_type=SettingType.BOOLEAN,

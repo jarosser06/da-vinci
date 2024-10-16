@@ -1,5 +1,8 @@
 '''Lambda module for the event bus watcher'''
+from datetime import datetime, timedelta, UTC as utc_tz
 from typing import Dict, Optional
+
+from da_vinci.core.global_settings import setting_value
 
 from da_vinci.core.rest_service_base import (
     Route,
@@ -41,6 +44,8 @@ class EventBusWatcher(SimpleRESTServiceBase):
             failure_reason: The reason for the failure
             failure_traceback: The traceback of the failure
         """
+        response_retention = setting_value('da_vinci_framework::event_bus', 'response_retention_hours')
+
         response = EventBusResponse(
             event_type=event['event_type'],
             failure_reason=failure_reason,
@@ -48,6 +53,7 @@ class EventBusWatcher(SimpleRESTServiceBase):
             original_event_body=event,
             originating_event_id=event['event_id'],
             response_status=status,
+            time_to_live=datetime.now(tz=utc_tz) + timedelta(hours=response_retention),
         )
 
         self.event_responses.put(response)
