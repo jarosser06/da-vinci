@@ -131,7 +131,8 @@ class Application:
                  enable_exception_trap: Optional[bool] = True, enable_global_settings: Optional[bool] = True,
                  existing_s3_logging_bucket_name: Optional[str] = None,
                  include_event_bus: Optional[bool] = False, log_level: Optional[str] = 'INFO',
-                 root_domain_name: Optional[str] = None, s3_logging_bucket_name_prefix: Optional[str] = None,
+                 root_domain_name: Optional[str] = None, s3_logging_bucket_name_postfix: Optional[str] = None,
+                 s3_logging_bucket_name_prefix: Optional[str] = None,
                  s3_logging_bucket_object_retention_days: Optional[int] = None):
         """
         Initialize a new Application object
@@ -152,6 +153,7 @@ class Application:
             include_event_bus: Whether to build the event bus stack as part of the application (default: False)
             log_level: Logging level to use for the application (default: INFO)
             root_domain_name: Root domain name for the application (default: None)
+            s3_logging_bucket_name_postfix: Postfix name of the S3 bucket to use for logging, appends the deployment_id (default: None)
             s3_logging_bucket_name_prefix: Prefix name of the S3 bucket to use for logging, appends the deployment_id (default: None)
 
         Example:
@@ -217,7 +219,7 @@ class Application:
             s3_logging_bucket_name = existing_s3_logging_bucket_name
 
         else:
-            s3_logging_bucket_name = f'{s3_logging_bucket_name_prefix}-{deployment_id}' if s3_logging_bucket_name_prefix else None
+            s3_logging_bucket_name = f'{s3_logging_bucket_name_prefix}{app_name}-{deployment_id}{s3_logging_bucket_name_postfix}' if s3_logging_bucket_name_prefix else None
 
         context = {
             'app_name': self.app_name,
