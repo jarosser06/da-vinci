@@ -58,7 +58,106 @@ class Bucket(Construct):
             **s3_kwargs
         )
 
-        self.deploy_access(construct_id, self, self.bucket.bucket_name)
+        self._discovery_resource = DiscoverableResource(
+            construct_id=f'{construct_id}-resource',
+            scope=self,
+            resource_endpoint=self.bucket.bucket_name,
+            resource_name=bucket_name,
+            resource_type=ResourceType.BUCKET,
+        )
+
+        self.read_access_statement = cdk_iam.PolicyStatement(
+            actions=[
+                's3:GetObject',
+                's3:GetObjectEncryption',
+                's3:GetObjectTagging',
+                's3:GetObjectVersion',
+                's3:ListBucket',
+                's3:ListBucketVersions',
+                's3:ListBucketMultipartUploads',
+            ],
+            resources=[
+                self.bucket.bucket_arn,
+                f'{self.bucket.bucket_arn}/*',
+            ],
+        )
+
+        self.read_write_access_statement = cdk_iam.PolicyStatement(
+            actions=[
+                's3:GetObject',
+                's3:GetObjectEncryption',
+                's3:GetObjectTagging',
+                's3:GetObjectVersion',
+                's3:ListBucket',
+                's3:ListBucketVersions',
+                's3:ListBucketMultipartUploads',
+                's3:PutObject',
+                's3:DeleteObject',
+                's3:AbortMultipartUpload',
+                's3:PutObjectEncryption',
+                's3:PutObjectTagging',
+                's3:DeleteObjectTagging',
+                's3:PutObjectRetention',
+                's3:PutObjectLegalHold',
+            ],
+            resources=[
+                self.bucket.bucket_arn,
+                f'{self.bucket.bucket_arn}/*',
+            ],
+        )
+
+        self.write_access_statement = cdk_iam.PolicyStatement(
+            actions=[
+                's3:PutObject',
+                's3:DeleteObject',
+                's3:AbortMultipartUpload',
+                's3:PutObjectEncryption',
+                's3:PutObjectTagging',
+                's3:DeleteObjectTagging',
+                's3:PutObjectRetention',
+                's3:PutObjectLegalHold',
+            ],
+            resources=[
+                self.bucket.bucket_arn,
+                f'{self.bucket.bucket_arn}/*',
+            ],
+        )
+
+        self.param_access_statement = self._discovery_resource.parameter.access_statement()
+
+        for policy_name in ('read', 'default'):
+            self.read_access_policy = ResourceAccessPolicy(
+                scope=scope,
+                policy_name=policy_name,
+                policy_statements=[
+                    self.read_access_statement,
+                    self.param_access_statement,
+                ],
+                resource_name=bucket_name,
+                resource_type=ResourceType.BUCKET,
+            )
+
+        self.read_write_access_policy = ResourceAccessPolicy(
+            scope=scope,
+            policy_name='read_write',
+            policy_statements=[
+                self.read_write_access_statement,
+                self.param_access_statement,
+            ],
+            resource_name=bucket_name,
+            resource_type=ResourceType.BUCKET,
+        )
+
+        self.write_access_policy = ResourceAccessPolicy(
+            scope=scope,
+            policy_name='write',
+            policy_statements=[
+                self.write_access_statement,
+                self.param_access_statement,
+            ],
+            resource_name=bucket_name,
+            resource_type=ResourceType.BUCKET,
+        )
 
     @staticmethod
     def deploy_access(construct_id: str, scope: Construct, bucket_name: str):
@@ -71,7 +170,7 @@ class Bucket(Construct):
         bucket_arn = f'arn:aws:s3:::{bucket_name}'
 
         _discovery_resource = DiscoverableResource(
-            construct_id=f'resource-discovery',
+            construct_id=f'{construct_id}-resource-discovery',
             scope=scope,
             resource_endpoint=bucket_name,
             resource_name=bucket_name,
