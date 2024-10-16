@@ -10,7 +10,7 @@ from constructs import Construct
 from da_vinci_cdk.constructs.base import GlobalVariable
 
 
-_ACCESS_MANAGEMENT_PREFIX = '/da_vinci_v1/access_management'
+_ACCESS_MANAGEMENT_PREFIX = '/da_vinci_framework/access_management'
 _DEFAULT_POLICY_NAME = 'default'
 
 
