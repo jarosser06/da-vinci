@@ -30,7 +30,7 @@ class CoreStack(Stack):
     def __init__(self, app_name: str, deployment_id: str, scope: Construct, stack_name: str,
                  create_hosted_zone: bool = True, global_settings_enabled: bool = True,
                  root_domain_name: Optional[str] = None, s3_logging_bucket_name: str = None,
-                 s3_logging_bucket_object_retention_days: Optional[int] = None):
+                 s3_logging_bucket_object_retention_days: Optional[int] = None, using_existing_logging_bucket: bool = False):
         """
         Bootstrap the initial infrastructure required to stand up a DaVinci
 
@@ -45,6 +45,7 @@ class CoreStack(Stack):
             stack_name: Name of the stack
             s3_logging_bucket_name: Name of the S3 bucket to use for logging (default: None)
             s3_logging_bucket_object_retention_days: Number of days before objects in the bucket expire (default: None)
+            using_existing_logging_bucket: Whether or not a pre-existing bucket is being used for logging(default: False)
         """
 
         super().__init__(
@@ -89,13 +90,17 @@ class CoreStack(Stack):
                 )
 
         if s3_logging_bucket_name:
-            self.logging_bucket = Bucket(
-                bucket_name=s3_logging_bucket_name,
-                construct_id='logging-bucket',
-                object_expiration_days=s3_logging_bucket_object_retention_days,
-                scope=self,
-                use_specified_bucket_name=True,
-            )
+            if using_existing_logging_bucket:
+                Bucket.deploy_access('app-logging-bucket', self, bucket_name=s3_logging_bucket_name)
+
+            else:
+                self.logging_bucket = Bucket(
+                    bucket_name=s3_logging_bucket_name,
+                    construct_id='app-logging-bucket',
+                    object_expiration_days=s3_logging_bucket_object_retention_days,
+                    scope=self,
+                    use_specified_bucket_name=True,
+                )
 
         if root_domain_name:
             if global_settings_enabled:
@@ -129,6 +134,10 @@ class Application:
                  s3_logging_bucket_object_retention_days: Optional[int] = None):
         """
         Initialize a new Application object
+
+        S3 Logging Bucket Note:
+            When using an existing S3 logging bucket, the framework will deploy access for itself but it will not manage the bucket
+            or its lifecycle. This is useful for when the bucket is managed by another process or team.
 
         Keyword Arguments:
             app_entry: Path to the application entry point (default: None)
@@ -240,7 +249,8 @@ class Application:
             scope=self.cdk_app,
             stack_name=self.generate_stack_name(CoreStack),
             root_domain_name=self.root_domain_name,
-            s3_logging_bucket_name=s3_logging_bucket_name if not existing_logging_bucket else None,
+            using_existing_logging_bucket=existing_logging_bucket,
+            s3_logging_bucket_name=s3_logging_bucket_name,
             s3_logging_bucket_object_retention_days=s3_logging_bucket_object_retention_days,
         )
 

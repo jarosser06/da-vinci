@@ -58,15 +58,27 @@ class Bucket(Construct):
             **s3_kwargs
         )
 
-        self._discovery_resource = DiscoverableResource(
+        self.deploy_access(construct_id, scope, self.bucket.bucket_name)
+
+    @staticmethod
+    def deploy_access(construct_id: str, scope: Construct, bucket_name: str):
+        """
+        Sets up DaVinci access policies for a bucket arn
+
+        Keyword Arguments:
+        bucket_name: Name of the bucket to set up access for
+        """
+        bucket_arn = f'arn:aws:s3:::{bucket_name}'
+
+        _discovery_resource = DiscoverableResource(
             construct_id=f'{construct_id}-resource',
-            scope=self,
-            resource_endpoint=self.bucket.bucket_name,
+            scope=scope,
+            resource_endpoint=bucket_name,
             resource_name=bucket_name,
             resource_type=ResourceType.BUCKET,
         )
 
-        self.read_access_statement = cdk_iam.PolicyStatement(
+        read_access_statement = cdk_iam.PolicyStatement(
             actions=[
                 's3:GetObject',
                 's3:GetObjectEncryption',
@@ -77,12 +89,12 @@ class Bucket(Construct):
                 's3:ListBucketMultipartUploads',
             ],
             resources=[
-                self.bucket.bucket_arn,
-                f'{self.bucket.bucket_arn}/*',
+                bucket_arn,
+                f'{bucket_arn}/*',
             ],
         )
 
-        self.read_write_access_statement = cdk_iam.PolicyStatement(
+        read_write_access_statement = cdk_iam.PolicyStatement(
             actions=[
                 's3:GetObject',
                 's3:GetObjectEncryption',
@@ -101,12 +113,12 @@ class Bucket(Construct):
                 's3:PutObjectLegalHold',
             ],
             resources=[
-                self.bucket.bucket_arn,
-                f'{self.bucket.bucket_arn}/*',
+                bucket_arn,
+                f'{bucket_arn}/*',
             ],
         )
 
-        self.write_access_statement = cdk_iam.PolicyStatement(
+        write_access_statement = cdk_iam.PolicyStatement(
             actions=[
                 's3:PutObject',
                 's3:DeleteObject',
@@ -118,42 +130,42 @@ class Bucket(Construct):
                 's3:PutObjectLegalHold',
             ],
             resources=[
-                self.bucket.bucket_arn,
-                f'{self.bucket.bucket_arn}/*',
+                bucket_arn,
+                f'{bucket_arn}/*',
             ],
         )
 
-        self.param_access_statement = self._discovery_resource.parameter.access_statement()
+        param_access_statement = _discovery_resource.parameter.access_statement()
 
         for policy_name in ('read', 'default'):
-            self.read_access_policy = ResourceAccessPolicy(
+            ResourceAccessPolicy(
                 scope=scope,
                 policy_name=policy_name,
                 policy_statements=[
-                    self.read_access_statement,
-                    self.param_access_statement,
+                    read_access_statement,
+                    param_access_statement,
                 ],
                 resource_name=bucket_name,
                 resource_type=ResourceType.BUCKET,
             )
 
-        self.read_write_access_policy = ResourceAccessPolicy(
+        ResourceAccessPolicy(
             scope=scope,
             policy_name='read_write',
             policy_statements=[
-                self.read_write_access_statement,
-                self.param_access_statement,
+                read_write_access_statement,
+                param_access_statement,
             ],
             resource_name=bucket_name,
             resource_type=ResourceType.BUCKET,
         )
 
-        self.write_access_policy = ResourceAccessPolicy(
+        ResourceAccessPolicy(
             scope=scope,
             policy_name='write',
             policy_statements=[
-                self.write_access_statement,
-                self.param_access_statement,
+                write_access_statement,
+                param_access_statement,
             ],
             resource_name=bucket_name,
             resource_type=ResourceType.BUCKET,
