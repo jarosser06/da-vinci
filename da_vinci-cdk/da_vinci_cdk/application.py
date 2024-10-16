@@ -91,7 +91,8 @@ class CoreStack(Stack):
 
         if s3_logging_bucket_name:
             if using_existing_logging_bucket:
-                Bucket.deploy_access('app-logging-bucket', self, bucket_name=s3_logging_bucket_name)
+                Bucket.deploy_access(construct_id='app-logging-bucket', scope=self,
+                                     bucket_name=s3_logging_bucket_name)
 
             else:
                 self.logging_bucket = Bucket(

@@ -58,7 +58,7 @@ class Bucket(Construct):
             **s3_kwargs
         )
 
-        self.deploy_access(construct_id, scope, self.bucket.bucket_name)
+        self.deploy_access(construct_id, self, self.bucket.bucket_name)
 
     @staticmethod
     def deploy_access(construct_id: str, scope: Construct, bucket_name: str):
@@ -71,7 +71,7 @@ class Bucket(Construct):
         bucket_arn = f'arn:aws:s3:::{bucket_name}'
 
         _discovery_resource = DiscoverableResource(
-            construct_id=f'{construct_id}-resource',
+            construct_id=f'resource-discovery',
             scope=scope,
             resource_endpoint=bucket_name,
             resource_name=bucket_name,
