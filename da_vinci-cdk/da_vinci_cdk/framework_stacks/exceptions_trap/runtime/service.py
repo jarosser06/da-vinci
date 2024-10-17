@@ -47,7 +47,7 @@ class ExceptionTrapService(SimpleRESTServiceBase):
         """
         logging.debug(f'Trapping exception from {originating_event}')
 
-        ttl_hours = setting_value('da_vinci_framework::exception_trap', 'exception_retention_hours')
+        ttl_hours = setting_value('da_vinci_framework::exceptions_trap', 'exception_retention_hours')
 
         exception = TrappedException(
             created=datetime.now(tz=utc_tz),
