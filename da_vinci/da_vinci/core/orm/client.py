@@ -381,7 +381,7 @@ class TableClient:
 
     def full_scan(self, scan_definition: TableScanDefinition) -> List[TableObject]:
         """
-        Perform a full scan on the table, works similar to the paginator.
+        Perform a full scan on the table, returns all items matching the scan definition at once.
 
         Keyword Arguments:
             scan_definition: Scan definition to use (default: None)
