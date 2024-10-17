@@ -8,6 +8,7 @@ from da_vinci.core.tables.settings import Setting, SettingType
 from da_vinci.exception_trap.tables.trapped_exceptions import TrappedException
 
 from da_vinci_cdk.constructs.access_management import ResourceAccessRequest
+from da_vinci_cdk.constructs.global_setting import GlobalSetting
 from da_vinci_cdk.constructs.service import SimpleRESTService
 from da_vinci_cdk.stack import Stack
 
@@ -47,6 +48,15 @@ class ExceptionsTrapStack(Stack):
             ],
         )
 
+        self.exception_retention_hours = GlobalSetting(
+            description='The number of hours to retain responses in the exceptions trap',
+            namespace='da_vinci_framework::exceptions_trap',
+            setting_key='exception_retention_hours',
+            setting_type=SettingType.INTEGER,
+            setting_value=48,
+            scope=self,
+        )
+
         self.exceptions_trap = SimpleRESTService(
             base_image=self.library_base_image,
             description='Catches exceptions and stores them in a DynamoDB table',
@@ -69,13 +79,4 @@ class ExceptionsTrapStack(Stack):
             scope=self,
             service_name='exceptions_trap',
             timeout=Duration.seconds(30),
-        )
-
-        self.exceptions_ttl_hours = Setting(
-            description='The number of hours to retain responses in the exceptions trap',
-            namespace='da_vinci_framework::exceptions_trap',
-            setting_key='exception_retention_hours',
-            setting_type=SettingType.INTEGER,
-            setting_value=48,
-            scope=self,
         )
