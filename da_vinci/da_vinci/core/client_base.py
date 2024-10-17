@@ -118,7 +118,11 @@ class RESTClientBase(BaseClient):
             expect_body: Whether or not to expect a response body (default: True)
         '''
         if expect_body:
-            response_body = response.json()
+            try:
+
+                response_body = response.json()
+            except json.JSONDecodeError as json_error:
+                raise ValueError(f'Failed to parse response body: {response.text}\n{json_error}')
         else:
             response_body = None
 
