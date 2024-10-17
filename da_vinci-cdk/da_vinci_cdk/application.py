@@ -30,7 +30,7 @@ class CoreStack(Stack):
     def __init__(self, app_name: str, deployment_id: str, scope: Construct, stack_name: str,
                  create_hosted_zone: bool = True, global_settings_enabled: bool = True,
                  root_domain_name: Optional[str] = None, s3_logging_bucket_name: str = None,
-                 s3_logging_bucket_object_retention_days: Optional[int] = None, using_existing_logging_bucket: bool = False):
+                 s3_logging_bucket_object_retention_days: Optional[int] = None, using_external_logging_bucket: bool = False):
         """
         Bootstrap the initial infrastructure required to stand up a DaVinci
 
@@ -39,13 +39,12 @@ class CoreStack(Stack):
             create_hosted_zone: Whether to create a hosted zone for the application if the root_domain_name is set (default: True)
             deployment_id: Identifier assigned to the installation
             global_settings_enabled: Whether to build the global settings stack as part of the application (default: True)
-            enable_s3_logging: Whether to enable S3 logging (default: False)
             root_domain_name: Root domain name for the application (default: None)
             scope: Parent construct for the stack
             stack_name: Name of the stack
             s3_logging_bucket_name: Name of the S3 bucket to use for logging (default: None)
             s3_logging_bucket_object_retention_days: Number of days before objects in the bucket expire (default: None)
-            using_existing_logging_bucket: Whether or not a pre-existing bucket is being used for logging(default: False)
+            using_external_logging_bucket: Whether or not a pre-existing bucket is being used for logging(default: False)
         """
 
         super().__init__(
@@ -90,7 +89,7 @@ class CoreStack(Stack):
                 )
 
         if s3_logging_bucket_name:
-            if using_existing_logging_bucket:
+            if using_external_logging_bucket:
                 Bucket.deploy_access(construct_id='app-logging-bucket', scope=self,
                                      bucket_name=s3_logging_bucket_name)
 
@@ -149,7 +148,7 @@ class Application:
             deployment_id: Identifier assigned to the installation
             enable_exception_trap: Whether to enable the exception trap (default: True)
             enable_global_settings: Whether to build the global settings stack as part of the application (default: True)
-            enable_s3_logging: Whether to enable S3 logging (default: False)
+            existing_s3_logging_bucket_name: Name of an existing S3 bucket to use for logging (default: None)
             include_event_bus: Whether to build the event bus stack as part of the application (default: False)
             log_level: Logging level to use for the application (default: INFO)
             root_domain_name: Root domain name for the application (default: None)
@@ -208,10 +207,10 @@ class Application:
 
         self._stacks = {}
 
-        existing_logging_bucket = False
+        external_logging_bucket = False
 
         if existing_s3_logging_bucket_name:
-            existing_logging_bucket = True
+            external_logging_bucket = True
 
             if s3_logging_bucket_name_prefix:
                 raise ValueError('Both existing_s3_logging_bucket_name and s3_logging_bucket_name_prefix cannot be set')
@@ -219,7 +218,11 @@ class Application:
             s3_logging_bucket_name = existing_s3_logging_bucket_name
 
         else:
-            s3_logging_bucket_name = f'{s3_logging_bucket_name_prefix}{app_name}-{deployment_id}{s3_logging_bucket_name_postfix}' if s3_logging_bucket_name_prefix else None
+            prefix = s3_logging_bucket_name_prefix or ''
+
+            postfix = s3_logging_bucket_name_postfix or ''
+
+            s3_logging_bucket_name = f'{prefix}{app_name}-{deployment_id}{postfix}'
 
         context = {
             'app_name': self.app_name,
@@ -252,7 +255,7 @@ class Application:
             scope=self.cdk_app,
             stack_name=self.generate_stack_name(CoreStack),
             root_domain_name=self.root_domain_name,
-            using_existing_logging_bucket=existing_logging_bucket,
+            using_external_logging_bucket=external_logging_bucket,
             s3_logging_bucket_name=s3_logging_bucket_name,
             s3_logging_bucket_object_retention_days=s3_logging_bucket_object_retention_days,
         )
