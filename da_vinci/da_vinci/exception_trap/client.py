@@ -66,7 +66,7 @@ class ExceptionReporter(RESTClientBase):
         super().__init__(resource_name='exceptions_trap')
 
     def report(self, function_name: str, exception: str, exception_traceback: str,
-                 originating_event: Dict, metadata: Optional[Dict] = None,
+                originating_event: Dict, metadata: Optional[Dict] = None,
                  log_execution_id: Optional[str] = None, log_namespace: Optional[str] = None):
         """
         Report an exception to the exception trap
@@ -80,7 +80,6 @@ class ExceptionReporter(RESTClientBase):
             metadata: Any additional metadata about the exception
             originating_event: The event that caused the exception
         """
-
         req_body = ReportedException(
             exception=exception,
             exception_traceback=exception_traceback,

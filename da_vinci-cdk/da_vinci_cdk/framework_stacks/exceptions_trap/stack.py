@@ -74,7 +74,7 @@ class ExceptionsTrapStack(Stack):
         self.exceptions_ttl_hours = Setting(
             description='The number of hours to retain responses in the exceptions trap',
             namespace='da_vinci_framework::exceptions_trap',
-            setting_key='response_retention_hours',
+            setting_key='exception_retention_hours',
             setting_type=SettingType.INTEGER,
             setting_value=48,
             scope=self,

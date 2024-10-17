@@ -1,11 +1,10 @@
 '''
 Exception Trap Service module
 '''
-import logging
-
 from datetime import datetime, timedelta, UTC as utc_tz
 from typing import Dict, Optional
 
+from da_vinci.core.logging import Logger
 from da_vinci.core.global_settings import setting_value
 from da_vinci.core.rest_service_base import Route, SimpleRESTServiceBase
 
@@ -13,6 +12,9 @@ from da_vinci.exception_trap.tables.trapped_exceptions import (
     TrappedException,
     TrappedExceptions,
 )
+
+
+logging = Logger('da_vinci_framework::exception_trap')
 
 
 class ExceptionTrapService(SimpleRESTServiceBase):
@@ -48,7 +50,7 @@ class ExceptionTrapService(SimpleRESTServiceBase):
         ttl_hours = setting_value('da_vinci_framework::exception_trap', 'exception_retention_hours')
 
         exception = TrappedException(
-            created=datetime.now(),
+            created=datetime.now(tz=utc_tz),
             exception=exception,
             exception_traceback=exception_traceback,
             function_name=function_name,
