@@ -2,6 +2,8 @@ from typing import Optional
 
 from constructs import Construct
 
+from aws_cdk import aws_iam as cdk_iam
+
 from da_vinci.core.resource_discovery import resource_parameter
 
 from da_vinci_cdk.constructs.base import GlobalVariable
@@ -35,7 +37,7 @@ class DiscoverableResource(Construct):
         self.resource_name = resource_name
         self.resource_type = resource_type
 
-        ssm_key = self._gen_parameter_name(
+        ssm_key = self.ssm_parameter_name(
             app_name=self.app_name,
             deployment_id=self.deployment_id,
             resource_name=self.resource_name,
@@ -50,10 +52,40 @@ class DiscoverableResource(Construct):
         )
 
     @staticmethod
-    def _gen_parameter_name(app_name: str, deployment_id: str, resource_name: str,
-                            resource_type: str) -> str:
+    def access_policy(app_name: str, deployment_id: str, resource_name: str, resource_type: str) -> str:
         """
-        Generate a resource name for a service discovery resource
+        Generate the access policy for a service discovery resource
+
+        Keyword Arguments:
+            app_name: Name of the application
+            deployment_id: Unique identifier for the installation
+            resource_name: Name of the resource
+            resource_type: Type of the resource
+        """
+        parameter_name = resource_parameter(
+            app_name=app_name,
+            deployment_id=deployment_id,
+            resource_name=resource_name,
+            resource_type=resource_type,
+        )
+
+        arn = f'arn:aws:ssm:*:*:parameter/{parameter_name}'
+
+        return cdk_iam.PolicyStatement(
+            actions=[
+                'ssm:DescribeParameters',
+                'ssm:GetParameters',
+                'ssm:GetParameter',
+                'ssm:GetParameterHistory',
+            ],
+            resources=[arn]
+        )
+
+    @staticmethod
+    def ssm_parameter_name(app_name: str, deployment_id: str, resource_name: str,
+                           resource_type: str) -> str:
+        """
+        Generate the SSM key for a service discovery resource
 
         Keyword Arguments:
             app_name: Name of the application

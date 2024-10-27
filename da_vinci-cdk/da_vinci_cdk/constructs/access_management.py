@@ -42,6 +42,25 @@ class ResourceAccessRequest:
     policy_name: Optional[str] = _DEFAULT_POLICY_NAME
 
 
+class CompositeManagedPolicy(Construct):
+    def __init__(self, access_requests: List[ResourceAccessRequest], construct_id: str, scope: Construct):
+        """
+        Takes a list of access requests and creates a Managed Policy that merges all of the
+        requested policies together. Helps to reduce the number of policies that are attached to
+        a role since the AWS Default limit is 10.
+
+        Keyword Arguments:
+            access_requests: List of ResourceAccessRequests
+            construct_id: Identifier for the construct
+            scope: Parent construct for the MergedManagedPolicies
+        """
+        # TODO: Iterate over the access requests and merge the policies together
+        # Keep a MAP of the request types, the policies, and the resource types/names. Use it to 
+        # remove duplications and be able to be efficient in merging the policies together.
+        # This will likely need the access request policy information to be exposed in the other supported objects.
+        pass
+
+
 class ResourceAccessPolicy(Construct):
     def __init__(self, policy_statements: List[cdk_iam.PolicyStatement],
                  resource_name: str, resource_type: str, scope: Construct,

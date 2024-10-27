@@ -170,6 +170,67 @@ class DynamoDBTable(Construct):
             resource_type=ResourceType.TABLE,
         )
 
+    @staticmethod
+    def access_policy(app_name: str, deployment_id: str, resource_name: str, policy_name: str = 'default') -> cdk_iam.PolicyStatement:
+        """
+        Generate the access policy for a given DynamoDB table
+
+        Keyword Arguments:
+            app_name: Name of the application
+            deployment_id: Unique identifier for the installation
+        """
+        resource_discovery_policy = DiscoverableResource.access_policy(
+            app_name=app_name,
+            deployment_id=deployment_id,
+            resource_name=resource_name,
+            resource_type=ResourceType.TABLE
+        )
+
+        arn = 'arn:aws:dynamodb:*:*:table/{resource_name}'
+
+        if policy_name in ('read', 'default'):
+            policy = read_access_statement = cdk_iam.PolicyStatement(
+                actions=['dynamodb:BatchGetItem',
+                        'dynamodb:DescribeTable',
+                        'dynamodb:GetRecords',
+                        'dynamodb:ConditionCheckItem',
+                        'dynamodb:GetItem',
+                        'dynamodb:Query',
+                        'dynamodb:GetShardIterator',
+                        'dynamodb:Scan'],
+                resources=[
+                    arn,
+                    f'{arn}/*',
+                ],
+            )
+        elif policy_name == 'read_write':
+            policy = cdk_iam.PolicyStatement(
+                actions=['dynamodb:BatchGetItem',
+                        'dynamodb:BatchWriteItem',
+                        'dynamodb:DescribeTable',
+                        'dynamodb:GetRecords',
+                        'dynamodb:ConditionCheckItem',
+                        'dynamodb:GetItem',
+                        'dynamodb:DeleteItem',
+                        'dynamodb:UpdateItem',
+                        'dynamodb:PutItem',
+                        'dynamodb:Query',
+                        'dynamodb:GetShardIterator',
+                        'dynamodb:Scan'],
+                resources=[
+                    arn,
+                    f'{arn}/*',
+                ],
+            )
+
+
+        return DiscoverableResource.access_policy(
+            app_name=app_name,
+            deployment_id=deployment_id,
+            resource_name=self.table.table_name,
+            resource_type=ResourceType.TABLE,
+        )
+
     def grant_read_access(self, resource: Construct):
         """
         Grant read access to the DynamoDB table
