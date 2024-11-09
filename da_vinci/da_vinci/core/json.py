@@ -1,7 +1,5 @@
 '''
-JSON Utility
-
-The existence of this pains me :facepalm:
+JSON Utility functionality
 '''
 
 from datetime import datetime

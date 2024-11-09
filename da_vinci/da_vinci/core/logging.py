@@ -35,7 +35,12 @@ class S3LogHandler(logging.Handler):
         self.metadata = metadata or {}
 
     def emit(self, record) -> None:
-        """Capture log records and store them in memory."""
+        """
+        Capture log records and store them in memory.
+
+        Keyword Arguments:
+        record -- The log record
+        """
         log_entry = {
             'timestamp': datetime.now(tz=utc_tz).isoformat(),
             'level': record.levelname,
