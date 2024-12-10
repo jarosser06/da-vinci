@@ -34,7 +34,6 @@ app = Application(
 app.synth()
 ```
 
-What's Included
----------------
-- Centralized exception handling - Optional service is created as part of the application deployment. Once the exception trap is deployed, simply wrapping functions with the appropriate decorator allows all caught exceptions to be sent to a centralized place.
-- Built-in Event Bus - When an application calls for simple event subscriptions to handle application logic, the event bus works well to facilitate calling the subscribed lambda functions. It also includes a response handler to track event responses as they make their way through the system.
+### Example Application
+
+[Caylent's Omnilake](https://github.com/caylent/omnilake) is the best current example application/framework that was built using the Da Vinci framework. It makes use of almost every major feature of the framework, including several examples of usage with the ORM.
