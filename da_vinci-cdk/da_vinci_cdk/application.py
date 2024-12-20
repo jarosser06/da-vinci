@@ -128,7 +128,7 @@ class Application:
                  create_hosted_zone: Optional[bool] = False,
                  disable_docker_image_cache: Optional[bool] = DA_VINCI_DISABLE_DOCKER_CACHE,
                  enable_exception_trap: Optional[bool] = True, enable_global_settings: Optional[bool] = True,
-                 existing_s3_logging_bucket_name: Optional[str] = None,
+                 enable_logging_bucket: Optional[bool] = False, existing_s3_logging_bucket_name: Optional[str] = None,
                  include_event_bus: Optional[bool] = False, log_level: Optional[str] = 'INFO',
                  root_domain_name: Optional[str] = None, s3_logging_bucket_name_postfix: Optional[str] = None,
                  s3_logging_bucket_name_prefix: Optional[str] = None,
@@ -148,6 +148,7 @@ class Application:
             deployment_id: Identifier assigned to the installation
             enable_exception_trap: Whether to enable the exception trap (default: True)
             enable_global_settings: Whether to build the global settings stack as part of the application (default: True)
+            enable_logging_bucket: Whether to enable the logging bucket (default: False)
             existing_s3_logging_bucket_name: Name of an existing S3 bucket to use for logging (default: None)
             include_event_bus: Whether to build the event bus stack as part of the application (default: False)
             log_level: Logging level to use for the application (default: INFO)
@@ -209,20 +210,24 @@ class Application:
 
         external_logging_bucket = False
 
-        if existing_s3_logging_bucket_name:
-            external_logging_bucket = True
+        if enable_logging_bucket:
+            if existing_s3_logging_bucket_name:
+                external_logging_bucket = True
 
-            if s3_logging_bucket_name_prefix:
-                raise ValueError('Both existing_s3_logging_bucket_name and s3_logging_bucket_name_prefix cannot be set')
+                if s3_logging_bucket_name_prefix:
+                    raise ValueError('Both existing_s3_logging_bucket_name and s3_logging_bucket_name_prefix cannot be set')
 
-            s3_logging_bucket_name = existing_s3_logging_bucket_name
+                s3_logging_bucket_name = existing_s3_logging_bucket_name
 
-        else:
-            prefix = s3_logging_bucket_name_prefix or ''
+            else:
+                prefix = s3_logging_bucket_name_prefix or ''
 
-            postfix = s3_logging_bucket_name_postfix or ''
+                postfix = s3_logging_bucket_name_postfix or ''
 
             s3_logging_bucket_name = f'{prefix}{app_name}-{deployment_id}{postfix}'
+
+        else:
+            s3_logging_bucket_name = None
 
         context = {
             'app_name': self.app_name,
