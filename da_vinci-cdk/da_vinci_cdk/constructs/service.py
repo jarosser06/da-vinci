@@ -329,10 +329,11 @@ class APIGatewayRESTService(Construct):
         self.domain = None
 
         if subdomain_name:
-            if not self.node.get_context('root_domain_name'):
+            if not self.node.try_get_context('root_domain_name'):
                 raise ValueError('Root domain name must be set in the context to use subdomain functionality')
 
             root_domain_name = self.node.get_context('root_domain_name')
+
             full_subdomain_name = f'{subdomain_name}.{root_domain_name}'
 
             cert = subdomain_certificate

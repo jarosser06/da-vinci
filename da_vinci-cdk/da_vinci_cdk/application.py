@@ -28,7 +28,7 @@ DA_VINCI_DISABLE_DOCKER_CACHE = getenv('DA_VINCI_DISABLE_DOCKER_CACHE', False)
 
 class CoreStack(Stack):
     def __init__(self, app_name: str, deployment_id: str, scope: Construct, stack_name: str,
-                 create_hosted_zone: bool = True, global_settings_enabled: bool = True,
+                 create_hosted_zone: bool = False, global_settings_enabled: bool = True,
                  root_domain_name: Optional[str] = None, s3_logging_bucket_name: str = None,
                  s3_logging_bucket_object_retention_days: Optional[int] = None, using_external_logging_bucket: bool = False):
         """
@@ -125,14 +125,12 @@ class Application:
     def __init__(self, app_name: str, deployment_id: str,
                  app_entry: Optional[str] = None, app_image_use_lib_base: Optional[bool] = True,
                  architecture: Optional[str] = cdk_lambda.Architecture.ARM_64,
-                 create_hosted_zone: Optional[bool] = False,
-                 disable_docker_image_cache: Optional[bool] = DA_VINCI_DISABLE_DOCKER_CACHE,
+                 create_hosted_zone: Optional[bool] = False, disable_docker_image_cache: Optional[bool] = DA_VINCI_DISABLE_DOCKER_CACHE,
                  enable_exception_trap: Optional[bool] = True, enable_global_settings: Optional[bool] = True,
                  enable_logging_bucket: Optional[bool] = False, existing_s3_logging_bucket_name: Optional[str] = None,
                  include_event_bus: Optional[bool] = False, log_level: Optional[str] = 'INFO',
                  root_domain_name: Optional[str] = None, s3_logging_bucket_name_postfix: Optional[str] = None,
-                 s3_logging_bucket_name_prefix: Optional[str] = None,
-                 s3_logging_bucket_object_retention_days: Optional[int] = None):
+                 s3_logging_bucket_name_prefix: Optional[str] = None, s3_logging_bucket_object_retention_days: Optional[int] = None):
         """
         Initialize a new Application object
 
@@ -237,7 +235,7 @@ class Application:
             's3_logging_bucket_name': s3_logging_bucket_name,
             'exception_trap_enabled': enable_exception_trap,
             'log_level': self.log_level,
-            'root_domain_name': self.root_domain_name,
+            'root_domain_name': self.root_domain_name
         }
 
         self.cdk_app = CDKApp(context=context)
