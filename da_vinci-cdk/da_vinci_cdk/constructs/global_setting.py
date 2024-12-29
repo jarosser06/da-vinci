@@ -3,7 +3,10 @@ from typing import Optional, Union
 from constructs import Construct
 
 from da_vinci.core.exceptions import GlobalSettingsNotEnabledError
-from da_vinci.core.tables.settings import Setting, SettingType
+from da_vinci.core.tables.global_settings import (
+    GlobalSetting as GlobalSettingTblObj,
+    GlobalSettingType,
+)
 
 from da_vinci_cdk.constructs.base import custom_type_name
 from da_vinci_cdk.constructs.dynamodb import DynamoDBItem
@@ -13,7 +16,7 @@ class GlobalSetting(DynamoDBItem):
     """Global setting item."""
 
     def __init__(self, namespace: str, scope: Construct, setting_key: str, description: Optional[str] = None,
-                 setting_type: Optional[Union[str, SettingType]] = SettingType.STRING,
+                 setting_type: Optional[Union[str, GlobalSettingType]] = GlobalSettingType.STRING,
                  setting_value: Optional[str] = 'PLACEHOLDER'):
         """
         Initialize the global setting item.
@@ -35,7 +38,7 @@ class GlobalSetting(DynamoDBItem):
             construct_id=base_construct_id,
             custom_type_name=custom_type_name('GlobalSetting'),
             scope=scope,
-            table_object=Setting(
+            table_object=GlobalSettingTblObj(
                 namespace=namespace,
                 setting_key=setting_key,
                 description=description,
@@ -45,7 +48,7 @@ class GlobalSetting(DynamoDBItem):
         )
 
     @classmethod
-    def from_definition(cls, setting: Setting, scope: Construct):
+    def from_definition(cls, setting: GlobalSettingTblObj, scope: Construct):
         """
         Initialize the global setting item.
 

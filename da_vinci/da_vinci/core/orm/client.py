@@ -1,6 +1,7 @@
 import logging
 
-from typing import Any, Dict, List, Optional, Union
+from enum import auto, StrEnum
+from typing import Any, Dict, Generator, List, Optional, Union
 
 import boto3
 
@@ -16,6 +17,28 @@ from da_vinci.core.orm.table_object import (
     TableObject,
     TableObjectAttributeType,
 )
+
+
+class TableResultSortOrder(StrEnum):
+    ASCENDING = auto()
+    DESCENDING = auto()
+
+
+class PaginatorCall:
+    QUERY = 'query'
+    SCAN = 'scan'
+
+
+class PaginatedResults:
+    def __init__(self, items: List[TableObject], last_evaluated_key: Optional[Dict] = None):
+        self.items = items
+
+        self.last_evaluated_key = last_evaluated_key
+
+        self.has_more = last_evaluated_key is not None
+
+    def __iter__(self):
+        return iter(self.items)
 
 
 class TableScanDefinition:
@@ -174,6 +197,7 @@ class TableClient:
     def __init__(self, default_object_class: TableObject, app_name: Optional[str] = None,
                  deployment_id: Optional[str] = None, table_endpoint_name: Optional[str] = None):
         self.default_object_class = default_object_class
+
         self.table_name = self.default_object_class.table_name
 
         self.table_endpoint_name = table_endpoint_name
@@ -210,15 +234,24 @@ class TableClient:
         except ResourceNotFoundError:
             return False
 
-    def paginated(self, call: str = 'scan', parameters: Optional[Dict] = None):
+    def paginated(self, call: Union[str, PaginatorCall] = PaginatorCall.QUERY,
+                  last_evaluated_key: Optional[Dict] = None, last_evaluated_object: Optional[TableObject] = None,
+                  limit: Optional[int] = None, max_pages: Optional[int] = None, parameters: Optional[Dict] = None,
+                  sort_order: Optional[TableResultSortOrder] = TableResultSortOrder.ASCENDING) -> Generator[PaginatedResults, None, None]:
         """
-        Handle paginated DynamoDB table results
+        Handle paginated DynamoDB table results. The last item in a page should be the last evaluated item.
 
         Keyword Arguments:
-            call: Name of the DynamoDB client method to call, either a scan or query (default: scan)
+            call: Name of the DynamoDB client method to call, either a scan or query (default: query)
+            last_evaluated_key: Last evaluated key from a previous page of results (default: None)
+            last_evaluated_object: Last evaluated object from a previous page of results (default: None), only supported for query
+            limit: Maximum number of items to retrieve per page (default: None)
+            max_pages: Maximum number of pages to retrieve, if None it will return all available (default: None)
             parameters: Parameters to pass to the client method
+            sort_order: Sort order to use for the results, only works for query calls (default: ASCENDING)
         """
         more_results = True
+
         params = parameters or {}
 
         if 'TableName' not in params:
@@ -227,23 +260,74 @@ class TableClient:
         if 'Select' not in params:
             params['Select'] = 'ALL_ATTRIBUTES'
 
+        if limit and 'Limit' not in params:
+            params['Limit'] = limit
+
         mthd = getattr(self.client, call)
+
+        if call == 'query' and sort_order:
+            if not self.default_object_class.sort_key_attribute:
+                raise Exception("Table object must have sort key to enable sorting")
+
+            params['ScanIndexForward'] = sort_order == TableResultSortOrder.ASCENDING
+
+        if last_evaluated_key:
+            if call == 'scan':
+                if not isinstance(last_evaluated_key, dict):
+                    raise Exception("Last evaluated key must be a dictionary for scan operations")
+
+                params['ExclusiveStartKey'] = last_evaluated_key
+
+            else: # query
+                params['ExclusiveStartKey'] = last_evaluated_key
+
+        elif last_evaluated_object:
+            key_gen_args = {
+                'partition_key_value': last_evaluated_object.attribute_value(
+                    last_evaluated_object.partition_key_attribute.name
+                )
+            }
+
+            if self.default_object_class.sort_key_attribute:
+                key_gen_args['sort_key_value'] = last_evaluated_object.attribute_value(
+                    self.default_object_class.sort_key_attribute.name
+                )
+
+            params['ExclusiveStartKey'] = last_evaluated_object.gen_dynamodb_key(**key_gen_args)
+
+        logging.debug(f"Created paginated parameters: {params}")
+
+        # Page iteration counter
+        retrieved_pages = 0
 
         # Iterate through each page of results, yielding the results as
         # a list of TableObjects
         while more_results:
             items = []
+
             response = mthd(**params)
 
-            for item in response.get('Items', []):
-                items.append(self.default_object_class.from_dynamodb_item(item))
+            logging.debug(f"Paginated response: {response}")
 
-            yield items
+            for item in response.get('Items', []):
+                item_obj = self.default_object_class.from_dynamodb_item(item)
+
+                items.append(item_obj)
+
+            yield PaginatedResults(items=items, last_evaluated_key=response.get('LastEvaluatedKey'))
 
             more_results = 'LastEvaluatedKey' in response
 
             if more_results:
+                logging.debug(f"More results found, continuing paginated query: {response['LastEvaluatedKey']}")
+
                 params['ExclusiveStartKey'] = response['LastEvaluatedKey']
+
+            retrieved_pages += 1
+
+            # Break if max_pages is set and we've reached the requested limit
+            if max_pages and retrieved_pages >= max_pages:
+                break
 
     def _all_objects(self) -> List[TableObject]:
         """
@@ -296,6 +380,8 @@ class TableClient:
         logging.debug(f"Saving object: {table_object.to_dynamodb_item()}")
 
         try:
+            table_object.execute_on_update()
+
             self.client.put_item(
                 TableName=self.table_endpoint_name,
                 Item=table_object.to_dynamodb_item(),

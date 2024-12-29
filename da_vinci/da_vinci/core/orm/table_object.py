@@ -227,6 +227,9 @@ class TableObjectAttribute:
     def _infer_dynamodb_value(self, value: Any) -> Dict:
         """
         Helper method to infer DynamoDB value type for nested structures.
+
+        Keyword Arguments:
+            value -- Value to infer
         """
         if isinstance(value, str):
             return {"S": value}
@@ -374,6 +377,9 @@ class TableObjectAttribute:
     def _infer_python_value(self, value: Dict) -> Any:
         """
         Helper method to convert DynamoDB types back to Python values.
+
+        Keyword Arguments:
+            value -- Value to convert
         """
         if 'S' in value:
             return value['S']
@@ -543,7 +549,6 @@ class TableObject:
     attribute_lookup_prefix: Optional[str] = None
     attributes: List[TableObjectAttribute] = []
     description: Optional[str] = None
-    execute_on_update: Optional[Callable] = None
     object_name: str = None
     sort_key_attribute: Optional[TableObjectAttribute] = None
     ttl_attribute: Optional[TableObjectAttribute] = None
@@ -587,12 +592,9 @@ class TableObject:
                     raise MissingTableObjectAttributeException(attr.name)
 
     @classmethod
-    def define(cls, partition_key_attribute: TableObjectAttribute,
-               object_name: str, table_name: str,
-               attribute_lookup_prefix: Optional[str] = None,
-               attributes: Optional[List[TableObjectAttribute]] = None,
-               description: Optional[str] = None,
-               sort_key_attribute: Optional[TableObjectAttribute] = None,
+    def define(cls, partition_key_attribute: TableObjectAttribute, object_name: str, table_name: str,
+               attribute_lookup_prefix: Optional[str] = None, attributes: Optional[List[TableObjectAttribute]] = None,
+               description: Optional[str] = None, sort_key_attribute: Optional[TableObjectAttribute] = None,
                ttl_attribute: Optional[TableObjectAttribute] = None) -> 'TableObject':
         """
         Define a TableObject
@@ -652,6 +654,14 @@ class TableObject:
             Any
         """
         return getattr(self, name)
+
+    def execute_on_update(self):
+        """
+        Execute the on update function
+
+        Override this method to provide custom behavior when the object is saved to DynamoDB
+        """
+        pass
 
     def update(self, **kwargs):
         """

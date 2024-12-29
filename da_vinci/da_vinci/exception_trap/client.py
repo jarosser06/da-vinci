@@ -95,23 +95,27 @@ class ExceptionReporter(RESTClientBase):
         self.post(body=req_body.to_dict())
 
 
-def fn_exception_reporter(function_name: str, metadata: Optional[Dict] = None, logger: Optional[Logger] = None):
+def fn_exception_reporter(func: Optional[Callable] = None, *, function_name: str = Optional[None],
+                          metadata: Optional[Dict] = None, logger: Optional[Logger] = None, re_raise: bool = False):
     """
     Wraps a function that handles an event and reports any exception
     
     Keyword Arguments:
-        function_name: The name of the function that raised the exception
+        function_name: The name of the function that raised the exception, if not provided, the function name will be used
         metadata: Any additional metadata about the exception
         logger: The logger to use for logging
+        re_raise: If True, the exception will be re-raised after reporting
     """
     def reporter_wrapper(func: Callable):
 
         @wraps(func)
         def wrapper(event: Dict, context: Dict):
+            _function_name = function_name or func.__name__
+
             _logger = logger or Logger(namespace='da_vinci.exception_trap_client')
 
             try:
-                _logger.debug(f'Executing function {function_name}({event})')
+                _logger.debug(f'Executing function {_function_name}({event})')
 
                 return func(event, context)
             except Exception as exc:
@@ -122,7 +126,7 @@ def fn_exception_reporter(function_name: str, metadata: Optional[Dict] = None, l
 
                     reporter.report(
                         originating_event=event,
-                        function_name=function_name,
+                        function_name=_function_name,
                         exception=str(exc),
                         exception_traceback=traceback.format_exc(),
                         metadata=metadata,
@@ -132,8 +136,15 @@ def fn_exception_reporter(function_name: str, metadata: Optional[Dict] = None, l
 
                 traceback.print_exc()
 
-            _logger.finalize()
+                if re_raise:
+                    raise
+
+            finally:
+                _logger.finalize()
 
         return wrapper
+
+    if callable(func):
+        return reporter_wrapper(func)
 
     return reporter_wrapper

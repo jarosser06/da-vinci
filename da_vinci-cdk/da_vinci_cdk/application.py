@@ -1,3 +1,7 @@
+'''
+Application class and Core Stack for DaVinci CDK
+'''
+
 from os import getenv
 from os.path import (
     join as path_join,
@@ -17,9 +21,9 @@ from constructs import Construct
 from da_vinci_cdk.constructs.dns import PublicDomain
 from da_vinci_cdk.constructs.global_setting import GlobalSetting
 from da_vinci_cdk.constructs.s3 import Bucket
-from da_vinci_cdk.framework_stacks.event_bus.stack import EventBusStack
-from da_vinci_cdk.framework_stacks.global_settings.stack import GlobalSettingsStack
-from da_vinci_cdk.framework_stacks.exceptions_trap.stack import ExceptionsTrapStack
+from da_vinci_cdk.framework_stacks.services.event_bus.stack import EventBusStack
+from da_vinci_cdk.framework_stacks.services.exceptions_trap.stack import ExceptionsTrapStack
+from da_vinci_cdk.framework_stacks.tables.global_settings.stack import GlobalSettingsTableStack
 from da_vinci_cdk.stack import Stack
 
 
@@ -55,7 +59,7 @@ class CoreStack(Stack):
         )
 
         if global_settings_enabled:
-            self.add_required_stack(GlobalSettingsStack)
+            self.add_required_stack(GlobalSettingsTableStack)
 
             GlobalSetting(
                 description='Whether Global settings are enabled. Managed by framework deployment, do not modify!',
@@ -126,9 +130,9 @@ class Application:
                  app_entry: Optional[str] = None, app_image_use_lib_base: Optional[bool] = True,
                  architecture: Optional[str] = cdk_lambda.Architecture.ARM_64,
                  create_hosted_zone: Optional[bool] = False, disable_docker_image_cache: Optional[bool] = DA_VINCI_DISABLE_DOCKER_CACHE,
-                 enable_exception_trap: Optional[bool] = True, enable_global_settings: Optional[bool] = True,
-                 enable_logging_bucket: Optional[bool] = False, existing_s3_logging_bucket_name: Optional[str] = None,
-                 include_event_bus: Optional[bool] = False, log_level: Optional[str] = 'INFO',
+                 enable_global_settings: Optional[bool] = True, enable_exception_trap: Optional[bool] = True,
+                 enable_logging_bucket: Optional[bool] = False, enable_event_bus: Optional[bool] = False,
+                 existing_s3_logging_bucket_name: Optional[str] = None, log_level: Optional[str] = 'INFO',
                  root_domain_name: Optional[str] = None, s3_logging_bucket_name_postfix: Optional[str] = None,
                  s3_logging_bucket_name_prefix: Optional[str] = None, s3_logging_bucket_object_retention_days: Optional[int] = None):
         """
@@ -145,10 +149,10 @@ class Application:
             create_hosted_zone: Whether to create a hosted zone for the application if the root_domain_name is set (default: True)
             deployment_id: Identifier assigned to the installation
             enable_exception_trap: Whether to enable the exception trap (default: True)
+            enable_event_bus: Whether to include the event bus stack (default: False)
             enable_global_settings: Whether to build the global settings stack as part of the application (default: True)
             enable_logging_bucket: Whether to enable the logging bucket (default: False)
             existing_s3_logging_bucket_name: Name of an existing S3 bucket to use for logging (default: None)
-            include_event_bus: Whether to build the event bus stack as part of the application (default: False)
             log_level: Logging level to use for the application (default: INFO)
             root_domain_name: Root domain name for the application (default: None)
             s3_logging_bucket_name_postfix: Postfix name of the S3 bucket to use for logging, appends the deployment_id (default: None)
@@ -233,6 +237,7 @@ class Application:
             'deployment_id': self.deployment_id,
             'global_settings_enabled': self.global_settings_enabled,
             's3_logging_bucket_name': s3_logging_bucket_name,
+            'event_bus_enabled': enable_event_bus,
             'exception_trap_enabled': enable_exception_trap,
             'log_level': self.log_level,
             'root_domain_name': self.root_domain_name
@@ -244,7 +249,7 @@ class Application:
 
         if enable_global_settings:
             global_settings_stack = self.add_uninitialized_stack(
-                stack=GlobalSettingsStack,
+                stack=GlobalSettingsTableStack,
                 include_core_dependencies=False,
             )
 
@@ -265,16 +270,15 @@ class Application:
 
         self.dependency_stacks.append(self.core_stack)
 
+        self._event_bus_stack = None
+
+        if enable_event_bus:
+            self._event_bus_stack = self.add_uninitialized_stack(EventBusStack)
+
+        self._exceptions_trap_stack = None
+
         if enable_exception_trap:
-            exceptions_trap_stack = self.add_uninitialized_stack(
-                stack=ExceptionsTrapStack,
-                include_core_dependencies=False,
-            )
-
-            self.dependency_stacks.append(exceptions_trap_stack)
-
-        if include_event_bus:
-            self.add_uninitialized_stack(EventBusStack)
+            self._exceptions_trap_stack = self.add_uninitialized_stack(ExceptionsTrapStack)
 
     @staticmethod
     def generate_stack_name(stack: Stack) -> str:
@@ -334,6 +338,7 @@ class Application:
         req_init_vars = stack.__init__.__code__.co_varnames
 
         stk_req_init_vars = set(req_init_vars)
+
         stk_avail_init_vars = set(init_args.keys())
 
         stk_args = stk_avail_init_vars.difference(stk_req_init_vars)
@@ -343,9 +348,23 @@ class Application:
 
         self._stacks[stack_name] = stack(**init_args)
 
+        initialized_stack = self._stacks[stack_name]
+
         if include_core_dependencies:
             for dependency in self.dependency_stacks:
                 self._stacks[stack_name].add_dependency(dependency)
+
+        if initialized_stack.requires_event_bus:
+            if not self._event_bus_stack:
+                raise ValueError(f'Cannot require the event bus for stack "{stack_name}" when the disabled for the application')
+
+            self._stacks[stack_name].add_dependency(self._event_bus_stack)
+
+        if initialized_stack.requires_exceptions_trap:
+            if not self._exceptions_trap_stack:
+                raise ValueError(f'Cannot require the exceptions trap for stack "{stack_name}" when the disabled for the application')
+
+            self._stacks[stack_name].add_dependency(self._exceptions_trap_stack)
 
         for dependency in self._stacks[stack_name].required_stacks:
 

@@ -1,4 +1,6 @@
 '''Lambda module for the event bus watcher'''
+import logging
+
 from datetime import datetime, timedelta, UTC as utc_tz
 from typing import Dict, Optional
 
@@ -32,8 +34,7 @@ class EventBusWatcher(SimpleRESTServiceBase):
             ]
         )
 
-    def trap_response(self, event: Dict, status: str,
-                      failure_reason: Optional[str] = None,
+    def trap_response(self, event: Dict, status: str, failure_reason: Optional[str] = None,
                       failure_traceback: Optional[str] = None):
         """
         Trap an event response to store it in the database
@@ -72,6 +73,8 @@ def api(event: Dict, context: Dict):
         event: The event
         context: The context
     """
+    logging.debug(f'Event: {event}')
+
     watcher = EventBusWatcher()
 
     return watcher.handle(event=event)

@@ -55,7 +55,7 @@ class EventBusSubscription(TableObject):
             TableObjectAttributeType.DATETIME,
             default=lambda: datetime.now(tz=utc_tz),
             description='The date EventSubscription record was last updated',
-        )
+        ),
     ]
 
 

@@ -1,14 +1,63 @@
-from copy import deepcopy
-from dataclasses import dataclass
-from enum import auto, StrEnum
-from typing import Any, Dict, List, Optional
+import json
+import logging
 
+from copy import deepcopy
+from dataclasses import asdict, dataclass
+from enum import auto, StrEnum
+from typing import Any, Dict, List, Optional, Union, Type
 
 from da_vinci.core.orm import (
     TableObject,
     TableObjectAttribute,
     TableObjectAttributeType,
 )
+
+from da_vinci.core.json import DateTimeEncoder
+
+
+class MissingAttributeError(Exception):
+    def __init__(self, attribute_name: str):
+        super().__init__(f'Missing required attribute {attribute_name}')
+
+
+@dataclass
+class ObjectBodyValidationResults:
+    """
+    ObjectBodyValidationResults is a class that represents the
+    results of validating a Python dictionary against a given schema.
+
+    Keyword Arguments:
+        missing_attributes: List of mising attributes
+        mismatched_types: List of mismatched types
+        valid: Whether the object is valid
+    """
+    mismatched_types: List[str] = None
+    missing_attributes: List[str] = None
+    valid: bool = True
+
+    def to_dict(self):
+        """
+        Convert the results to a dictionary
+
+        Returns:
+            Dictionary representation of the results
+        """
+        return asdict(self)
+
+
+class InvalidObjectSchemaError(Exception):
+    def __init__(self, validation_results: ObjectBodyValidationResults):
+        message = ['Invalid object schema:']
+
+        if validation_results.missing_attributes:
+            message.append(f' missing attributes: {validation_results.missing_attributes}')
+
+        if validation_results.mismatched_types:
+            message.append(' mismatched types {validation_results.mismatched_types}')
+
+        message = ' '.join(message)
+
+        super().__init__(message)
 
 
 class SchemaAttributeType(StrEnum):
@@ -73,6 +122,7 @@ class SchemaAttribute:
     """
     name: str
     type: SchemaAttributeType
+    default_value: Any = None
     description: str = None
     is_primary_key: bool = False
     object_schema: 'ObjectBodySchema' = None
@@ -87,9 +137,19 @@ class SchemaAttribute:
         return TableObjectAttribute(
             attribute_type=self.type.table_object_attribute_type,
             name=self.name,
+            default=self.default_value,
             description=self.description,
             optional=self.required
         )
+
+    def to_dict(self) -> Dict:
+        """
+        Convert the attribute to a dictionary
+
+        Returns:
+            Dictionary representation of the attribute
+        """
+        return asdict(self)
 
 
 @dataclass
@@ -101,7 +161,6 @@ class ObjectBodySchema:
     Keyword Arguments:
         attributes: List of attributes in the schema
         description: Description of the schema
-        name: Name of the schema
 
     Example:
         ```
@@ -167,11 +226,26 @@ class ObjectBodySchema:
     """
     attributes: List[SchemaAttribute]
     description: Optional[str] = None
-    name: str = None
+    name: Optional[str] = None
+
+    def to_dict(self) -> Dict:
+        """
+        Convert the schema to a dictionary
+
+        Returns:
+            Dictionary representation of the schema
+        """
+        return {
+            'attributes': [attribute.to_dict() for attribute in self.attributes],
+            'description': self.description,
+            'name': self.name,
+        }
 
     def table_object(self) -> TableObject:
         """
         Returns a TableObject that represents the schema.
+
+        Only supports very basic table definitions for now.
         """
         partition_key = None
 
@@ -180,12 +254,102 @@ class ObjectBodySchema:
         for attribute in self.attributes:
             if attribute.is_primary_key:
                 partition_key = attribute.table_object_attribute
+
             else:
                 attributes.append(attribute.table_object_attribute)
 
         TableObject.define(
             partition_key_attribute=partition_key,
             description=self.description,
+        )
+
+    def validate_object(self, obj: Dict) -> ObjectBodyValidationResults:
+        """
+        Validate an object against the schema
+
+        Keyword Arguments:
+            obj: Object to validate
+
+        Returns:
+            ObjectBodyValidationResults
+        """
+        missing_attributes = []
+
+        mismatched_types = []
+
+        for attribute in self.attributes:
+            if attribute.required and attribute.name not in obj:
+                missing_attributes.append(attribute.name)
+
+            elif attribute.name in obj:
+                value = obj[attribute.name]
+
+                # Skip None values, as they are valid for optional attributes
+                if value is None:
+                    continue
+
+                if attribute.type == SchemaAttributeType.OBJECT:
+                    if not isinstance(value, dict):
+                        mismatched_types.append(attribute.name)
+
+                    else:
+                        object_schema = attribute.object_schema
+
+                        results = object_schema.validate_object(value)
+
+                        if not results.valid:
+                            missing_attributes.extend(results.missing_attributes)
+
+                            mismatched_types.extend(results.mismatched_types)
+
+                elif attribute.type == SchemaAttributeType.OBJECT_LIST:
+                    if not isinstance(value, list):
+                        mismatched_types.append(attribute.name)
+
+                    else:
+                        object_schema = attribute.object_schema
+
+                        for item in value:
+                            results = object_schema.validate_object(item)
+
+                            if not results.valid:
+                                missing_attributes.extend(results.missing_attributes)
+
+                                mismatched_types.extend(results.mismatched_types)
+
+                elif attribute.type == SchemaAttributeType.STRING_LIST:
+                    if not isinstance(value, list):
+                        mismatched_types.append(attribute.name)
+
+                    # Only sampling the first element to determine the type
+                    elif len(value) > 0 and isinstance(value[0], str):
+                        mismatched_types.append(attribute.name)
+
+                elif attribute.type == SchemaAttributeType.NUMBER_LIST:
+                    if not isinstance(value, list):
+                        mismatched_types.append(attribute.name)
+
+                    elif len(value) > 0 and not isinstance(value[0], int) and not isinstance(value[0], float):
+                        mismatched_types.append(attribute.name)
+
+                elif attribute.type == SchemaAttributeType.BOOLEAN:
+                    if not isinstance(value, bool):
+                        mismatched_types.append(attribute.name)
+
+                elif attribute.type == SchemaAttributeType.NUMBER:
+                    if not isinstance(value, int) and not isinstance(value, float):
+                        mismatched_types.append(attribute.name)
+
+                elif attribute.type == SchemaAttributeType.STRING:
+                    if not isinstance(value, str):
+                        mismatched_types.append(attribute.name)
+
+        valid_obj = len(missing_attributes) == 0 and len(mismatched_types) == 0
+
+        return ObjectBodyValidationResults(
+            missing_attributes=missing_attributes,
+            mismatched_types=mismatched_types,
+            valid=valid_obj,
         )
 
 
@@ -209,6 +373,7 @@ class ObjectBodyUnknownAttribute(ObjectBodyAttribute):
         """
         if type(self.value) is int or type(self.value) is float:
             schema_type = SchemaAttributeType.NUMBER
+
         elif type(self.value) is bool:
             schema_type = SchemaAttributeType.BOOLEAN
 
@@ -242,7 +407,7 @@ class ObjectBodyUnknownAttribute(ObjectBodyAttribute):
 class ObjectBody:
     _UNKNOWN_ATTR_SCHEMA = ObjectBodySchema(attributes=[], name='UNKNOWN')
 
-    def __init__(self, body: Dict, schema: ObjectBodySchema = None):
+    def __init__(self, body: Dict, schema: Union[ObjectBodySchema, Type[ObjectBodySchema]] = None):
         """
         ObjectBody is a class that represents an object in an event
 
@@ -333,11 +498,29 @@ class ObjectBody:
             )
             ```
         """
-        self.body = self._load(body)
-        self.schema = schema or self._UNKNOWN_ATTR_SCHEMA
-
         self.attributes = {}
+
         self.unknown_attributes = {}
+
+        self.schema = self._instantiated_schema(schema or self._UNKNOWN_ATTR_SCHEMA)
+
+        self.body = self._load(body)
+
+    @staticmethod
+    def _instantiated_schema(schema: Union[Type[ObjectBodySchema], ObjectBodySchema]) -> ObjectBodySchema:
+        """
+        Checks if the schema is a class or object and instantiates it if it is a class
+
+        Keyword Arguments:
+            schema: Schema class or object
+
+        Returns:
+            Instantiated schema
+        """
+        if isinstance(schema, type):
+            return schema()
+
+        return schema
 
     def _load(self, body: Dict):
         """
@@ -349,9 +532,17 @@ class ObjectBody:
         Returns:
             Loaded body
         """
+        validation = self.schema.validate_object(body)
+
+        if not validation.valid:
+            raise InvalidObjectSchemaError(validation)
+
         remaining_body = deepcopy(body)
 
         for attribute in self.schema.attributes:
+            if attribute.required and attribute.name not in body:
+                raise MissingAttributeError(attribute.name)
+
             value = body[attribute.name]
 
             if attribute.type == SchemaAttributeType.OBJECT:
@@ -399,47 +590,65 @@ class ObjectBody:
             Attribute value
         """
         if not self.has_attribute(attribute_name):
-            raise Exception(f'Object does not have attribute {attribute_name}')
+            raise MissingAttributeError(attribute_name)
 
         if attribute_name in self.attributes:
             return self.attributes[attribute_name].value
 
         return self.unknown_attributes[attribute_name].value
 
-    def map_to(self, new_schema: ObjectBodySchema,
+    def map_to(self, new_schema: Union[ObjectBodySchema, Type[ObjectBodySchema]],
                attribute_map: Optional[Dict] = None) -> 'ObjectBody':
         """
-        Map the current event body to a new schema
+        Map the current event body to a new schema. Currently only support top-level attribute
+        mapping. It will default to using an existing attribute name if the new attribute name
+        is not found in the attribute map.
 
         Keyword Arguments:
             schema: Schema to map to
             attribute_map: Attribute map to use, e.g. {'old_name': 'new_name'}
         """
+        initialized_schema = self._instantiated_schema(new_schema)
+
+        logging.debug(f'Mapping self attributes to new schema: {initialized_schema.to_dict()}')
 
         attr_map = attribute_map or {}
 
         new_body = {}
 
-        for attribute in new_schema.attributes:
+        for attribute in initialized_schema.attributes:
             if attribute.name in attr_map.values():
                 for old_name, new_name in attr_map.items():
                     if new_name == attribute.name:
                         new_body[new_name] = self.get(old_name)
 
-            elif attribute.name in self.attributes:
+            elif self.has_attribute(attribute.name):
                 new_body[attribute.name] = self.get(attribute.name)
+
+        logging.debug(f'Mapped object to new schema: {new_body}')
 
         return ObjectBody(new_body, new_schema)
 
-
-    def to_dict(self) -> Dict:
+    def to_dict(self, ignore_unkown: Optional[bool] = False) -> Dict:
         """
         Convert the object to a dictionary
 
         Returns:
             Dictionary representation of the object
         """
+        if ignore_unkown:
+            return {attribute.name: attribute.value for attribute in self.attributes.values()}
+
         return {
             **{attribute.name: attribute.value for attribute in self.attributes.values()},
             **{attribute.name: attribute.value for attribute in self.unknown_attributes.values()}
         }
+
+    def to_json(self, ignore_unkown: Optional[bool] = False) -> str:
+        """
+        Convert the object to a JSON string
+
+        Returns:
+            JSON representation of the object
+        """
+        return json.dumps(self.to_dict(ignore_unkown), cls=DateTimeEncoder)

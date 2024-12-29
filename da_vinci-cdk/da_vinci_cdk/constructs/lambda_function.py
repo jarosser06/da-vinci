@@ -12,7 +12,7 @@ from constructs import Construct
 from da_vinci.core.execution_environment import runtime_environment_dict
 from da_vinci.core.global_settings import SETTINGS_ENABLED_VAR_NAME
 from da_vinci.core.resource_discovery import ResourceType
-from da_vinci.core.tables.settings import Setting
+from da_vinci.core.tables.global_settings import GlobalSetting
 
 from da_vinci.exception_trap.client import EXCEPTION_TRAP_ENV_VAR
 
@@ -177,7 +177,7 @@ class LambdaFunction(Construct):
 
             if resource_access_requests:
                 for existing_req in resource_access_requests:
-                    if existing_req.resource_name == Setting.table_name:
+                    if existing_req.resource_name == GlobalSetting.table_name:
                         add_settings_table_access = False
                         break
             else:
@@ -188,7 +188,7 @@ class LambdaFunction(Construct):
                     ResourceAccessRequest(
                         policy_name='read',
                         resource_type=ResourceType.TABLE,
-                        resource_name=Setting.table_name,
+                        resource_name=GlobalSetting.table_name,
                     )
                 )
 

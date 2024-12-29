@@ -110,8 +110,8 @@ class EventBusSubscriptionFunction(Construct):
     '''Event Bus Event Subscription Function CDK Construct'''
 
     def __init__(self, construct_id: str, event_type: str, function_name: str, scope: Construct,
-                 active: Optional[bool] = False, generates_events: Optional[List[str]] = None,
-                 managed_policies: Optional[List] = None,
+                 active: Optional[bool] = False, enable_event_bus_access: Optional[bool] = False,
+                 generates_events: Optional[List[str]] = None, managed_policies: Optional[List] = None,
                  resource_access_requests: Optional[List[ResourceAccessRequest]] = None, **function_config):
         """
         Creates a Lambda function that subscribes to an event bus event. Handles the creation
@@ -126,13 +126,17 @@ class EventBusSubscriptionFunction(Construct):
             function_name: Name of the function
             scope: Parent construct for the EventBusSubscriptionFunction
             active: Whether or not the subscription is active (default: False)
+            enable_event_bus_access: Whether or not to enable access to the event bus (default: False)
             generates_events: List of event types that the function generates (default: None)
             managed_policies: List of managed policies to attach to the Lambda function
             function_config: Additional arguments supported by CDK to pass to the Lambda function
         """
         super().__init__(scope, construct_id)
 
-        add_event_bus_access = generates_events != None
+        add_event_bus_access = enable_event_bus_access
+
+        if not add_event_bus_access and generates_events:
+            add_event_bus_access = True
 
         add_event_response_access = True
 

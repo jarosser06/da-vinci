@@ -11,12 +11,10 @@ from constructs import Construct
 
 
 class Stack(CDKStack):
-    def __init__(self, app_name: str,
-                 deployment_id: str, scope: Construct, stack_name: str,
-                 app_base_image: Optional[DockerImage] = None,
-                 architecture: Optional[str] = None,
-                 library_base_image: Optional[DockerImage] = None,
-                 required_stacks: Optional[list] = None):
+    def __init__(self, app_name: str, deployment_id: str, scope: Construct, stack_name: str,
+                 app_base_image: Optional[DockerImage] = None, architecture: Optional[str] = None,
+                 library_base_image: Optional[DockerImage] = None, required_stacks: Optional[list] = None,
+                 requires_event_bus: Optional[bool] = False, requires_exceptions_trap: Optional[bool] = False):
         """
         Initialize a new Stack object
 
@@ -30,6 +28,8 @@ class Stack(CDKStack):
             app_base_image: Base image built for the application (default: None)
             library_base_image: Base image built for the library (default: None)
             required_stacks: List of stacks required by this stack (default: None)
+            requires_event_bus: Whether the stack requires an event bus (default: False)
+            requires_exceptions_trap: Whether the stack requires an exception trap (default: True)
 
         Example:
             ```
@@ -58,7 +58,6 @@ class Stack(CDKStack):
             app.synth()
             ```
         """
-
         self.da_vinci_stack_name = f'{app_name}-{deployment_id}-{stack_name}'
 
         construct_id = self.da_vinci_stack_name
@@ -66,12 +65,20 @@ class Stack(CDKStack):
         super().__init__(scope, construct_id)
 
         self.app_name = app_name
+
         self.architecture = architecture
+
         self.deployment_id = deployment_id
 
         self.app_base_image = app_base_image
+
         self.library_base_image = library_base_image
+
         self.required_stacks = required_stacks or []
+
+        self.requires_event_bus = requires_event_bus
+
+        self.requires_exceptions_trap = requires_exceptions_trap
 
     def add_required_stack(self, stack: 'Stack'):
         '''

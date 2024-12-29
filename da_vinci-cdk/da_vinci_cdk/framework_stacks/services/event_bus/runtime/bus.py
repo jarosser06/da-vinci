@@ -1,30 +1,21 @@
 '''Event Bus runtime'''
 import json
+import logging
 
 from typing import Dict
 
 import boto3
 
-from da_vinci.core.logging import Logger
-
-from da_vinci.event_bus.client import (
-    EventResponder,
-    EventResponseStatus,
-)
-
+from da_vinci.event_bus.client import EventResponder, EventResponseStatus
 from da_vinci.event_bus.event import Event
 
-from da_vinci.event_bus.tables.event_bus_subscriptions import (
-    EventBusSubscriptions
-)
-
-
-LOG = Logger('event_bus')
+from da_vinci.event_bus.tables.event_bus_subscriptions import EventBusSubscriptions
 
 
 class EventBus:
     def __init__(self):
         self.aws_lambda = boto3.client('lambda')
+
         self.event_responder = EventResponder()
 
     def invoke_subscriptions(self, event: Event):
@@ -34,7 +25,7 @@ class EventBus:
         Keyword Arguments:
             event: Event
         """
-        LOG.debug(f'Invoking {event.event_type}: {event}')
+        logging.debug(f'Invoking {event.event_type}: {event}')
 
         subscriptions = EventBusSubscriptions()
 
@@ -43,7 +34,7 @@ class EventBus:
         )
 
         if not all_subs:
-            LOG.debug(f'No subscriptions found for {event.event_type}')
+            logging.debug(f'No subscriptions found for {event.event_type}')
 
             self.event_responder.response(
                 event=event.to_dict(),
@@ -60,7 +51,7 @@ class EventBus:
                 Payload=event.to_json(),
             )
 
-            LOG.debug(f'Lambda invocation response: {response}')
+            logging.debug(f'Lambda invocation response: {response}')
 
 
 def handler(event: Dict, context: Dict):
@@ -71,12 +62,12 @@ def handler(event: Dict, context: Dict):
         event: Event payload
         context: Lambda context
     """
-    LOG.debug(f'Event: {event}')
+    logging.debug(f'Event: {event}')
 
     bus = EventBus()
 
     for record in event['Records']:
-        LOG.debug(f'Record recieved: {record}')
+        logging.debug(f'Record recieved: {record}')
 
         event = Event.from_lambda_event(json.loads(record['body']))
 

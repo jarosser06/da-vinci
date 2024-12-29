@@ -1,6 +1,6 @@
 '''Event Bus Clients'''
-
 import json
+import logging
 import traceback
 
 from collections.abc import Callable
@@ -14,6 +14,7 @@ from da_vinci.core.json import DateTimeEncoder
 from da_vinci.core.logging import Logger
 
 from da_vinci.event_bus.event import Event
+from da_vinci.event_bus.object import ObjectBodySchema
 
 from da_vinci.exception_trap.client import ExceptionReporter
 
@@ -102,20 +103,30 @@ class EventResponder(RESTClientBase):
 
 
 def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
-                      function_name: Optional[str] = None, logger: Optional[Logger] = None):
+                      function_name: Optional[str] = None, handle_callbacks: Optional[bool] = False,
+                      logger: Optional[Logger] = None, re_raise: Optional[bool] = False,
+                      schema: Optional[ObjectBodySchema] = None):
     """
     Wraps a function that tracks event responses. When wrapped, the function
-    will report any results to the event watcher.
+    will report any results to the event watcher. The function can optionally validate the entire event body
+    using a provided ObjectBodySchema.
 
     Keyword Arguments:
         exception_reporter: ExceptionReporter to use for reporting exceptions, optional
-        function_name: Name of the function to report exceptions for, required if exception_reporter is provided
+        function_name: Name of the function to report exceptions for, defaults to the literal python function name
+        handle_callbacks: Whether or not to handle callback event callback requests, optional
         logger: Logger to use for logging, optional
+        re_raise: If True, the exception will be re-raised after reporting, optional
+        schema: ObjectBodySchema-based object to use for validating the event body, optional. When provided, the event body will be validated
     """
     def event_response_wrapper(func: Callable):
         @wraps(func)
         def wrapper(event: Dict, context: Dict):
+            logging.debug(f'Raw event {event}')
+
             _logger = logger or Logger('da_vinci.event_bus.response_wrapper')
+
+            _function_name = function_name or func.__name__
 
             event_responder = EventResponder()
 
@@ -124,14 +135,44 @@ def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
             _logger.s3_log_handler.put_metadata('originating_event', event_obj.to_dict())
 
             try:
-                _logger.debug(f'Executing function with event {event}')
+                logging.debug(f'Executing function with event {event}')
 
-                func(event, context)
+                if schema:
+                    logging.debug('Validating event body')
+
+                    schema.validate_object(event_obj.body)
+
+                fn_result = func(event, context)
+
+                # If the function returns a result and we are handling callbacks
+                # check if the event has a callback event type and publish the result
+                if fn_result and handle_callbacks:
+                    logging.debug('Function returned a result, checking for callback event type')
+
+                    logging.debug(f'Event object {event_obj.to_dict()}')
+
+                    if event_obj.callback_event_type:
+                        logging.debug('Function has a callback event type, publishing result')
+
+                        event_publisher = EventPublisher()
+
+                        event_publisher.submit(
+                            event=Event(
+                                body=fn_result,
+                                event_type=event_obj.callback_event_type,
+                                previous_event_id=event_obj.event_id
+                            )
+                        )
+
+                        logging.debug(f'Published callback event to {event_obj.callback_event_type}')
 
                 event_responder.response(
                     event=event_obj,
                     status=EventResponseStatus.SUCCESS
                 )
+
+                return fn_result
+
             except Exception as exc:
                 event_responder.response(
                     event=event_obj,
@@ -141,13 +182,11 @@ def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
                 )
 
                 if exception_reporter:
-                    if not function_name:
-                        raise ValueError('function_name is required when exception_reporter is provided')
-
+                    # If the function name is not provided, use the function name
                     exception_reporter.report(
                         exception=str(exc),
                         exception_traceback=traceback.format_exc(),
-                        function_name=function_name,
+                        function_name=_function_name,
                         originating_event=event,
                         log_execution_id=_logger.execution_id,
                         log_namespace=_logger.namespace,
@@ -155,7 +194,11 @@ def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
 
                 traceback.print_exc()
 
-            _logger.finalize()
+                if re_raise:
+                    raise
+
+            finally:
+                _logger.finalize()
 
         return wrapper
 

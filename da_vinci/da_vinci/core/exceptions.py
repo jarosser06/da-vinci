@@ -1,9 +1,9 @@
-'''All Unicorn Base Exceptions'''
+'''All Da Vinci Base Exceptions'''
 
 class DuplicateRouteDefinitionError(Exception):
     def __init__(self, route_name: str):
         """
-        Base error for the Unicorn framework REST Service Base class
+        Base error for the Da Vinci framework REST Service Base class
 
         Indicates that a route definition already exists
 
@@ -36,7 +36,7 @@ class GlobalSettingNotFoundError(Exception):
 class MissingRequiredRuntimeVariableError(RuntimeError):
     def __init__(self, variable_name: str):
         """
-        Indicates that a required runtime variable used by the Unicorn framework was not found
+        Indicates that a required runtime variable used by the Da Vinci framework was not found
 
         Keyword Arguments:
             variable_name (str): The name of the variable that was not found
@@ -47,7 +47,7 @@ class MissingRequiredRuntimeVariableError(RuntimeError):
 class ResourceNotFoundError(Exception):
     def __init__(self, resource_name: str, resource_type: str):
         """
-        Resource was not able to be located using Unicorn resource discovery
+        Resource was not able to be located using Da Vinci resource discovery
 
         Keyword Arguments:
             resource_name (str): The name of the resource that was not found

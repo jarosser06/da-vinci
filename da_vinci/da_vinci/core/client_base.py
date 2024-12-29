@@ -87,6 +87,7 @@ class RESTClientBase(BaseClient):
     app_name: str = None
     deployment_id: str = None
     disable_auth: bool = False
+    raise_on_failure: bool = True
     resource_type: str = ResourceType.REST_SERVICE
 
     def __post_init__(self):
@@ -94,6 +95,7 @@ class RESTClientBase(BaseClient):
 
         if self.disable_auth:
             self.aws_auth = None
+
         else:
             self.aws_auth = AWSSigV4('lambda')
 
@@ -119,7 +121,15 @@ class RESTClientBase(BaseClient):
         '''
         if expect_body:
             if response.status_code < 200 or response.status_code >= 300:
-                raise ValueError(f'Failed to make request: {response.text}')
+                if self.raise_on_failure:
+                    raise ValueError(f'Failed to make request: {response.text}')
+
+                else:
+                    return RESTClientResponse(
+                        response=response,
+                        status_code=response.status_code,
+                        response_body=None,
+                    )
 
             try:
                 response_body = response.json()

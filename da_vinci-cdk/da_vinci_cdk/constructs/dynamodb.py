@@ -347,7 +347,7 @@ class DynamoDBItem(Construct):
                     f'arn:aws:dynamodb:*:*:table/{self.full_table_name}/*',
                 ]
             ),
-            on_create=self.create(table_object),
+            on_create=self.put(table_object),
             on_delete=self.delete(table_object),
             resource_type=self.custom_type_name,
         )
@@ -363,7 +363,6 @@ class DynamoDBItem(Construct):
         Returns:
             The physical resource ID for the custom resource
         """
-
         resource_id_items = [
             table_object.table_name,
             table_object.partition_key_attribute.dynamodb_key_name,
@@ -374,9 +373,9 @@ class DynamoDBItem(Construct):
 
         return PhysicalResourceId.of('-'.join(resource_id_items))
 
-    def create(self, table_object: TableObject) -> AwsSdkCall:
+    def put(self, table_object: TableObject) -> AwsSdkCall:
         """
-        Call AWS SDK to create the DynamoDB item
+        Call AWS SDK to put the DynamoDB item
 
         Keyword Arguments:
             table_object: The TableObject to use to initialize the DynamoDBItem
@@ -398,8 +397,6 @@ class DynamoDBItem(Construct):
         Keyword Arguments:
             table_object: The TableObject to use to initialize the DynamoDBItem
         """
-
-
         partition_key_value=table_object.attribute_value(table_object.partition_key_attribute.name)
 
         sort_key_value = None

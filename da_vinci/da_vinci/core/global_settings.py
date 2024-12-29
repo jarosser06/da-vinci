@@ -3,7 +3,8 @@ from typing import Any, Union
 
 from da_vinci.core.exceptions import GlobalSettingsNotEnabledError, GlobalSettingNotFoundError
 from da_vinci.core.orm.client import TableClient
-from da_vinci.core.tables.settings import Setting, Settings
+from da_vinci.core.tables.global_settings import GlobalSetting, GlobalSettings
+
 
 SETTINGS_ENABLED_VAR_NAME = 'DaVinciFramework_GlobalSettingsEnabled'
 
@@ -21,7 +22,7 @@ def global_settings_available() -> bool:
         return env_var.lower() == 'true'
 
     return TableClient.table_resource_exists(
-        table_object_class=Setting
+        table_object_class=GlobalSetting
     )
 
 
@@ -34,11 +35,10 @@ def setting_value(namespace: str, setting_key: str) -> Union[Any, None]:
         setting_key: The setting key
         namespace: The namespace of the setting
     """
-
     if not global_settings_available():
         raise GlobalSettingsNotEnabledError()
 
-    settings = Settings()
+    settings = GlobalSettings()
 
     setting = settings.get(
         namespace=namespace,
