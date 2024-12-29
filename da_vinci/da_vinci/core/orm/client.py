@@ -1,5 +1,6 @@
 import logging
 
+from enum import auto, StrEnum
 from typing import Any, Dict, List, Optional, Union
 
 import boto3
@@ -16,6 +17,11 @@ from da_vinci.core.orm.table_object import (
     TableObject,
     TableObjectAttributeType,
 )
+
+
+class TableResultSortOrder(StrEnum):
+    ASCENDING = auto()
+    DESCENDING = auto()
 
 
 class TableScanDefinition:
@@ -210,18 +216,21 @@ class TableClient:
         except ResourceNotFoundError:
             return False
 
-    # TODO: Implement support for passing last evaluated key and ascending/descending
-    # Must be enforced in the TableObject class to ensure the sort key is both present
-    # and sortable :thinking:
-    def paginated(self, call: str = 'scan', parameters: Optional[Dict] = None):
+    def paginated(self, call: str = 'scan', last_evaluated_key: Optional[str] = None,
+                  max_pages: Optional[int] = None, parameters: Optional[Dict] = None,
+                  sort_order: Optional[TableResultSortOrder] = TableResultSortOrder.ASCENDING):
         """
         Handle paginated DynamoDB table results
 
         Keyword Arguments:
             call: Name of the DynamoDB client method to call, either a scan or query (default: scan)
+            last_evaluated_key: Last evaluated key from a previous page of results (default: None)
+            max_pages: Maximum number of pages to retrieve, if None it will return all available (default: None)
             parameters: Parameters to pass to the client method
+            sort_order: Sort order to use for the results (default: ASCENDING)
         """
         more_results = True
+
         params = parameters or {}
 
         if 'TableName' not in params:
@@ -231,6 +240,18 @@ class TableClient:
             params['Select'] = 'ALL_ATTRIBUTES'
 
         mthd = getattr(self.client, call)
+
+        if sort_order:
+            if not self.default_object_class.sort_key_attribute:
+                raise Exception("Table object must have sort key to enable sorting")
+
+            params['ScanIndexForward'] = sort_order == TableResultSortOrder.ASCENDING
+
+        if last_evaluated_key:
+            params['ExclusiveStartKey'] = last_evaluated_key
+
+        # Page iteration counter
+        retrieved_pages = 0
 
         # Iterate through each page of results, yielding the results as
         # a list of TableObjects
@@ -248,6 +269,12 @@ class TableClient:
 
             if more_results:
                 params['ExclusiveStartKey'] = response['LastEvaluatedKey']
+
+            retrieved_pages += 1
+
+            # Break if max_pages is set and we've reached the requested limit
+            if max_pages and retrieved_pages >= max_pages:
+                break
 
     def _all_objects(self) -> List[TableObject]:
         """
