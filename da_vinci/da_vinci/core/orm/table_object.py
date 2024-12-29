@@ -227,6 +227,9 @@ class TableObjectAttribute:
     def _infer_dynamodb_value(self, value: Any) -> Dict:
         """
         Helper method to infer DynamoDB value type for nested structures.
+
+        Keyword Arguments:
+            value -- Value to infer
         """
         if isinstance(value, str):
             return {"S": value}
@@ -374,6 +377,9 @@ class TableObjectAttribute:
     def _infer_python_value(self, value: Dict) -> Any:
         """
         Helper method to convert DynamoDB types back to Python values.
+
+        Keyword Arguments:
+            value -- Value to convert
         """
         if 'S' in value:
             return value['S']

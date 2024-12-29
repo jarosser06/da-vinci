@@ -216,7 +216,8 @@ class TableClient:
         except ResourceNotFoundError:
             return False
 
-    def paginated(self, call: str = 'scan', last_evaluated_key: Optional[str] = None,
+    def paginated(self, call: str = 'scan', last_evaluated_key: Optional[Dict] = None,
+                  last_evaluated_object: Optional[TableObject] = None,
                   max_pages: Optional[int] = None, parameters: Optional[Dict] = None,
                   sort_order: Optional[TableResultSortOrder] = TableResultSortOrder.ASCENDING):
         """
@@ -225,6 +226,7 @@ class TableClient:
         Keyword Arguments:
             call: Name of the DynamoDB client method to call, either a scan or query (default: scan)
             last_evaluated_key: Last evaluated key from a previous page of results (default: None)
+            last_evaluated_object: Last evaluated object from a previous page of results (default: None), only supported for query
             max_pages: Maximum number of pages to retrieve, if None it will return all available (default: None)
             parameters: Parameters to pass to the client method
             sort_order: Sort order to use for the results (default: ASCENDING)
@@ -248,7 +250,28 @@ class TableClient:
             params['ScanIndexForward'] = sort_order == TableResultSortOrder.ASCENDING
 
         if last_evaluated_key:
-            params['ExclusiveStartKey'] = last_evaluated_key
+            if call == 'scan':
+                if not isinstance(last_evaluated_key, dict):
+                    raise Exception("Last evaluated key must be a dictionary for scan operations")
+
+                params['ExclusiveStartKey'] = last_evaluated_key
+
+            else: # query
+                params['ExclusiveStartKey'] = last_evaluated_key
+
+        elif last_evaluated_object:
+            key_gen_args = {
+                'partition_key_value': last_evaluated_object.attribute_value(
+                    last_evaluated_object.partition_key_attribute.name
+                )
+            }
+
+            if self.default_object_class.sort_key_attribute:
+                key_gen_args['sort_key_value'] = last_evaluated_object.attribute_value(
+                    self.default_object_class.sort_key_attribute.name
+                )
+
+            params['ExclusiveStartKey'] = last_evaluated_object.gen_dynamodb_key(**key_gen_args)
 
         # Page iteration counter
         retrieved_pages = 0
