@@ -12,8 +12,8 @@ from da_vinci_cdk.constructs.global_setting import GlobalSetting
 from da_vinci_cdk.constructs.service import SimpleRESTService
 from da_vinci_cdk.stack import Stack
 
-from da_vinci_cdk.framework_stacks.global_settings.stack import GlobalSettingsStack
-from da_vinci_cdk.framework_stacks.trapped_exceptions.stack import TrappedExceptionsTableStack
+from da_vinci_cdk.framework_stacks.tables.global_settings.stack import GlobalSettingsStack
+from da_vinci_cdk.framework_stacks.tables.trapped_exceptions.stack import TrappedExceptionsTableStack
 
 
 class ExceptionsTrapStack(Stack):

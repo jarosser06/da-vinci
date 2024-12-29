@@ -1,3 +1,7 @@
+'''
+Application class and Core Stack for DaVinci CDK
+'''
+
 from os import getenv
 from os.path import (
     join as path_join,
@@ -17,9 +21,9 @@ from constructs import Construct
 from da_vinci_cdk.constructs.dns import PublicDomain
 from da_vinci_cdk.constructs.global_setting import GlobalSetting
 from da_vinci_cdk.constructs.s3 import Bucket
-from da_vinci_cdk.framework_stacks.event_bus.stack import EventBusStack
-from da_vinci_cdk.framework_stacks.global_settings.stack import GlobalSettingsStack
-from da_vinci_cdk.framework_stacks.exceptions_trap.stack import ExceptionsTrapStack
+from da_vinci_cdk.framework_stacks.services.event_bus.stack import EventBusStack
+from da_vinci_cdk.framework_stacks.services.exceptions_trap.stack import ExceptionsTrapStack
+from da_vinci_cdk.framework_stacks.tables.global_settings.stack import GlobalSettingsTableStack
 from da_vinci_cdk.stack import Stack
 
 
@@ -55,7 +59,7 @@ class CoreStack(Stack):
         )
 
         if global_settings_enabled:
-            self.add_required_stack(GlobalSettingsStack)
+            self.add_required_stack(GlobalSettingsTableStack)
 
             GlobalSetting(
                 description='Whether Global settings are enabled. Managed by framework deployment, do not modify!',
@@ -244,7 +248,7 @@ class Application:
 
         if enable_global_settings:
             global_settings_stack = self.add_uninitialized_stack(
-                stack=GlobalSettingsStack,
+                stack=GlobalSettingsTableStack,
                 include_core_dependencies=False,
             )
 
