@@ -3,8 +3,10 @@ from typing import Optional
 from constructs import Construct
 
 from da_vinci.core.resource_discovery import resource_parameter
+from da_vinci.core.tables.application_resources import ApplicationResource
 
 from da_vinci_cdk.constructs.base import GlobalVariable
+from da_vinci_cdk.constructs.dynamodb import DynamoDBItem
 
 
 class DiscoverableResource(Construct):
@@ -29,17 +31,63 @@ class DiscoverableResource(Construct):
         super().__init__(scope, construct_id)
 
         self.app_name = app_name or scope.node.get_context('app_name')
+
         self.deployment_id = deployment_id or scope.node.get_context('deployment_id')
 
+        resource_discovery_storage = self._storage_type(scope)
+
+        if not resource_discovery_storage:
+            raise ValueError('resource_discovery_storage must be defined in the context')
+
         self.resource_endpoint = resource_endpoint
+
         self.resource_name = resource_name
+
         self.resource_type = resource_type
 
+        if resource_discovery_storage == 'dynamodb':
+            pass
+
+        elif resource_discovery_storage == 'ssm':
+            self._ssm_managed_resource(
+                app_name=self.app_name,
+                deployment_id=self.deployment_id,
+                resource_name=self.resource_name,
+                resource_type=self.resource_type,
+            )
+
+    @staticmethod
+    def _storage_type(scope: Construct) -> str:
+        """
+        Get the storage type for resource discovery
+
+        Keyword Arguments:
+            scope: Parent construct for the ServiceDiscovery
+        """
+
+        storage = scope.node.try_get_context('resource_discovery_storage')
+
+        if not storage:
+            raise ValueError('resource_discovery_storage must be defined in the context')
+        
+        return storage
+
+    def _ssm_managed_resource(self, app_name: str, deployment_id: str, resource_name: str,
+                              resource_type: str) -> None:
+        """
+        Manage the resource in SSM
+
+        Keyword Arguments:
+            app_name: Name of the application
+            deployment_id: Unique identifier for the installation
+            resource_name: Name of the resource
+            resource_type: Type of the resource
+        """
         ssm_key = self._gen_parameter_name(
-            app_name=self.app_name,
-            deployment_id=self.deployment_id,
-            resource_name=self.resource_name,
-            resource_type=self.resource_type,
+            app_name=app_name,
+            deployment_id=deployment_id,
+            resource_name=resource_name,
+            resource_type=resource_type,
         )
 
         self.parameter = GlobalVariable(
@@ -70,7 +118,36 @@ class DiscoverableResource(Construct):
         )
 
     @classmethod
-    def read_endpoint(cls, resource_name: str, resource_type: str, scope: Construct,
+    def _read_endpoint_dynamodb(cls, resource_name: str, resource_type: str, scope: Construct,
+                                app_name: Optional[str] = None, deployment_id: Optional[str] = None) -> str:
+        """
+        Read the endpoint for a service discovery resource
+
+        Keyword Arguments:
+            resource_name: Name of the resource
+            resource_type: Type of the resource
+            app_name: Name of the application
+            deployment_id: Unique identifier for the installation
+            scope: Parent construct for the ServiceDiscovery.
+        """
+        resource = ApplicationResource(
+            app_name=app_name or scope.node.get_context('app_name'),
+            deployment_id=deployment_id or scope.node.get_context('deployment_id'),
+            resource_name=resource_name,
+            resource_type=resource_type,
+        )
+
+        resource_item = DynamoDBItem.from_orm_object(
+            item_object=resource,
+            scope=scope,
+        )
+
+        endpoint = resource_item.get_attribute('resource_endpoint')
+
+        return endpoint
+
+    @classmethod
+    def _read_endpoint_ssm(cls, resource_name: str, resource_type: str, scope: Construct,
                       app_name: Optional[str] = None, deployment_id: Optional[str] = None) -> str:
         """
         Read the endpoint for a service discovery resource
@@ -86,6 +163,7 @@ class DiscoverableResource(Construct):
         lookup_args = {'resource_name': resource_name, 'resource_type': resource_type}
 
         lookup_args['app_name'] = app_name or scope.node.get_context('app_name')
+
         lookup_args['deployment_id'] = deployment_id or scope.node.get_context('deployment_id')
 
         for arg_name, arg_value in lookup_args.items():
@@ -100,3 +178,39 @@ class DiscoverableResource(Construct):
         )
 
         return endpoint
+
+    @classmethod
+    def read_endpoint(cls, resource_name: str, resource_type: str, scope: Construct,
+                      app_name: Optional[str] = None, deployment_id: Optional[str] = None) -> str:
+        """
+        Read the endpoint for a service discovery resource
+
+        Keyword Arguments:
+            resource_name: Name of the resource
+            resource_type: Type of the resource
+            app_name: Name of the application
+            deployment_id: Unique identifier for the installation
+            scope: Parent construct for the ServiceDiscovery.
+        """
+        storage_type = cls._storage_type(scope)
+
+        if storage_type == 'ssm':
+            return cls._read_endpoint_ssm(
+                resource_name=resource_name,
+                resource_type=resource_type,
+                scope=scope,
+                app_name=app_name,
+                deployment_id=deployment_id,
+            )
+
+        elif storage_type == 'dynamodb':
+            return cls._read_endpoint_dynamodb(
+                resource_name=resource_name,
+                resource_type=resource_type,
+                scope=scope,
+                app_name=app_name,
+                deployment_id=deployment_id,
+            )
+
+        else:
+            raise ValueError(f'Unsupported storage type: {storage_type}')

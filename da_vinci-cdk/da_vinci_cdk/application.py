@@ -18,11 +18,16 @@ from aws_cdk import (
 
 from constructs import Construct
 
+from da_vinci_cdk.constructs.base import resource_namer
 from da_vinci_cdk.constructs.dns import PublicDomain
 from da_vinci_cdk.constructs.global_setting import GlobalSetting
 from da_vinci_cdk.constructs.s3 import Bucket
 from da_vinci_cdk.framework_stacks.services.event_bus.stack import EventBusStack
 from da_vinci_cdk.framework_stacks.services.exceptions_trap.stack import ExceptionsTrapStack
+from da_vinci_cdk.framework_stacks.tables.application_resources.stack import (
+    ApplicationResourceTableStack,
+    ApplicationResource,
+)
 from da_vinci_cdk.framework_stacks.tables.global_settings.stack import GlobalSettingsTableStack
 from da_vinci_cdk.stack import Stack
 
@@ -32,9 +37,10 @@ DA_VINCI_DISABLE_DOCKER_CACHE = getenv('DA_VINCI_DISABLE_DOCKER_CACHE', False)
 
 class CoreStack(Stack):
     def __init__(self, app_name: str, deployment_id: str, scope: Construct, stack_name: str,
-                 create_hosted_zone: bool = False, global_settings_enabled: bool = True,
-                 root_domain_name: Optional[str] = None, s3_logging_bucket_name: str = None,
-                 s3_logging_bucket_object_retention_days: Optional[int] = None, using_external_logging_bucket: bool = False):
+                 create_hosted_zone: bool = False, dynamodb_resource_discovery_table_name: Optional[str] = None,
+                 global_settings_enabled: bool = True, root_domain_name: Optional[str] = None,
+                 s3_logging_bucket_name: str = None, s3_logging_bucket_object_retention_days: Optional[int] = None, 
+                 using_external_logging_bucket: bool = False):
         """
         Bootstrap the initial infrastructure required to stand up a DaVinci
 
@@ -42,13 +48,13 @@ class CoreStack(Stack):
             app_name: Name of the application
             create_hosted_zone: Whether to create a hosted zone for the application if the root_domain_name is set (default: True)
             deployment_id: Identifier assigned to the installation
+            dynamodb_resource_discovery_table_name: Name of the DynamoDB table to use for resource discovery (default: None)
             global_settings_enabled: Whether to build the global settings stack as part of the application (default: True)
             root_domain_name: Root domain name for the application (default: None)
             scope: Parent construct for the stack
             stack_name: Name of the stack
             s3_logging_bucket_name: Name of the S3 bucket to use for logging (default: None)
             s3_logging_bucket_object_retention_days: Number of days before objects in the bucket expire (default: None)
-            using_external_logging_bucket: Whether or not a pre-existing bucket is being used for logging(default: False)
         """
 
         super().__init__(
@@ -76,6 +82,15 @@ class CoreStack(Stack):
                 setting_value=s3_logging_bucket_name,
                 scope=self,
             )
+
+            if dynamodb_resource_discovery_table_name:
+                GlobalSetting(
+                    description='The name of the DynamoDB table used for resource discovery. Managed by framework deployment, do not modify!',
+                    namespace='da_vinci_framework::core',
+                    setting_key='resource_discovery_table_name',
+                    setting_value=dynamodb_resource_discovery_table_name,
+                    scope=self,
+                )
 
             core_str_setting_keys = [
                 'app_name',
@@ -134,7 +149,8 @@ class Application:
                  enable_logging_bucket: Optional[bool] = False, existing_s3_logging_bucket_name: Optional[str] = None,
                  include_event_bus: Optional[bool] = False, log_level: Optional[str] = 'INFO',
                  root_domain_name: Optional[str] = None, s3_logging_bucket_name_postfix: Optional[str] = None,
-                 s3_logging_bucket_name_prefix: Optional[str] = None, s3_logging_bucket_object_retention_days: Optional[int] = None):
+                 s3_logging_bucket_name_prefix: Optional[str] = None, s3_logging_bucket_object_retention_days: Optional[int] = None,
+                 use_dynamodb_resource_discovery: Optional[bool] = False):
         """
         Initialize a new Application object
 
@@ -157,6 +173,7 @@ class Application:
             root_domain_name: Root domain name for the application (default: None)
             s3_logging_bucket_name_postfix: Postfix name of the S3 bucket to use for logging, appends the deployment_id (default: None)
             s3_logging_bucket_name_prefix: Prefix name of the S3 bucket to use for logging, appends the deployment_id (default: None)
+            use_dynamodb_resource_discovery: Whether to use DynamoDB for resource discovery, otherwise the framework deftauls to SSM. This is useful for larger and more complex applications that might run into SSM limits.
 
         Example:
             ```
@@ -231,6 +248,15 @@ class Application:
         else:
             s3_logging_bucket_name = None
 
+        dynamodb_resource_discovery_table_name = None
+
+        if use_dynamodb_resource_discovery:
+            dynamodb_resource_discovery_table_name = resource_namer(
+                name=ApplicationResource.table_name,
+                app_name=app_name,
+                deployment_id=deployment_id,
+            )
+
         context = {
             'app_name': self.app_name,
             'architecture': self.architecture,
@@ -239,7 +265,9 @@ class Application:
             's3_logging_bucket_name': s3_logging_bucket_name,
             'exception_trap_enabled': enable_exception_trap,
             'log_level': self.log_level,
-            'root_domain_name': self.root_domain_name
+            'resource_discovery_storage': 'dynamodb' if use_dynamodb_resource_discovery else 'ssm',
+            'dynamodb_resource_discovery_table_name':  dynamodb_resource_discovery_table_name,
+            'root_domain_name': self.root_domain_name,
         }
 
         self.cdk_app = CDKApp(context=context)
@@ -254,10 +282,19 @@ class Application:
 
             self.dependency_stacks.append(global_settings_stack)
 
+        if use_dynamodb_resource_discovery:
+            self.add_uninitialized_stack(
+                stack=ApplicationResourceTableStack,
+                include_core_dependencies=False,
+            )
+
+            self.dependency_stacks.append(ApplicationResourceTableStack)
+
         self.core_stack = CoreStack(
             app_name=self.app_name,
             create_hosted_zone=create_hosted_zone,
             deployment_id=self.deployment_id,
+            dynamodb_resource_discovery_table_name=dynamodb_resource_discovery_table_name,
             global_settings_enabled=self.global_settings_enabled,
             scope=self.cdk_app,
             stack_name=self.generate_stack_name(CoreStack),

@@ -70,7 +70,6 @@ class DynamoDBTable(Construct):
                 table_name=table_name,
             )
         """
-
         construct_id = construct_id or f'dynamodb-table-{table_name}'
 
         super().__init__(scope, construct_id)
@@ -315,7 +314,7 @@ DEFAULT_ITEM_TYPE_NAME = custom_type_name(name='DynamoDBItem')
 
 class DynamoDBItem(Construct):
     def __init__(self, construct_id: str, scope: Construct, table_object: TableObject,
-                 custom_type_name: Optional[str] = DEFAULT_ITEM_TYPE_NAME):
+                 custom_type_name: Optional[str] = DEFAULT_ITEM_TYPE_NAME, full_table_name: Optional[str] = None):
         """
         Initialize a DynamoDBItem object
 
@@ -333,10 +332,14 @@ class DynamoDBItem(Construct):
 
         self.custom_type_name = custom_type_name
 
-        self.full_table_name = DynamoDBTable.table_full_name_lookup(
-            scope=self,
-            table_name=table_object.table_name,
-        )
+        if full_table_name:
+            self.full_table_name = full_table_name
+
+        else:
+            self.full_table_name = DynamoDBTable.table_full_name_lookup(
+                scope=self,
+                table_name=table_object.table_name,
+            )
 
         self.resource = AwsCustomResource(
             scope=self,
@@ -375,18 +378,26 @@ class DynamoDBItem(Construct):
 
         return PhysicalResourceId.of('-'.join(resource_id_items))
 
-    def put(self, table_object: TableObject) -> AwsSdkCall:
+    def get(self, partition_key_value: Any, table_object: TableObject,
+            sort_key_value: Optional[Any] = None) -> AwsSdkCall:
         """
-        Call AWS SDK to put the DynamoDB item
+        Call AWS SDK to get the DynamoDB item
 
         Keyword Arguments:
-            table_object: The TableObject to use to initialize the DynamoDBItem
+            partition_key_value: The partition key value to use to initialize the DynamoDBItem
+            sort_key_value: The sort key value to use to initialize the DynamoDBItem
         """
+
+        item_key = TableObject.gen_dynamodb_key(
+            partition_key_value=partition_key_value,
+            sort_key_value=sort_key_value,
+        )
+
         return AwsSdkCall(
-            action='putItem',
+            action='getItem',
             service='DynamoDB',
             parameters={
-                'Item': table_object.to_dynamodb_item(),
+                'Key': item_key,
                 'TableName': self.full_table_name,
             },
             physical_resource_id=self.physical_resource_id(table_object),
@@ -399,8 +410,6 @@ class DynamoDBItem(Construct):
         Keyword Arguments:
             table_object: The TableObject to use to initialize the DynamoDBItem
         """
-
-
         partition_key_value=table_object.attribute_value(table_object.partition_key_attribute.name)
 
         sort_key_value = None
@@ -422,3 +431,22 @@ class DynamoDBItem(Construct):
             },
             physical_resource_id=self.physical_resource_id(table_object),
         )
+
+    def put(self, table_object: TableObject) -> AwsSdkCall:
+        """
+        Call AWS SDK to put the DynamoDB item
+
+        Keyword Arguments:
+            table_object: The TableObject to use to initialize the DynamoDBItem
+        """
+        return AwsSdkCall(
+            action='putItem',
+            service='DynamoDB',
+            parameters={
+                'Item': table_object.to_dynamodb_item(),
+                'TableName': self.full_table_name,
+            },
+            physical_resource_id=self.physical_resource_id(table_object),
+        )
+
+    
