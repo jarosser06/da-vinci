@@ -1,8 +1,9 @@
 '''Event Bus Primitives'''
 import json
+import logging
 import uuid
 
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Dict, Optional, Union
 
 from da_vinci.core.json import DateTimeEncoder
@@ -11,6 +12,7 @@ from da_vinci.event_bus.object import ObjectBody
 
 class Event:
     def __init__(self, body: Union[ObjectBody, Dict, str], event_type: str,
+                 callback_event_type: Optional[str] = None,
                  created: Optional[datetime] = None, event_id: str = None,
                  previous_event_id: Optional[str] = None):
         """
@@ -20,6 +22,7 @@ class Event:
         Keyword Arguments:
             body: Body of the event
             event_type: Type of the event
+            callback_event_type: An optional event type that results should be sent to
             created: When the event was created
             event_id: Unique identifier for the event
             previous_event_id: Unique identifier for the previous event
@@ -36,17 +39,20 @@ class Event:
             self.event_id = str(uuid.uuid4())
 
         self.event_type = event_type
+
+        self.callback_event_type = callback_event_type
+
         self.previous_event_id = previous_event_id
 
         if created:
             self.created = created
         else:
-            self.created = datetime.utcnow()
+            self.created = datetime.now(tz=UTC)
 
     @staticmethod
     def from_lambda_event(event: Dict) -> 'Event':
         """
-        Create a Event from a Lambda event
+        Create a Event from a RAW Lambda event
 
         Keyword Arguments:
             event: Lambda event

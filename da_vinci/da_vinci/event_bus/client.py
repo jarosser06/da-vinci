@@ -1,5 +1,4 @@
 '''Event Bus Clients'''
-
 import json
 import traceback
 
@@ -102,14 +101,16 @@ class EventResponder(RESTClientBase):
 
 
 def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
-                      function_name: Optional[str] = None, logger: Optional[Logger] = None):
+                      function_name: Optional[str] = None, handle_callbacks: Optional[bool] = False,
+                      logger: Optional[Logger] = None):
     """
     Wraps a function that tracks event responses. When wrapped, the function
     will report any results to the event watcher.
 
     Keyword Arguments:
         exception_reporter: ExceptionReporter to use for reporting exceptions, optional
-        function_name: Name of the function to report exceptions for, required if exception_reporter is provided
+        function_name: Name of the function to report exceptions for, defaults to the literal python function name
+        handle_callbacks: Whether or not to handle callback event callback requests, optional
         logger: Logger to use for logging, optional
     """
     def event_response_wrapper(func: Callable):
@@ -126,12 +127,27 @@ def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
             try:
                 _logger.debug(f'Executing function with event {event}')
 
-                func(event, context)
+                fn_result = func(event, context)
+
+                # If the function returns a result and we are handling callbacks
+                # check if the event has a callback event type and publish the result
+                if fn_result and handle_callbacks:
+                    if event_obj.callback_event_type:
+                        event_publisher = EventPublisher()
+
+                        event_publisher.submit(
+                            event=Event(
+                                body=fn_result,
+                                event_type=event_obj.callback_event_type,
+                                previous_event_id=event_obj.event_id
+                            )
+                        )
 
                 event_responder.response(
                     event=event_obj,
                     status=EventResponseStatus.SUCCESS
                 )
+
             except Exception as exc:
                 event_responder.response(
                     event=event_obj,
@@ -141,8 +157,9 @@ def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
                 )
 
                 if exception_reporter:
+                    # If the function name is not provided, use the function name
                     if not function_name:
-                        raise ValueError('function_name is required when exception_reporter is provided')
+                        function_name = func.__name__
 
                     exception_reporter.report(
                         exception=str(exc),
