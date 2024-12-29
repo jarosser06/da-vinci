@@ -210,6 +210,9 @@ class TableClient:
         except ResourceNotFoundError:
             return False
 
+    # TODO: Implement support for passing last evaluated key and ascending/descending
+    # Must be enforced in the TableObject class to ensure the sort key is both present
+    # and sortable :thinking:
     def paginated(self, call: str = 'scan', parameters: Optional[Dict] = None):
         """
         Handle paginated DynamoDB table results
@@ -233,6 +236,7 @@ class TableClient:
         # a list of TableObjects
         while more_results:
             items = []
+
             response = mthd(**params)
 
             for item in response.get('Items', []):

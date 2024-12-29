@@ -13,7 +13,7 @@ from da_vinci.core.orm import (
 )
 
 
-class SettingType(StrEnum):
+class GlobalSettingType(StrEnum):
     """Setting Types"""
     BOOLEAN = auto()
     FLOAT = auto()
@@ -21,7 +21,7 @@ class SettingType(StrEnum):
     STRING = auto()
 
 
-class Setting(TableObject):
+class GlobalSetting(TableObject):
     description = 'Application Settings'
     table_name = 'global_settings'
 
@@ -90,7 +90,7 @@ class Setting(TableObject):
             )
             ```
         """
-        if isinstance(kwargs.get('setting_type'), SettingType):
+        if isinstance(kwargs.get('setting_type'), GlobalSettingType):
             kwargs['setting_type'] = kwargs['setting_type'].name
 
         # Ensure the setting value is a string
@@ -103,36 +103,36 @@ class Setting(TableObject):
         """
         Return the setting value as the correct type
         """
-        if self.setting_type == SettingType.BOOLEAN.name:
+        if self.setting_type == GlobalSettingType.BOOLEAN.name:
             return self.setting_value.lower() == 'true'
-        elif self.setting_type == SettingType.FLOAT.name:
+        elif self.setting_type == GlobalSettingType.FLOAT.name:
             return float(self.setting_value)
-        elif self.setting_type == SettingType.INTEGER.name:
+        elif self.setting_type == GlobalSettingType.INTEGER.name:
             return int(self.setting_value)
         
         return self.setting_value
 
 
-class SettingsScanDefinition(TableScanDefinition):
+class GlobalSettingsScanDefinition(TableScanDefinition):
     def __init__(self):
-        super().__init__(table_object_class=Setting)
+        super().__init__(table_object_class=GlobalSetting)
 
 
-class Settings(TableClient):
+class GlobalSettings(TableClient):
     def __init__(self, app_name: Optional[str] = None, deployment_id: Optional[str] = None):
         super().__init__(
-            default_object_class=Setting,
+            default_object_class=GlobalSetting,
             app_name=app_name,
             deployment_id=deployment_id,
         )
 
-    def all(self) -> List[Setting]:
+    def all(self) -> List[GlobalSetting]:
         """
         Get all settings
         """
         return self._all_objects()
 
-    def delete(self, setting: Setting) -> None:
+    def delete(self, setting: GlobalSetting) -> None:
         """
         Delete a setting
 
@@ -141,7 +141,7 @@ class Settings(TableClient):
         """
         self.delete_object(setting)
 
-    def get(self, namespace: str, setting_key: str) -> Union[Setting, None]:
+    def get(self, namespace: str, setting_key: str) -> Union[GlobalSetting, None]:
         """
         Get a setting by namespace and setting key
 
@@ -154,7 +154,7 @@ class Settings(TableClient):
             sort_key_value=setting_key,
         )
 
-    def put(self, setting: Setting) -> Setting:
+    def put(self, setting: GlobalSetting) -> GlobalSetting:
         """
         Put a setting
 

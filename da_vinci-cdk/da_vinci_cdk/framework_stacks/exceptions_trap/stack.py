@@ -4,7 +4,7 @@ from constructs import Construct
 
 from aws_cdk import DockerImage, Duration
 
-from da_vinci.core.tables.settings import Setting, SettingType
+from da_vinci.core.tables.global_settings import GlobalSetting, GlobalSettingType
 from da_vinci.exception_trap.tables.trapped_exceptions import TrappedException
 
 from da_vinci_cdk.constructs.access_management import ResourceAccessRequest
@@ -52,7 +52,7 @@ class ExceptionsTrapStack(Stack):
             description='The number of hours to retain responses in the exceptions trap',
             namespace='da_vinci_framework::exceptions_trap',
             setting_key='exception_retention_hours',
-            setting_type=SettingType.INTEGER,
+            setting_type=GlobalSettingType.INTEGER,
             setting_value=48,
             scope=self,
         )
@@ -66,7 +66,7 @@ class ExceptionsTrapStack(Stack):
             index='service.py',
             resource_access_requests=[
                 ResourceAccessRequest(
-                    resource_name=Setting.table_name,
+                    resource_name=GlobalSetting.table_name,
                     resource_type='table',
                     policy_name='read',
                 ),

@@ -1,7 +1,7 @@
 from constructs import Construct
 
-from da_vinci.core.tables.settings import (
-    Setting,
+from da_vinci.core.tables.global_settings import (
+    GlobalSetting,
 )
 
 from da_vinci_cdk.stack import Stack
@@ -22,6 +22,6 @@ class GlobalSettingsStack(Stack):
         )
 
         self.table = DynamoDBTable.from_orm_table_object(
-            table_object=Setting,
+            table_object=GlobalSetting,
             scope=self,
         )
