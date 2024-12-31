@@ -21,13 +21,13 @@ tests-mypy = ["mypy (>=1.11.1)", "pytest-mypy-plugins"]
 
 [[package]]
 name = "aws-cdk-asset-awscli-v1"
-version = "2.2.216"
+version = "2.2.217"
 description = "A library that contains the AWS CLI for use in Lambda Layers"
 optional = false
 python-versions = "~=3.8"
 files = [
-    {file = "aws_cdk.asset_awscli_v1-2.2.216-py3-none-any.whl", hash = "sha256:15770113ce84839a27bd90e0a3382875eec91b19136d234714da288b23b97ff2"},
-    {file = "aws_cdk_asset_awscli_v1-2.2.216.tar.gz", hash = "sha256:499267bcdb3a9c00fd33f702f8e41c00c5a992814f6792801dda71bc2aa6054a"},
+    {file = "aws_cdk.asset_awscli_v1-2.2.217-py3-none-any.whl", hash = "sha256:06a3f2bf2eb1a0067829743c2f514094dc21a958b4ad0ab58e589cc3763c6c77"},
+    {file = "aws_cdk_asset_awscli_v1-2.2.217.tar.gz", hash = "sha256:b827df8b01c90f165ddd807df833025936b41716322fbc5f76266514f54fb71a"},
 ]
 
 [package.dependencies]
@@ -85,13 +85,13 @@ typeguard = ">=2.13.3,<5.0.0"
 
 [[package]]
 name = "aws-cdk-lib"
-version = "2.173.2"
+version = "2.173.4"
 description = "Version 2 of the AWS Cloud Development Kit library"
 optional = false
 python-versions = "~=3.8"
 files = [
-    {file = "aws_cdk_lib-2.173.2-py3-none-any.whl", hash = "sha256:1b76846669de83e6572e9c46f5708f6ac045d8e710bafb044230f24e722601ef"},
-    {file = "aws_cdk_lib-2.173.2.tar.gz", hash = "sha256:9eb355c4fd5c1aa56317549600baf88dd4d3b520e2081132119b51349ead8c03"},
+    {file = "aws_cdk_lib-2.173.4-py3-none-any.whl", hash = "sha256:f6cdf37deaac8f675d1e91e8562d79bdff3c6aa824fb3d52bff72325186f7c45"},
+    {file = "aws_cdk_lib-2.173.4.tar.gz", hash = "sha256:89e5423fd4fde487b1310e380090acfb44ae9ce48fe6ee2b1f88450b73e5f6a4"},
 ]
 
 [package.dependencies]
@@ -106,17 +106,17 @@ typeguard = ">=2.13.3,<4.3.0"
 
 [[package]]
 name = "boto3"
-version = "1.35.87"
+version = "1.35.90"
 description = "The AWS SDK for Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "boto3-1.35.87-py3-none-any.whl", hash = "sha256:588ab05e2771c50fca5c242be14e7a25200ffd3dd95c45950ce40993473864c7"},
-    {file = "boto3-1.35.87.tar.gz", hash = "sha256:341c58602889078a4a25dc4331b832b5b600a33acd73471d2532c6f01b16fbb4"},
+    {file = "boto3-1.35.90-py3-none-any.whl", hash = "sha256:b0874233057995a8f0c813f5b45a36c09630e74c43d7a7c64db2feef2915d493"},
+    {file = "boto3-1.35.90.tar.gz", hash = "sha256:dc56caaaab2157a4bfc109c88b50cd032f3ac66c06d17f8ee335b798eaf53e5c"},
 ]
 
 [package.dependencies]
-botocore = ">=1.35.87,<1.36.0"
+botocore = ">=1.35.90,<1.36.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.10.0,<0.11.0"
 
@@ -125,13 +125,13 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.35.87"
+version = "1.35.90"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "botocore-1.35.87-py3-none-any.whl", hash = "sha256:81cf84f12030d9ab3829484b04765d5641697ec53c2ac2b3987a99eefe501692"},
-    {file = "botocore-1.35.87.tar.gz", hash = "sha256:3062d073ce4170a994099270f469864169dc1a1b8b3d4a21c14ce0ae995e0f89"},
+    {file = "botocore-1.35.90-py3-none-any.whl", hash = "sha256:51dcbe1b32e2ac43dac17091f401a00ce5939f76afe999081802009cce1e92e4"},
+    {file = "botocore-1.35.90.tar.gz", hash = "sha256:f007f58e8e3c1ad0412a6ddfae40ed92a7bca571c068cb959902bcf107f2ae48"},
 ]
 
 [package.dependencies]
@@ -296,7 +296,7 @@ typeguard = ">=2.13.3,<2.14.0"
 
 [[package]]
 name = "da-vinci"
-version = "2.1.0"
+version = "2024.12.01"
 description = "Da Vinci is used to rapidly build AWS Cloud Native based systems"
 optional = false
 python-versions = "^3.11"
@@ -312,7 +312,7 @@ requests-auth-aws-sigv4 = "0.7"
 type = "git"
 url = "https://github.com/jarosser06/da-vinci"
 reference = "HEAD"
-resolved_reference = "70c5cef690854752763589c23b554635c1af87a3"
+resolved_reference = "b364512196d2b3f56914c65d062d19401fc2bbcb"
 subdirectory = "da_vinci"
 
 [[package]]
