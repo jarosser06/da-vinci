@@ -1,7 +1,7 @@
 Changelog
 =========
 
-### 2024.12.01 (Latest)
+### 2024.12.1 (Latest)
 - Organize framework stacks into tables vs services (Infra)
 - Standardize application feature toggle names (Infra)
 - Support event bus access toggle for event bus function construct (App)
