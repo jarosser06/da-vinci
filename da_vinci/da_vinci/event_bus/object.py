@@ -635,18 +635,36 @@ class ObjectBody:
 
     def to_dict(self, ignore_unkown: Optional[bool] = False) -> Dict:
         """
-        Convert the object to a dictionary
+        Convert the object to a dictionary. It will convert nested objects and lists of objects to dictionaries.
+
+        Keyword Arguments:
+        ignore_unkown -- Whether to ignore unknown attributes
 
         Returns:
             Dictionary representation of the object
         """
         if ignore_unkown:
-            return {attribute.name: attribute.value for attribute in self.attributes.values()}
+            raw_dict = {attribute.name: attribute.value for attribute in self.attributes.values()}
 
-        return {
-            **{attribute.name: attribute.value for attribute in self.attributes.values()},
-            **{attribute.name: attribute.value for attribute in self.unknown_attributes.values()}
-        }
+        else:
+            raw_dict = {
+                **{attribute.name: attribute.value for attribute in self.attributes.values()},
+                **{attribute.name: attribute.value for attribute in self.unknown_attributes.values()}
+            }
+
+        flattened_dict = {}
+
+        for key, value in raw_dict.items():
+            if isinstance(value, ObjectBody):
+                flattened_dict[key] = value.to_dict(ignore_unkown)
+
+            elif isinstance(value, list):
+                flattened_dict[key] = [item.to_dict(ignore_unkown) for item in value]
+
+            else:
+                flattened_dict[key] = value
+
+        return flattened_dict
 
     def to_json(self, ignore_unkown: Optional[bool] = False) -> str:
         """
