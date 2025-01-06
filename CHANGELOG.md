@@ -1,7 +1,10 @@
 Changelog
 =========
 
-### 2024.12.1 (Latest)
+### 2024.12.2 (Latest)
+- Add update support to DynamoDB Item CDK construct
+
+### 2024.12.1
 - Organize framework stacks into tables vs services (Infra)
 - Standardize application feature toggle names (Infra)
 - Support event bus access toggle for event bus function construct (App)

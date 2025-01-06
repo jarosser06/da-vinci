@@ -315,7 +315,7 @@ DEFAULT_ITEM_TYPE_NAME = custom_type_name(name='DynamoDBItem')
 
 class DynamoDBItem(Construct):
     def __init__(self, construct_id: str, scope: Construct, table_object: TableObject,
-                 custom_type_name: Optional[str] = DEFAULT_ITEM_TYPE_NAME):
+                 custom_type_name: Optional[str] = DEFAULT_ITEM_TYPE_NAME, support_updates: bool = False):
         """
         Initialize a DynamoDBItem object
 
@@ -326,6 +326,7 @@ class DynamoDBItem(Construct):
             construct_id: Identifier for the construct
             custom_type_name: The custom resource type name to use for the custom resource
             scope: Parent construct for the CrossStackVariable
+            support_updates: Whether the item supports updates
             table_object: The TableObject to use to initialize the DynamoDBItem
         """
 
@@ -338,6 +339,12 @@ class DynamoDBItem(Construct):
             table_name=table_object.table_name,
         )
 
+        on_update = None
+
+        if support_updates:
+            on_update = self.update(table_object)
+
+
         self.resource = AwsCustomResource(
             scope=self,
             id=f'{construct_id}-custom-resource',
@@ -349,8 +356,34 @@ class DynamoDBItem(Construct):
             ),
             on_create=self.put(table_object),
             on_delete=self.delete(table_object),
+            on_update=on_update,
             resource_type=self.custom_type_name,
         )
+
+    @staticmethod
+    def is_attribute_changed(attr_name: str, new_value: Any, old_item_call: AwsSdkCall) -> bool:
+        """
+        Compare attribute values between old and new state
+
+        Keyword Arguments:
+            attr_name: Name of the attribute to compare
+            new_value: New value of the attribute
+            old_item_call: GetItem call result containing the old state
+
+        Returns:
+            bool: True if the attribute has changed, False otherwise
+        """
+        try:
+            old_item = old_item_call.get('Item', {})
+
+            if attr_name not in old_item:
+                return True
+
+            return old_item[attr_name] != new_value
+
+        except Exception:
+            # If we can't compare (e.g., first update), assume changed
+            return True
 
     @staticmethod
     def physical_resource_id(table_object: TableObject) -> PhysicalResourceId:
@@ -386,6 +419,88 @@ class DynamoDBItem(Construct):
             parameters={
                 'Item': table_object.to_dynamodb_item(),
                 'TableName': self.full_table_name,
+            },
+            physical_resource_id=self.physical_resource_id(table_object),
+        )
+
+    def update(self, table_object: TableObject) -> AwsSdkCall:
+        """
+        Call AWS SDK to update the DynamoDB item if there are changes
+        Uses UpdateItem with SET operations for changed non-key attributes
+
+        Keyword Arguments:
+            table_object: The TableObject to use to initialize the DynamoDBItem
+
+        Returns:
+            AwsSdkCall: The update call if there are changes, or a no-op call if no changes
+        """
+        # Get the item's key attributes
+        partition_key_value = table_object.attribute_value(table_object.partition_key_attribute.name)
+
+        sort_key_value = None
+
+        if table_object.sort_key_attribute:
+            sort_key_value = table_object.attribute_value(table_object.sort_key_attribute.name)
+
+        item_key = table_object.gen_dynamodb_key(
+            partition_key_value=partition_key_value,
+            sort_key_value=sort_key_value,
+        )
+
+        # Get the current state and compare with old state
+        dynamodb_item = table_object.to_dynamodb_item()
+
+        # Get the previous state from CloudFormation's old_value
+        get_item_call = AwsSdkCall(
+            action='getItem',
+            service='DynamoDB',
+            parameters={
+                'Key': item_key,
+                'TableName': self.full_table_name,
+                'ConsistentRead': True
+            },
+            physical_resource_id=self.physical_resource_id(table_object),
+        )
+
+        # Compare attributes and only update those that changed
+        update_expressions = []
+
+        expression_values = {}
+
+        expression_names = {}
+
+        for attr_name, attr_value in dynamodb_item.items():
+            # Skip key attributes as they can't be updated
+            if (attr_name == table_object.partition_key_attribute.dynamodb_key_name or 
+                (table_object.sort_key_attribute and 
+                 attr_name == table_object.sort_key_attribute.dynamodb_key_name)):
+                continue
+
+            # Check if the attribute value has changed
+            if not self.is_attribute_changed(attr_name, attr_value, get_item_call):
+                continue
+
+            placeholder = f":val_{attr_name}"
+
+            update_expressions.append(f"#{attr_name} = {placeholder}")
+
+            expression_values[placeholder] = attr_value
+
+            expression_names[f"#{attr_name}"] = attr_name
+
+        # If nothing changed, return a no-op call
+        if not update_expressions:
+            return None
+
+        return AwsSdkCall(
+            action='updateItem',
+            service='DynamoDB',
+            parameters={
+                'Key': item_key,
+                'TableName': self.full_table_name,
+                'UpdateExpression': f"SET {', '.join(update_expressions)}",
+                'ExpressionAttributeNames': expression_names,
+                'ExpressionAttributeValues': expression_values,
             },
             physical_resource_id=self.physical_resource_id(table_object),
         )
