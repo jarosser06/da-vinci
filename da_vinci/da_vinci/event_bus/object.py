@@ -295,6 +295,10 @@ class ObjectBodySchema:
                     else:
                         object_schema = attribute.object_schema
 
+                        # Skip validation if the object schema is not defined, nothing to validate against
+                        if not object_schema:
+                            continue
+
                         results = object_schema.validate_object(value)
 
                         if not results.valid:
