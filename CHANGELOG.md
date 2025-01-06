@@ -1,8 +1,11 @@
 Changelog
 =========
 
+### 2024.12.3 (Unreleased)
+- Skip event_bus attribute validation for objects when there is no schema provided (App)
+
 ### 2024.12.2 (Latest)
-- Add update support to DynamoDB Item CDK construct
+- Add update support to DynamoDB Item CDK construct (Infra
 
 ### 2024.12.1
 - Organize framework stacks into tables vs services (Infra)
@@ -13,7 +16,7 @@ Changelog
 - Add support for `callback_event_type` attribute with event bus wrapper (App)
 - Consolidate settings object names to always identify as global (App)
 - Make `raise_on_failure` flag for rest client base to allow author ability to handle < 200 > elsewhere (App)
-- Cleaned up unused imports (App, Inra)
+- Cleaned up unused imports (App, Infra)
 - Add ObjectBodySchema validation check method (App)
 - Event object now stores the event body object as an `ObjectBody` (App)
 
