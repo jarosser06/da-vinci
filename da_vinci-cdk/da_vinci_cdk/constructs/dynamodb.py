@@ -467,6 +467,8 @@ class DynamoDBItem(Construct):
 
         expression_values = {}
 
+        expression_names = {}
+
         for attr_name, attr_value in dynamodb_item.items():
             # Skip key attributes as they can't be updated
             if (attr_name == table_object.partition_key_attribute.dynamodb_key_name or 
@@ -483,13 +485,12 @@ class DynamoDBItem(Construct):
             update_expressions.append(f"#{attr_name} = {placeholder}")
 
             expression_values[placeholder] = attr_value
-            
+
+            expression_names[f"#{attr_name}"] = attr_name
+
         # If nothing changed, return a no-op call
         if not update_expressions:
             return None
-
-        # Create attribute name mappings to avoid reserved words
-        expression_names = {f"#{k}": k for k in dynamodb_item.keys()}
 
         return AwsSdkCall(
             action='updateItem',
