@@ -579,6 +579,15 @@ class ObjectBody:
                     value=value
                 )
 
+    def __contains__(self, attribute_name: str) -> bool:
+        """
+        Check if the event body has an attribute
+
+        Keyword arguments:
+        attribute_name -- Name of the attribute
+        """
+        return self.has_attribute(attribute_name)
+
     def __iter__(self):
         """
         Makes ObjectBody iterable over its attributes.
@@ -664,6 +673,9 @@ class ObjectBody:
             new_schema: Schema to map to
             additions: Additional attributes to add to the new object
             attribute_map: Attribute map to use, e.g. {'old_name': 'new_name'}
+
+        Returns:
+            Mapped object
         """
         logging.debug(f'Mapping self attributes to new schema: {new_schema.to_dict()}')
 
