@@ -5,6 +5,7 @@ Changelog
 - Skip event_bus attribute validation for objects when there is no schema provided (App)
 - Add support for converting nested object bodies when parent object body is converted to a dict
 - Fix event bus object mismatched type exception message
+- Simplify event bus object schema class
 
 ### 2024.12.2 (Latest)
 - Add update support to DynamoDB Item CDK construct (Infra

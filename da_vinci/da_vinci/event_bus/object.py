@@ -152,7 +152,6 @@ class SchemaAttribute:
         return asdict(self)
 
 
-@dataclass
 class ObjectBodySchema:
     """
     ObjectBodySchema is a class that represents the schema of an
@@ -228,7 +227,8 @@ class ObjectBodySchema:
     description: Optional[str] = None
     name: Optional[str] = None
 
-    def to_dict(self) -> Dict:
+    @classmethod
+    def to_dict(cls) -> Dict:
         """
         Convert the schema to a dictionary
 
@@ -236,12 +236,13 @@ class ObjectBodySchema:
             Dictionary representation of the schema
         """
         return {
-            'attributes': [attribute.to_dict() for attribute in self.attributes],
-            'description': self.description,
-            'name': self.name,
+            'attributes': [attribute.to_dict() for attribute in cls.attributes],
+            'description': cls.description,
+            'name': cls.name,
         }
 
-    def table_object(self) -> TableObject:
+    @classmethod
+    def table_object(cls) -> TableObject:
         """
         Returns a TableObject that represents the schema.
 
@@ -251,7 +252,7 @@ class ObjectBodySchema:
 
         attributes = []
 
-        for attribute in self.attributes:
+        for attribute in cls.attributes:
             if attribute.is_primary_key:
                 partition_key = attribute.table_object_attribute
 
@@ -260,10 +261,11 @@ class ObjectBodySchema:
 
         TableObject.define(
             partition_key_attribute=partition_key,
-            description=self.description,
+            description=cls.description,
         )
 
-    def validate_object(self, obj: Dict) -> ObjectBodyValidationResults:
+    @classmethod
+    def validate_object(cls, obj: Dict) -> ObjectBodyValidationResults:
         """
         Validate an object against the schema
 
@@ -277,7 +279,7 @@ class ObjectBodySchema:
 
         mismatched_types = []
 
-        for attribute in self.attributes:
+        for attribute in cls.attributes:
             if attribute.required and attribute.name not in obj:
                 missing_attributes.append(attribute.name)
 
@@ -408,8 +410,13 @@ class ObjectBodyUnknownAttribute(ObjectBodyAttribute):
         )
 
 
+class UnknownAttributeSchema(ObjectBodySchema):
+    attributes = []
+    name = 'UNKNOWN'
+
+
 class ObjectBody:
-    _UNKNOWN_ATTR_SCHEMA = ObjectBodySchema(attributes=[], name='UNKNOWN')
+    _UNKNOWN_ATTR_SCHEMA = UnknownAttributeSchema
 
     def __init__(self, body: Dict, schema: Union[ObjectBodySchema, Type[ObjectBodySchema]] = None):
         """
@@ -506,25 +513,9 @@ class ObjectBody:
 
         self.unknown_attributes = {}
 
-        self.schema = self._instantiated_schema(schema or self._UNKNOWN_ATTR_SCHEMA)
+        self.schema = schema or self._UNKNOWN_ATTR_SCHEMA
 
         self.body = self._load(body)
-
-    @staticmethod
-    def _instantiated_schema(schema: Union[Type[ObjectBodySchema], ObjectBodySchema]) -> ObjectBodySchema:
-        """
-        Checks if the schema is a class or object and instantiates it if it is a class
-
-        Keyword Arguments:
-            schema: Schema class or object
-
-        Returns:
-            Instantiated schema
-        """
-        if isinstance(schema, type):
-            return schema()
-
-        return schema
 
     def _load(self, body: Dict):
         """
@@ -601,7 +592,7 @@ class ObjectBody:
 
         return self.unknown_attributes[attribute_name].value
 
-    def map_to(self, new_schema: Union[ObjectBodySchema, Type[ObjectBodySchema]],
+    def map_to(self, new_schema: Type[ObjectBodySchema], additional_object_data: Optional[Dict] = None,
                attribute_map: Optional[Dict] = None) -> 'ObjectBody':
         """
         Map the current event body to a new schema. Currently only support top-level attribute
@@ -609,18 +600,17 @@ class ObjectBody:
         is not found in the attribute map.
 
         Keyword Arguments:
-            schema: Schema to map to
+            new_schema: Schema to map to
+            additional_object_data: Additional attributes to add to the new object
             attribute_map: Attribute map to use, e.g. {'old_name': 'new_name'}
         """
-        initialized_schema = self._instantiated_schema(new_schema)
-
-        logging.debug(f'Mapping self attributes to new schema: {initialized_schema.to_dict()}')
+        logging.debug(f'Mapping self attributes to new schema: {new_schema.to_dict()}')
 
         attr_map = attribute_map or {}
 
         new_body = {}
 
-        for attribute in initialized_schema.attributes:
+        for attribute in new_schema.attributes:
             if attribute.name in attr_map.values():
                 for old_name, new_name in attr_map.items():
                     if new_name == attribute.name:
@@ -628,6 +618,11 @@ class ObjectBody:
 
             elif self.has_attribute(attribute.name):
                 new_body[attribute.name] = self.get(attribute.name)
+
+        if additional_object_data:
+            logging.debug(f'Adding additional attributes to new schema: {additional_object_data}')
+
+            new_body.update(additional_object_data)
 
         logging.debug(f'Mapped object to new schema: {new_body}')
 
