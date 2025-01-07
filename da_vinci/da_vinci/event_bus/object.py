@@ -437,7 +437,11 @@ class ObjectBody:
 
     def __init__(self, body: Dict, schema: Union[ObjectBodySchema, Type[ObjectBodySchema]] = None):
         """
-        ObjectBody is a class that represents an object in an event
+        ObjectBody is a class that represents an object in an event. It comes with support for nested validation
+        and full validation against a schema when provided. 
+
+        ObjectBody operats similar to a Python Dictionary and supports several native access patterns but, it 
+        is immutable and cannot be modified.
 
         Keyword Arguments:
             body: Body of the event
@@ -614,6 +618,12 @@ class ObjectBody:
         """
         for attr_name, attr in self.attributes.items():
             yield attr_name, attr.value
+
+    def __setitem__(self, key: str, value: Any):
+        """
+        Override the __setitem__ method to prevent modification of the ObjectBody
+        """
+        raise TypeError("ObjectBody is immutable")
 
     def items(self):
         """
