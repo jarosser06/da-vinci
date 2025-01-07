@@ -53,7 +53,7 @@ class InvalidObjectSchemaError(Exception):
             message.append(f' missing attributes: {validation_results.missing_attributes}')
 
         if validation_results.mismatched_types:
-            message.append(' mismatched types {validation_results.mismatched_types}')
+            message.append(f' mismatched types {validation_results.mismatched_types}')
 
         message = ' '.join(message)
 
