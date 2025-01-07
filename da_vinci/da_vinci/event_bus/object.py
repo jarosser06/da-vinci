@@ -280,21 +280,26 @@ class ObjectBodySchema:
         mismatched_types = []
 
         for attribute in cls.attributes:
-            if attribute.required and attribute.name not in obj:
-                missing_attributes.append(attribute.name)
+            value = obj.get(attribute.name)
 
-            elif attribute.name in obj:
-                value = obj[attribute.name]
+            logging.debug(f'Validating attribute {attribute.name} with value {value} against type {attribute.type}')
 
+            if attribute.required:
+                if attribute.name not in obj or value is None:
+                    logging.debug(f'Attribute {attribute.name} is missing entirely or has a None value')
+
+                    missing_attributes.append(attribute.name)
+
+            elif value:
                 # Skip None values, as they are valid for optional attributes
                 if value is None:
                     continue
 
                 if attribute.type == SchemaAttributeType.OBJECT:
-                    if not isinstance(value, dict):
-                        mismatched_types.append(attribute.name)
+                    if isinstance(value, dict):
+                        continue
 
-                    else:
+                    elif isinstance(value, ObjectBody):
                         object_schema = attribute.object_schema
 
                         # Skip validation if the object schema is not defined, nothing to validate against
@@ -308,11 +313,14 @@ class ObjectBodySchema:
 
                             mismatched_types.extend(results.mismatched_types)
 
-                elif attribute.type == SchemaAttributeType.OBJECT_LIST:
-                    if not isinstance(value, list):
+                    else:
                         mismatched_types.append(attribute.name)
 
-                    else:
+                elif attribute.type == SchemaAttributeType.OBJECT_LIST:
+                    if isinstance(value, list):
+                        continue
+
+                    elif isinstance(value, ObjectBody):
                         object_schema = attribute.object_schema
 
                         for item in value:
@@ -323,20 +331,29 @@ class ObjectBodySchema:
 
                                 mismatched_types.extend(results.mismatched_types)
 
-                elif attribute.type == SchemaAttributeType.STRING_LIST:
-                    if not isinstance(value, list):
+                    else:
                         mismatched_types.append(attribute.name)
 
-                    # Only sampling the first element to determine the type
-                    elif len(value) > 0 and isinstance(value[0], str):
+                elif attribute.type == SchemaAttributeType.STRING_LIST:
+                    if isinstance(value, list):
+                        if len(value) > 0 and not isinstance(value[0], str):
+                            mismatched_types.append(attribute.name)
+
+                        continue
+
+                    else:
                         mismatched_types.append(attribute.name)
 
                 elif attribute.type == SchemaAttributeType.NUMBER_LIST:
-                    if not isinstance(value, list):
-                        mismatched_types.append(attribute.name)
+                    if isinstance(value, list):
 
-                    elif len(value) > 0 and not isinstance(value[0], int) and not isinstance(value[0], float):
-                        mismatched_types.append(attribute.name)
+                        if len(value) > 0 and not isinstance(value[0], int) and not isinstance(value[0], float):
+                            mismatched_types.append(attribute.name)
+
+                        continue
+
+                    mismatched_types.append(attribute.name)
+
 
                 elif attribute.type == SchemaAttributeType.BOOLEAN:
                     if not isinstance(value, bool):
@@ -420,7 +437,11 @@ class ObjectBody:
 
     def __init__(self, body: Dict, schema: Union[ObjectBodySchema, Type[ObjectBodySchema]] = None):
         """
-        ObjectBody is a class that represents an object in an event
+        ObjectBody is a class that represents an object in an event. It comes with support for nested validation
+        and full validation against a schema when provided. 
+
+        ObjectBody operats similar to a Python Dictionary and supports several native access patterns but, it 
+        is immutable and cannot be modified.
 
         Keyword Arguments:
             body: Body of the event
@@ -562,6 +583,67 @@ class ObjectBody:
                     value=value
                 )
 
+    def __contains__(self, attribute_name: str) -> bool:
+        """
+        Check if the event body has an attribute
+
+        Keyword arguments:
+        attribute_name -- Name of the attribute
+        """
+        return self.has_attribute(attribute_name)
+
+    def __getitem__(self, attribute_name: str) -> Any:
+        """
+        Get an attribute from the event body
+
+        Keyword arguments:
+        attribute_name -- Name of the attribute
+        """
+        return self.get(attribute_name, strict=True)
+
+    def __iter__(self):
+        """
+        Makes ObjectBody iterable over its attributes.
+        Yields tuples of (attribute_name, attribute_value) for both schema-defined and unknown attributes.
+
+        Example:
+            ```
+            body = ObjectBody(...)
+            for attr_name, attr_value in body:
+                print(f"{attr_name}: {attr_value}")
+            ```
+
+        Yields:
+            Tuple[str, Any]: A tuple containing the attribute name and its value
+        """
+        for attr_name, attr in self.attributes.items():
+            yield attr_name, attr.value
+
+    def __setitem__(self, key: str, value: Any):
+        """
+        Override the __setitem__ method to prevent modification of the ObjectBody
+        """
+        raise TypeError("ObjectBody is immutable")
+
+    def items(self):
+        """
+        Provides a dict-like interface for getting all attributes.
+        Similar to __iter__ but returns all items at once instead of yielding them.
+
+        Returns:
+            List[Tuple[str, Any]]: List of tuples containing attribute names and values
+        """
+        return list(self.__iter__())
+
+    def keys(self):
+        """
+        Returns all attribute names in the ObjectBody.
+
+        Returns:
+            List[str]: List of attribute names
+        """
+        return list(self.attributes.keys()) + list(self.unknown_attributes.keys())
+
     def has_attribute(self, attribute_name: str) -> bool:
         """
         Check if the event body has an attribute
@@ -575,18 +657,24 @@ class ObjectBody:
 
         return attribute_name in self.attributes or attribute_name in self.unknown_attributes
 
-    def get(self, attribute_name: str) -> Any:
+    def get(self, attribute_name: str, *, default_return: Optional[Any] = None, strict: Optional[bool] = False) -> Any:
         """
         Get an attribute from the event body
 
         Keyword Arguments:
             attribute_name: Name of the attribute
+            default_return: Default value to return if the attribute is not found
+            strict: Whether to raise an exception if the attribute is not found
 
         Returns:
             Attribute value
         """
         if not self.has_attribute(attribute_name):
-            raise MissingAttributeError(attribute_name)
+            if strict:
+                raise MissingAttributeError(attribute_name)
+
+            else:
+                return default_return
 
         if attribute_name in self.attributes:
             return self.attributes[attribute_name].value
@@ -604,6 +692,9 @@ class ObjectBody:
             new_schema: Schema to map to
             additions: Additional attributes to add to the new object
             attribute_map: Attribute map to use, e.g. {'old_name': 'new_name'}
+
+        Returns:
+            Mapped object
         """
         logging.debug(f'Mapping self attributes to new schema: {new_schema.to_dict()}')
 
@@ -690,3 +781,12 @@ class ObjectBody:
             JSON representation of the object
         """
         return json.dumps(self.to_dict(ignore_unkown), cls=DateTimeEncoder)
+
+    def values(self):
+        """
+        Returns all attribute values in the ObjectBody.
+
+        Returns:
+            List[Any]: List of attribute values
+        """
+        return [attr.value for attr in self.attributes.values()] + [attr.value for attr in self.unknown_attributes.values()]

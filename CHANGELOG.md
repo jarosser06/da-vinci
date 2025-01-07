@@ -8,6 +8,7 @@ Changelog
 - Simplify event bus object schema class
 - Fix event bus object body value reference bug
 - Add new() method to event bus `ObjectBody` that supports creating a schemaless copy with optional additions
+- Support Python native iteration as well as others that enable the `ObjectBody` to operate similar to a native Dict
 
 ### 2024.12.2 (Latest)
 - Add update support to DynamoDB Item CDK construct (Infra)
