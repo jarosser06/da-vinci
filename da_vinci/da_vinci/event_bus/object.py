@@ -766,7 +766,12 @@ class ObjectBody:
                 flattened_dict[key] = value.to_dict(ignore_unkown)
 
             elif isinstance(value, list):
-                flattened_dict[key] = [item.to_dict(ignore_unkown) for item in value]
+                # Check if the list contains ObjectBody instances
+                if all(isinstance(item, ObjectBody) for item in value):
+                    flattened_dict[key] = [item.to_dict(ignore_unkown) for item in value]
+
+                else:
+                    flattened_dict[key] = value
 
             else:
                 flattened_dict[key] = value
