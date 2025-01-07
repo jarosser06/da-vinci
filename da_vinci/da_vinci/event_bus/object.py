@@ -515,7 +515,7 @@ class ObjectBody:
 
         self.schema = schema or self._UNKNOWN_ATTR_SCHEMA
 
-        self.body = self._load(body)
+        self._load(body)
 
     def _load(self, body: Dict):
         """
@@ -538,7 +538,7 @@ class ObjectBody:
             if attribute.required and attribute.name not in body:
                 raise MissingAttributeError(attribute.name)
 
-            value = body[attribute.name]
+            value = body.get(attribute.name, attribute.default_value)
 
             if attribute.type == SchemaAttributeType.OBJECT:
                 value = ObjectBody(value, attribute.object_schema)
