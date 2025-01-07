@@ -538,7 +538,7 @@ class ObjectBody:
             if attribute.required and attribute.name not in body:
                 raise MissingAttributeError(attribute.name)
 
-            value = body.get(attribute.name, attribute.default_value)
+            value = remaining_body.get(attribute.name, attribute.default_value)
 
             if attribute.type == SchemaAttributeType.OBJECT:
                 value = ObjectBody(value, attribute.object_schema)
@@ -552,7 +552,8 @@ class ObjectBody:
                 value=value
             )
 
-            del remaining_body[attribute.name]
+            if attribute.name in remaining_body:
+                del remaining_body[attribute.name]
 
         if remaining_body:
             for key, value in remaining_body.items():
