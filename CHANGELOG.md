@@ -7,9 +7,10 @@ Changelog
 - Fix event bus object mismatched type exception message
 - Simplify event bus object schema class
 - Fix event bus object body value reference bug
+- Add new() method to event bus `ObjectBody` that supports creating a schemaless copy with optional additions
 
 ### 2024.12.2 (Latest)
-- Add update support to DynamoDB Item CDK construct (Infra
+- Add update support to DynamoDB Item CDK construct (Infra)
 
 ### 2024.12.1
 - Organize framework stacks into tables vs services (Infra)

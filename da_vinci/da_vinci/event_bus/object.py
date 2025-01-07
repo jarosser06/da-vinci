@@ -592,7 +592,7 @@ class ObjectBody:
 
         return self.unknown_attributes[attribute_name].value
 
-    def map_to(self, new_schema: Type[ObjectBodySchema], additional_object_data: Optional[Dict] = None,
+    def map_to(self, new_schema: Type[ObjectBodySchema], additions: Optional[Dict] = None,
                attribute_map: Optional[Dict] = None) -> 'ObjectBody':
         """
         Map the current event body to a new schema. Currently only support top-level attribute
@@ -601,7 +601,7 @@ class ObjectBody:
 
         Keyword Arguments:
             new_schema: Schema to map to
-            additional_object_data: Additional attributes to add to the new object
+            additions: Additional attributes to add to the new object
             attribute_map: Attribute map to use, e.g. {'old_name': 'new_name'}
         """
         logging.debug(f'Mapping self attributes to new schema: {new_schema.to_dict()}')
@@ -612,21 +612,41 @@ class ObjectBody:
 
         for attribute in new_schema.attributes:
             if attribute.name in attr_map.values():
+
                 for old_name, new_name in attr_map.items():
+
                     if new_name == attribute.name:
                         new_body[new_name] = self.get(old_name)
 
             elif self.has_attribute(attribute.name):
                 new_body[attribute.name] = self.get(attribute.name)
 
-        if additional_object_data:
-            logging.debug(f'Adding additional attributes to new schema: {additional_object_data}')
-
-            new_body.update(additional_object_data)
+            elif attribute.name in additions:
+                new_body[attribute.name] = additions[attribute.name]
 
         logging.debug(f'Mapped object to new schema: {new_body}')
 
         return ObjectBody(new_body, new_schema)
+
+    def new(self, additions: Optional[Dict] = None, subtractions: Optional[List] = None) -> 'ObjectBody':
+        """
+        Create a new schemaless object with additional attributes, does not modify the current object
+        and does not persist the schema. To persist the schema, use the map_to method.
+
+        Keyword Arguments:
+            additions: Additional attributes to add to the new object
+        """
+        new_body = {attribute.name: attribute.value for attribute in self.attributes.values()}
+
+        if subtractions:
+            for attribute in subtractions:
+                if attribute in new_body:
+                    del new_body[attribute]
+
+        if additions:
+            new_body.update(additions)
+
+        return ObjectBody(new_body)
 
     def to_dict(self, ignore_unkown: Optional[bool] = False) -> Dict:
         """
