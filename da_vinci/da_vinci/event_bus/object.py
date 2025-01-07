@@ -588,6 +588,15 @@ class ObjectBody:
         """
         return self.has_attribute(attribute_name)
 
+    def __getitem__(self, attribute_name: str) -> Any:
+        """
+        Get an attribute from the event body
+
+        Keyword arguments:
+        attribute_name -- Name of the attribute
+        """
+        return self.get(attribute_name, strict=True)
+
     def __iter__(self):
         """
         Makes ObjectBody iterable over its attributes.
