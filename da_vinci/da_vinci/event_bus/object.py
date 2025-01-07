@@ -579,6 +579,43 @@ class ObjectBody:
                     value=value
                 )
 
+    def __iter__(self):
+        """
+        Makes ObjectBody iterable over its attributes.
+        Yields tuples of (attribute_name, attribute_value) for both schema-defined and unknown attributes.
+
+        Example:
+            ```
+            body = ObjectBody(...)
+            for attr_name, attr_value in body:
+                print(f"{attr_name}: {attr_value}")
+            ```
+
+        Yields:
+            Tuple[str, Any]: A tuple containing the attribute name and its value
+        """
+        for attr_name, attr in self.attributes.items():
+            yield attr_name, attr.value
+
+    def items(self):
+        """
+        Provides a dict-like interface for getting all attributes.
+        Similar to __iter__ but returns all items at once instead of yielding them.
+
+        Returns:
+            List[Tuple[str, Any]]: List of tuples containing attribute names and values
+        """
+        return list(self.__iter__())
+
+    def keys(self):
+        """
+        Returns all attribute names in the ObjectBody.
+
+        Returns:
+            List[str]: List of attribute names
+        """
+        return list(self.attributes.keys()) + list(self.unknown_attributes.keys())
+
     def has_attribute(self, attribute_name: str) -> bool:
         """
         Check if the event body has an attribute
@@ -592,18 +629,24 @@ class ObjectBody:
 
         return attribute_name in self.attributes or attribute_name in self.unknown_attributes
 
-    def get(self, attribute_name: str) -> Any:
+    def get(self, attribute_name: str, *, default_return: Optional[Any] = None, strict: Optional[bool] = False) -> Any:
         """
         Get an attribute from the event body
 
         Keyword Arguments:
             attribute_name: Name of the attribute
+            default_return: Default value to return if the attribute is not found
+            strict: Whether to raise an exception if the attribute is not found
 
         Returns:
             Attribute value
         """
         if not self.has_attribute(attribute_name):
-            raise MissingAttributeError(attribute_name)
+            if strict:
+                raise MissingAttributeError(attribute_name)
+
+            else:
+                return default_return
 
         if attribute_name in self.attributes:
             return self.attributes[attribute_name].value
@@ -707,3 +750,12 @@ class ObjectBody:
             JSON representation of the object
         """
         return json.dumps(self.to_dict(ignore_unkown), cls=DateTimeEncoder)
+
+    def values(self):
+        """
+        Returns all attribute values in the ObjectBody.
+
+        Returns:
+            List[Any]: List of attribute values
+        """
+        return [attr.value for attr in self.attributes.values()] + [attr.value for attr in self.unknown_attributes.values()]
