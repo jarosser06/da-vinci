@@ -280,21 +280,26 @@ class ObjectBodySchema:
         mismatched_types = []
 
         for attribute in cls.attributes:
-            if attribute.required and attribute.name not in obj:
-                missing_attributes.append(attribute.name)
+            value = obj.get(attribute.name)
 
-            elif attribute.name in obj:
-                value = obj[attribute.name]
+            logging.debug(f'Validating attribute {attribute.name} with value {value} against type {attribute.type}')
 
+            if attribute.required:
+                if attribute.name not in obj or value is None:
+                    logging.debug(f'Attribute {attribute.name} is missing entirely or has a None value')
+
+                    missing_attributes.append(attribute.name)
+
+            elif value:
                 # Skip None values, as they are valid for optional attributes
                 if value is None:
                     continue
 
                 if attribute.type == SchemaAttributeType.OBJECT:
-                    if not isinstance(value, dict):
-                        mismatched_types.append(attribute.name)
+                    if isinstance(value, dict):
+                        continue
 
-                    else:
+                    elif isinstance(value, ObjectBody):
                         object_schema = attribute.object_schema
 
                         # Skip validation if the object schema is not defined, nothing to validate against
@@ -308,11 +313,14 @@ class ObjectBodySchema:
 
                             mismatched_types.extend(results.mismatched_types)
 
-                elif attribute.type == SchemaAttributeType.OBJECT_LIST:
-                    if not isinstance(value, list):
+                    else:
                         mismatched_types.append(attribute.name)
 
-                    else:
+                elif attribute.type == SchemaAttributeType.OBJECT_LIST:
+                    if isinstance(value, list):
+                        continue
+
+                    elif isinstance(value, ObjectBody):
                         object_schema = attribute.object_schema
 
                         for item in value:
@@ -323,20 +331,29 @@ class ObjectBodySchema:
 
                                 mismatched_types.extend(results.mismatched_types)
 
-                elif attribute.type == SchemaAttributeType.STRING_LIST:
-                    if not isinstance(value, list):
+                    else:
                         mismatched_types.append(attribute.name)
 
-                    # Only sampling the first element to determine the type
-                    elif len(value) > 0 and isinstance(value[0], str):
+                elif attribute.type == SchemaAttributeType.STRING_LIST:
+                    if isinstance(value, list):
+                        if len(value) > 0 and not isinstance(value[0], str):
+                            mismatched_types.append(attribute.name)
+
+                        continue
+
+                    else:
                         mismatched_types.append(attribute.name)
 
                 elif attribute.type == SchemaAttributeType.NUMBER_LIST:
-                    if not isinstance(value, list):
-                        mismatched_types.append(attribute.name)
+                    if isinstance(value, list):
 
-                    elif len(value) > 0 and not isinstance(value[0], int) and not isinstance(value[0], float):
-                        mismatched_types.append(attribute.name)
+                        if len(value) > 0 and not isinstance(value[0], int) and not isinstance(value[0], float):
+                            mismatched_types.append(attribute.name)
+
+                        continue
+
+                    mismatched_types.append(attribute.name)
+
 
                 elif attribute.type == SchemaAttributeType.BOOLEAN:
                     if not isinstance(value, bool):
