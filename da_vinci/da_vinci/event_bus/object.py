@@ -462,7 +462,7 @@ class UnknownAttributeSchema(ObjectBodySchema):
 class ObjectBody:
     _UNKNOWN_ATTR_SCHEMA = UnknownAttributeSchema
 
-    def __init__(self, body: Dict, schema: Union[ObjectBodySchema, Type[ObjectBodySchema]] = None):
+    def __init__(self, body: Union[Dict, 'ObjectBody'], schema: Union[ObjectBodySchema, Type[ObjectBodySchema]] = None):
         """
         ObjectBody is a class that represents an object in an event. It comes with support for nested validation
         and full validation against a schema when provided. 
@@ -563,7 +563,12 @@ class ObjectBody:
 
         self.schema = schema or self._UNKNOWN_ATTR_SCHEMA
 
-        self._load(body)
+        body_dict = body
+
+        if isinstance(body, ObjectBody):
+            body_dict = body.to_dict()
+
+        self._load(body_dict)
 
     def _load(self, body: Dict):
         """
@@ -684,7 +689,7 @@ class ObjectBody:
 
         return attribute_name in self.attributes or attribute_name in self.unknown_attributes
 
-    def get(self, attribute_name: str, *, default_return: Optional[Any] = None, strict: Optional[bool] = False) -> Any:
+    def get(self, attribute_name: str, default_return: Optional[Any] = None, strict: Optional[bool] = False) -> Any:
         """
         Get an attribute from the event body
 
