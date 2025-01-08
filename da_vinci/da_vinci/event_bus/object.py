@@ -228,6 +228,33 @@ class ObjectBodySchema:
     name: Optional[str] = None
 
     @classmethod
+    def from_dict(cls, object_name: str, schema_dict: Dict) -> 'ObjectBodySchema':
+        """
+        Create a schema from a dictionary
+
+        Keyword Arguments:
+            object_name: Name of the dynamically created object
+            schema_dict: Dictionary representation of the schema
+
+        Returns:
+            New class subclassed from ObjectBodySchema
+        """
+        attributes = []
+
+        for attribute in schema_dict.get('attributes', []):
+            attributes.append(SchemaAttribute(**attribute))
+
+        obj_klass = type(object_name, (cls,), {})
+
+        obj_klass.attributes = attributes
+
+        obj_klass.description = schema_dict.get('description')
+
+        obj_klass.name=schema_dict.get('name')
+
+        return obj_klass
+
+    @classmethod
     def to_dict(cls) -> Dict:
         """
         Convert the schema to a dictionary
