@@ -116,8 +116,7 @@ class SimpleRESTServiceBase:
 
         self.exception_function_name = exception_function_name
 
-        if exception_reporter:
-            self.exception_reporter = exception_reporter()
+        self.exception_reporter = exception_reporter
 
         # The current request being handled
         # not my favorite way to do this, but it works for now - JR
@@ -156,15 +155,18 @@ class SimpleRESTServiceBase:
         req_info = event['requestContext']['http']
 
         self.current_event = event
+
         self.current_request = req_info
 
         method = req_info['method']
+
         path = req_info['path']
 
         if method not in self._route_map or path not in self._route_map[method]:
             return NotFoundResponse(f'{path} - {method}')
 
         params = {}
+
         if 'queryStringParameters' in event:
             params = event['queryStringParameters']
 
@@ -186,7 +188,7 @@ class SimpleRESTServiceBase:
 
             report_fn_name = self.exception_function_name or route.handler.__name__
 
-            if hasattr(self, 'exception_reporter'):
+            if self.exception_reporter:
                 self.exception_reporter.report(
                     exception=str(err),
                     exception_traceback=traceback.format_exc(),
