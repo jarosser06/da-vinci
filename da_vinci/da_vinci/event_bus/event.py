@@ -13,7 +13,7 @@ class Event:
     def __init__(self, body: Union[ObjectBody, Dict, str], event_type: str,
                  callback_event_type: Optional[str] = None,
                  created: Optional[datetime] = None, event_id: str = None,
-                 previous_event_id: Optional[str] = None, schema: Optional[ObjectBodySchema] = None):
+                 previous_event_id: Optional[str] = None, response_id: Optional[str] = None):
         """
         Event is a class that represents an event that is published to
         the event bus.
@@ -25,7 +25,7 @@ class Event:
             created: When the event was created
             event_id: Unique identifier for the event
             previous_event_id: Unique identifier for the previous event
-            schema: Schema to align the body with
+            response_id: Unique identifier for the response
         """
         if isinstance(body, str):
             self.body = json.loads(body)
@@ -44,6 +44,8 @@ class Event:
         self.callback_event_type = callback_event_type
 
         self.previous_event_id = previous_event_id
+
+        self.response_id = response_id
 
         if created:
             self.created = created
@@ -91,6 +93,7 @@ class Event:
             'event_id': self.event_id,
             'event_type': self.event_type,
             'previous_event_id': self.previous_event_id,
+            'response_id': self.response_id,
         }
 
     def to_json(self) -> str:

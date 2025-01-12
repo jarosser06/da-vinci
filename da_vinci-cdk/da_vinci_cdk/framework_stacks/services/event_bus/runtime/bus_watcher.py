@@ -47,12 +47,30 @@ class EventBusWatcher(SimpleRESTServiceBase):
         """
         response_retention = setting_value('da_vinci_framework::event_bus', 'response_retention_hours')
 
+        if 'response_id' in event:
+            response = self.event_responses.get(event_type=event['event_type'], response_id=event['response_id'])
+
+            if response:
+                response.response_status = status
+
+                response.failure_reason = failure_reason
+
+                response.failure_traceback = failure_traceback
+
+                self.event_responses.put(response)
+
+                return self.respond(
+                    body={'message': 'response updated'},
+                    status_code=200,
+                )
+
         response = EventBusResponse(
             event_type=event['event_type'],
             failure_reason=failure_reason,
             failure_traceback=failure_traceback,
             original_event_body=event,
             originating_event_id=event['event_id'],
+            response_id=event.get('response_id'),
             response_status=status,
             time_to_live=datetime.now(tz=utc_tz) + timedelta(hours=response_retention),
         )

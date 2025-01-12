@@ -38,6 +38,7 @@ class EventPublisher(AsyncClientBase):
 class EventResponseStatus(StrEnum):
     FAILURE = auto()
     NO_ROUTE = auto()
+    ROUTED = auto()
     SUCCESS = auto()
 
 

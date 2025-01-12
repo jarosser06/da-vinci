@@ -1,7 +1,7 @@
 '''Event Bus  Responses Table'''
 
 from datetime import datetime, timedelta, UTC as utc_tz
-from typing import List, Optional
+from typing import Dict, List, Optional
 from uuid import uuid4
 
 from da_vinci.core.orm import (
@@ -50,12 +50,14 @@ class EventBusResponse(TableObject):
             'failure_reason',
             TableObjectAttributeType.STRING,
             description='The reason for the failure',
+            optional=True,
         ),
 
         TableObjectAttribute(
             'failure_traceback',
             TableObjectAttributeType.STRING,
             description='The traceback of the failure',
+            optional=True,
         ),
 
         TableObjectAttribute(
@@ -73,9 +75,38 @@ class EventBusResponse(TableObject):
         TableObjectAttribute(
             'response_status',
             TableObjectAttributeType.STRING,
-            description='The status of the response, either "SUCCESS", "FAILURE", or "NO_ROUTE"',
+            description='The status of the response, either "SUCCESS", "FAILURE", "ROUTED", or "NO_ROUTE"',
         ),
     ]
+
+    def __init__(self, event_type: str, response_id: str, response_status: str, original_event_body: Dict,
+                 originating_event_id: str, created: Optional[datetime] = None, failure_reason: Optional[str] = None,
+                 failure_traceback: Optional[str] = None, time_to_live: Optional[datetime] = None):
+        """
+        Initialize an event bus response object
+
+        Keyword Arguments:
+            event_type: The event type that was subscribed to
+            response_id: The unique ID of the response
+            response_status: The status of the response, either "SUCCESS", "FAILURE", or "NO_ROUTE"
+            original_event_body: The original event body
+            originating_event_id: The ID of the event that triggered the response
+            created: The datetime the response was created
+            failure_reason: The reason for the failure
+            failure_traceback: The traceback of the failure
+            time_to_live: The time to live for the table object
+        """
+        super().__init__(
+            created=created,
+            event_type=event_type,
+            original_event_body=original_event_body,
+            originating_event_id=originating_event_id,
+            failure_reason=failure_reason,
+            failure_traceback=failure_traceback,
+            response_id=response_id,
+            response_status=response_status,
+            time_to_live=time_to_live,
+        )
 
 
 class EventBusResponsesScanDefinition(TableScanDefinition):

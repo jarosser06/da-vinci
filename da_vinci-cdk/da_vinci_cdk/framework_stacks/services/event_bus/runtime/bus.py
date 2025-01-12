@@ -3,6 +3,7 @@ import json
 import logging
 
 from typing import Dict
+from uuid import uuid4
 
 import boto3
 
@@ -10,6 +11,7 @@ from da_vinci.event_bus.client import EventResponder, EventResponseStatus
 from da_vinci.event_bus.event import Event
 
 from da_vinci.event_bus.tables.event_bus_subscriptions import EventBusSubscriptions
+
 
 
 class EventBus:
@@ -45,6 +47,23 @@ class EventBus:
             return
 
         for sub in all_subs:
+            logging.debug('Recording request in response table as routed')
+
+            response_id = str(uuid4())
+
+            logging.debug(f'Setting response id: {response_id}')
+
+            event.response_id = response_id
+
+            self.event_responder.response(
+                event=event.to_dict(),
+                failure_reason='No active subscriptions found',
+                response_id=response_id,
+                status=EventResponseStatus.ROUTED,
+            )
+
+            logging.debug(f'Invoking {sub.function_name}')
+
             response = self.aws_lambda.invoke(
                 FunctionName=sub.function_name,
                 InvocationType='Event',
