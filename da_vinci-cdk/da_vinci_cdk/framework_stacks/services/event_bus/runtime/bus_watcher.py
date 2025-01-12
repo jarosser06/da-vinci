@@ -35,7 +35,7 @@ class EventBusWatcher(SimpleRESTServiceBase):
         )
 
     def trap_response(self, event: Dict, status: str, failure_reason: Optional[str] = None,
-                      failure_traceback: Optional[str] = None):
+                      failure_traceback: Optional[str] = None, response_id: Optional[str] = None):
         """
         Trap an event response to store it in the database
 
@@ -47,8 +47,8 @@ class EventBusWatcher(SimpleRESTServiceBase):
         """
         response_retention = setting_value('da_vinci_framework::event_bus', 'response_retention_hours')
 
-        if 'response_id' in event:
-            response = self.event_responses.get(event_type=event['event_type'], response_id=event['response_id'])
+        if response_id:
+            response = self.event_responses.get(event_type=event['event_type'], response_id=response_id)
 
             if response:
                 response.response_status = status

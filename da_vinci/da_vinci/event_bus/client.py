@@ -52,6 +52,7 @@ class EventResponse:
     status: EventResponseStatus
     failure_reason: Optional[str] = None
     failure_traceback: Optional[str] = None
+    response_id: Optional[str] = None
 
     def to_dict(self) -> Dict:
         """
@@ -79,8 +80,8 @@ class EventResponder(RESTClientBase):
         super().__init__(resource_name='event_bus_responses')
 
     def response(self, event: Union[Event, Dict], status: Union[EventResponseStatus, str],
-                 failure_reason: Optional[str] = None,
-                 failure_traceback: Optional[str] = None):
+                 failure_reason: Optional[str] = None, failure_traceback: Optional[str] = None,
+                 response_id: Optional[str] = None):
         """
         Publish an EventResponse
 
@@ -88,6 +89,8 @@ class EventResponder(RESTClientBase):
             event: Event to respond to
             status: Status of the response
             failure_reason: Reason for failure (if applicable)
+            failure_traceback: Traceback for failure (if applicable)
+            response_id: ID of the response
         """
 
         if isinstance(event, Event):
@@ -98,6 +101,7 @@ class EventResponder(RESTClientBase):
             status=status,
             failure_reason=failure_reason,
             failure_traceback=failure_traceback,
+            response_id=response_id,
         )
 
         self.post(body=response_body.to_dict())
@@ -179,7 +183,8 @@ def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
                     event=event_obj,
                     status=EventResponseStatus.FAILURE, 
                     failure_reason=str(exc),
-                    failure_traceback=traceback.format_exc()
+                    failure_traceback=traceback.format_exc(),
+                    response_id=event_obj.response_id
                 )
 
                 if exception_reporter:

@@ -1,6 +1,9 @@
 Changelog
 =========
 
+### 2024.12.4 (Unreleased)
+- Fix event management bug caused by response_id passing
+
 ### 2024.12.3 (Latest)
 - Skip event_bus attribute validation for objects when there is no schema provided (App)
 - Add support for converting nested object bodies when parent object body is converted to a dict
