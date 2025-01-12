@@ -745,7 +745,7 @@ class ObjectBody:
             elif self.has_attribute(attribute.name):
                 new_body[attribute.name] = self.get(attribute.name)
 
-            elif attribute.name in additions:
+            elif additions and attribute.name in additions.keys():
                 new_body[attribute.name] = additions[attribute.name]
 
         logging.debug(f'Mapped object to new schema: {new_body}')
