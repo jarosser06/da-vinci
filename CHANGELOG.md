@@ -1,6 +1,9 @@
 Changelog
 =========
 
+### 2024.12.5 (Unreleased)
+- Fix Table Object to_dict bug for SET types
+
 ### 2024.12.4 (Latest)
 - Fix event management bug caused by response_id passing
 

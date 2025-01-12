@@ -710,8 +710,10 @@ class TableObject:
                 val = val.isoformat()
 
             if json_compatible and attr.attribute_type is TableObjectAttributeType.STRING_SET or \
-                    attr.attribute_type is TableObjectAttributeType.NUMBER_SET and val is not None:
-                val = list(val)
+                    attr.attribute_type is TableObjectAttributeType.NUMBER_SET:
+
+                if val is not None:
+                    val = list(val)
 
             if attr.custom_exporter:
                 val = attr.custom_exporter(val)
