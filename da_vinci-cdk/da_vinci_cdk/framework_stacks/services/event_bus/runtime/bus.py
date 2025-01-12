@@ -57,7 +57,6 @@ class EventBus:
 
             self.event_responder.response(
                 event=event.to_dict(),
-                failure_reason='No active subscriptions found',
                 response_id=response_id,
                 status=EventResponseStatus.ROUTED,
             )
