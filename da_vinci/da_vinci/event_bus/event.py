@@ -69,20 +69,28 @@ class Event:
 
         return Event(**event)
 
-    def next_event(self, event_type: str, body: Union[Dict, str]) -> 'Event':
+    def next_event(self, event_type: str, body: Union[Dict, str], callback_event_type: Optional[str] = None,
+                   callback_event_type_on_failure: Optional[str] = None) -> 'Event':
         """
         Create a new event that is linked to this event
 
         Keyword Arguments:
             event_type: Type of the event
             body: Body of the event
+            callback_event_type: An optional event type that results should be sent to
+            callback_event_type_on_failure: An optional event type that results should be sent to on failure
 
         Returns:
             New Event
         """
 
-        return Event(body=body, event_type=event_type,
-                     previous_event_id=self.event_id)
+        return Event(
+            body=body,
+            event_type=event_type,
+            previous_event_id=self.event_id,
+            callback_event_type=callback_event_type,
+            callback_event_type_on_failure=callback_event_type,
+        )
 
     def to_dict(self) -> Dict:
         """
