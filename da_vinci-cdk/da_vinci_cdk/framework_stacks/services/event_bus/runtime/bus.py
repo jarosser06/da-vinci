@@ -1,4 +1,4 @@
-'''Event Bus runtime'''
+'''Event Bus Router'''
 import json
 import logging
 

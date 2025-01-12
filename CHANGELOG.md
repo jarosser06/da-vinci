@@ -1,7 +1,7 @@
 Changelog
 =========
 
-### 2024.12.3 (Unreleased)
+### 2024.12.3 (Latest)
 - Skip event_bus attribute validation for objects when there is no schema provided (App)
 - Add support for converting nested object bodies when parent object body is converted to a dict
 - Fix event bus object mismatched type exception message
@@ -11,7 +11,7 @@ Changelog
 - Support Python native iteration as well as others that enable the `ObjectBody` to operate similar to a native Dict
 - Add support for tracking all requests that route through, whether they get a response from runners or not
 
-### 2024.12.2 (Latest)
+### 2024.12.2
 - Add update support to DynamoDB Item CDK construct (Infra)
 
 ### 2024.12.1
