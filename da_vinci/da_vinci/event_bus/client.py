@@ -10,11 +10,11 @@ from functools import wraps
 from typing import Dict, Optional, Union
 
 from da_vinci.core.client_base import AsyncClientBase, RESTClientBase
+from da_vinci.core.immutable_object import ObjectBodySchema
 from da_vinci.core.json import DateTimeEncoder
 from da_vinci.core.logging import Logger
 
 from da_vinci.event_bus.event import Event
-from da_vinci.event_bus.object import ObjectBodySchema
 
 from da_vinci.exception_trap.client import ExceptionReporter
 
