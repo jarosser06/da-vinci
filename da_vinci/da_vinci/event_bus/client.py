@@ -119,7 +119,7 @@ def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
     Keyword Arguments:
         exception_reporter: ExceptionReporter to use for reporting exceptions, optional
         function_name: Name of the function to report exceptions for, defaults to the literal python function name
-        handle_callbacks: Whether or not to handle callback event callback requests, optional
+        handle_callbacks: Whether or not to handle callback event callback requests. This must be set to True for the function to send failure callbacks as well.
         logger: Logger to use for logging, optional
         re_raise: If True, the exception will be re-raised after reporting, optional
         schema: ObjectBodySchema-based object to use for validating the event body, optional. When provided, the event body will be validated
@@ -197,6 +197,36 @@ def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
                         log_execution_id=_logger.execution_id,
                         log_namespace=_logger.namespace,
                     )
+
+                if handle_callbacks:
+                    logging.debug('Checking for callback event type')
+
+                    if event_obj.callback_event_type_on_failure:
+                        logging.debug('Function has a callback event type, publishing failure')
+
+                        event_publisher = EventPublisher()
+
+                        event_publisher.submit(
+                            event=Event(
+                                body={
+                                    'da_vinci_event_bus_response': {
+                                        'status': 'failure',
+                                        'reason': str(exc),
+                                        'traceback': traceback.format_exc(),
+                                    },
+                                    'originating_event_details': {
+                                        'event_id': event_obj.event_id,
+                                        'response_id': event_obj.response_id,
+                                        'event_type': event_obj.event_type,
+                                        'event_body': event_obj.body,
+                                    },
+                                },
+                                event_type=event_obj.callback_event_type_on_failure,
+                                previous_event_id=event_obj.event_id
+                            )
+                        )
+
+                        logging.debug(f'Published callback event to {event_obj.callback_event_type}')
 
                 traceback.print_exc()
 

@@ -16,6 +16,9 @@ from da_vinci.event_bus.tables.event_bus_subscriptions import EventBusSubscripti
 
 class EventBus:
     def __init__(self):
+        """
+        Initialize the EventBus object
+        """
         self.aws_lambda = boto3.client('lambda')
 
         self.event_responder = EventResponder()
@@ -49,6 +52,7 @@ class EventBus:
         for sub in all_subs:
             logging.debug('Recording request in response table as routed')
 
+            # Generate unique response id for each invocation
             response_id = str(uuid4())
 
             logging.debug(f'Setting response id: {response_id}')
