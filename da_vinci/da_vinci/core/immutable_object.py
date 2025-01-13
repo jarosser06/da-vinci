@@ -12,8 +12,6 @@ from da_vinci.core.orm import (
     TableObjectAttributeType,
 )
 
-from da_vinci.core.json import DateTimeEncoder
-
 
 class MissingAttributeError(Exception):
     def __init__(self, attribute_name: str):
@@ -809,15 +807,6 @@ class ObjectBody:
                 flattened_dict[key] = value
 
         return flattened_dict
-
-    def to_json(self, ignore_unkown: Optional[bool] = False) -> str:
-        """
-        Convert the object to a JSON string
-
-        Returns:
-            JSON representation of the object
-        """
-        return json.dumps(self.to_dict(ignore_unkown), cls=DateTimeEncoder)
 
     def values(self):
         """

@@ -5,6 +5,7 @@ Changelog
 - Fix Table Object to_dict bug for SET types
 - Add support for failure callbacks in the event system
 - Fix Immutable object _load when object and list attributes are None
+- Add DaVinciObjectEncoder class to support JSON encoding of commonly used da_vinci objects
 
 ### 2024.12.4 (Latest)
 - Fix event management bug caused by response_id passing

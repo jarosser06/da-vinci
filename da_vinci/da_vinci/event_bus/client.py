@@ -11,7 +11,7 @@ from typing import Dict, Optional, Union
 
 from da_vinci.core.client_base import AsyncClientBase, RESTClientBase
 from da_vinci.core.immutable_object import ObjectBodySchema
-from da_vinci.core.json import DateTimeEncoder
+from da_vinci.core.json import DaVinciObjectEncoder
 from da_vinci.core.logging import Logger
 
 from da_vinci.event_bus.event import Event
@@ -32,7 +32,9 @@ class EventPublisher(AsyncClientBase):
         """
         _delay = delay or 0
 
-        self.publish(body=event.to_json(), delay=_delay)
+        event_body_json = json.dumps(event.to_dict(), cls=DaVinciObjectEncoder)
+
+        self.publish(body=event_body_json, delay=_delay)
 
 
 class EventResponseStatus(StrEnum):
@@ -72,7 +74,7 @@ class EventResponse:
             str
         """
 
-        return json.dumps(self.to_dict(), cls=DateTimeEncoder)
+        return json.dumps(self.to_dict(), cls=DaVinciObjectEncoder)
 
 
 class EventResponder(RESTClientBase):

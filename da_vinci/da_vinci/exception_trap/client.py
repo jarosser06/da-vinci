@@ -9,7 +9,7 @@ from os import getenv
 from typing import Dict, Optional
 
 from da_vinci.core.client_base import RESTClientBase
-from da_vinci.core.json import DateTimeEncoder
+from da_vinci.core.json import DaVinciObjectEncoder
 from da_vinci.core.logging import Logger
 
 
@@ -59,7 +59,7 @@ class ReportedException:
             str
         """
 
-        return json.dumps(self.to_dict(), cls=DateTimeEncoder)
+        return json.dumps(self.to_dict(), cls=DaVinciObjectEncoder)
 
 class ExceptionReporter(RESTClientBase):
     def __init__(self):

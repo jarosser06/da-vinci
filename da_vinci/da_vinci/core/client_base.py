@@ -10,7 +10,7 @@ import requests
 
 from requests_auth_aws_sigv4 import AWSSigV4
 
-from da_vinci.core.json import DateTimeEncoder
+from da_vinci.core.json import DaVinciObjectEncoder
 from da_vinci.core.resource_discovery import (
     resource_endpoint_lookup,
     ResourceType,
@@ -56,7 +56,7 @@ class AsyncClientBase(BaseClient):
         formatted_body = body
 
         if isinstance(body, dict):
-            formatted_body = json.dumps(body, cls=DateTimeEncoder) 
+            formatted_body = json.dumps(body, cls=DaVinciObjectEncoder) 
 
         self.boto_client.send_message(
             QueueUrl=self.endpoint,

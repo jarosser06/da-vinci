@@ -5,7 +5,6 @@ import uuid
 from datetime import datetime, UTC
 from typing import Dict, Optional, Union
 
-from da_vinci.core.json import DateTimeEncoder
 from da_vinci.event_bus.object import ObjectBody
 
 
@@ -107,10 +106,3 @@ class Event:
             'previous_event_id': self.previous_event_id,
             'response_id': self.response_id,
         }
-
-    def to_json(self) -> str:
-        """
-        Convert the event to a JSON string
-        """
-
-        return json.dumps(self.to_dict(), cls=DateTimeEncoder)
