@@ -7,6 +7,8 @@ from uuid import uuid4
 
 import boto3
 
+from da_vinci.core.json import DaVinciObjectEncoder
+
 from da_vinci.event_bus.client import EventResponder, EventResponseStatus
 from da_vinci.event_bus.event import Event
 
@@ -70,7 +72,7 @@ class EventBus:
             response = self.aws_lambda.invoke(
                 FunctionName=sub.function_name,
                 InvocationType='Event',
-                Payload=event.to_json(),
+                Payload=json.dumps(event.to_dict(), cls=DaVinciObjectEncoder),
             )
 
             logging.debug(f'Lambda invocation response: {response}')
