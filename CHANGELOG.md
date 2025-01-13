@@ -4,6 +4,7 @@ Changelog
 ### 2024.12.5 (Unreleased)
 - Fix Table Object to_dict bug for SET types
 - Add support for failure callbacks in the event system
+- Fix Immutable object _load when object and list attributes are None
 
 ### 2024.12.4 (Latest)
 - Fix event management bug caused by response_id passing

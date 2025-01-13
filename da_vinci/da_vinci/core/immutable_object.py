@@ -593,10 +593,10 @@ class ObjectBody:
 
             value = remaining_body.get(attribute.name, attribute.default_value)
 
-            if attribute.type == SchemaAttributeType.OBJECT:
+            if attribute.type == SchemaAttributeType.OBJECT and value:
                 value = ObjectBody(value, attribute.object_schema)
 
-            elif attribute.type == SchemaAttributeType.OBJECT_LIST:
+            elif attribute.type == SchemaAttributeType.OBJECT_LIST and value:
                 value = [ObjectBody(item, attribute.object_schema) for item in value]
 
             self.attributes[attribute.name] = ObjectBodyAttribute(
