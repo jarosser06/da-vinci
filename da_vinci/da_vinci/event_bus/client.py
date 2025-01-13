@@ -38,10 +38,10 @@ class EventPublisher(AsyncClientBase):
 
 
 class EventResponseStatus(StrEnum):
-    FAILURE = auto()
-    NO_ROUTE = auto()
-    ROUTED = auto()
-    SUCCESS = auto()
+    FAILURE = 'FAILURE'
+    INITIALIZED = 'INITIALIZED'
+    NO_SUBSCRIPTIONS = 'NO_SUBSCRIPTIONS'
+    SUCCESS = 'SUCCESS'
 
 
 @dataclass

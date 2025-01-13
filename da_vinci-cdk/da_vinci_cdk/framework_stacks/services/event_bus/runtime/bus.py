@@ -44,7 +44,7 @@ class EventBus:
             self.event_responder.response(
                 event=event.to_dict(),
                 failure_reason='No active subscriptions found',
-                status=EventResponseStatus.NO_ROUTE,
+                status=EventResponseStatus.NO_SUBSCRIPTIONS,
             )
 
             return
@@ -62,7 +62,7 @@ class EventBus:
             self.event_responder.response(
                 event=event.to_dict(),
                 response_id=response_id,
-                status=EventResponseStatus.ROUTED,
+                status=EventResponseStatus.INITIALIZED,
             )
 
             logging.debug(f'Invoking {sub.function_name}')
