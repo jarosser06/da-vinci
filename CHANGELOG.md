@@ -3,6 +3,7 @@ Changelog
 
 ### 2024.12.6 (Unreleased)
 - Update Immutable object `get()` to support returning `default_return` when attr is found but value is None
+- Update Immutable object Unknown loader to support arbitrary object identification
 
 ### 2024.12.5 (Latest)
 - Fix Table Object to_dict bug for SET types

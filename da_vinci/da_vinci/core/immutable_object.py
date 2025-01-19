@@ -441,6 +441,12 @@ class ObjectBodyUnknownAttribute(ObjectBodyAttribute):
                     schema_type = SchemaAttributeType.OBJECT_LIST
 
                     self.value = [ObjectBody(item) for item in self.value]
+
+                else:
+                    schema_type = SchemaAttributeType.OBJECT_LIST
+        elif not isinstance(self.value, str):
+            schema_type = SchemaAttributeType.OBJECT
+
         else:
             schema_type = SchemaAttributeType.STRING
 
