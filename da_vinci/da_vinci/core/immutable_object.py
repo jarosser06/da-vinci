@@ -70,6 +70,8 @@ class SchemaAttributeType(StrEnum):
     STRING_LIST = auto()
     NUMBER_LIST = auto()
     OBJECT_LIST = auto()
+    UNKNOWN_OBJECT_TYPE = auto()
+    UNKNOWN_OBJECT_TYPE_LIST = auto()
 
     def to_str(self) -> str:
         return self.name
@@ -92,7 +94,7 @@ class SchemaAttributeType(StrEnum):
             return TableObjectAttributeType.DATETIME
 
         elif self == SchemaAttributeType.OBJECT:
-            return TableObjectAttributeType.JSON
+            return TableObjectAttributeType.JSON_STRING
 
         elif self == SchemaAttributeType.STRING_LIST:
             return TableObjectAttributeType.STRING_LIST
@@ -101,7 +103,7 @@ class SchemaAttributeType(StrEnum):
             return TableObjectAttributeType.NUMBER_LIST
 
         elif self == SchemaAttributeType.OBJECT_LIST:
-            return TableObjectAttributeType.OBJECT_LIST
+            return TableObjectAttributeType.JSON_STRING_LIST
 
 
 @dataclass
@@ -418,6 +420,8 @@ class ObjectBodyUnknownAttribute(ObjectBodyAttribute):
         It will attempt to automatically determine the type of the
         attribute and map it to a SchemaAttributeType.
         """
+        schema_type = None
+
         if type(self.value) is int or type(self.value) is float:
             schema_type = SchemaAttributeType.NUMBER
 
@@ -442,10 +446,14 @@ class ObjectBodyUnknownAttribute(ObjectBodyAttribute):
 
                     self.value = [ObjectBody(item) for item in self.value]
 
-                else:
+                elif isinstance(self.value[0], ObjectBody):
                     schema_type = SchemaAttributeType.OBJECT_LIST
+
+                else:
+                    schema_type = SchemaAttributeType.UNKNOWN_OBJECT_TYPE_LIST
+
         elif not isinstance(self.value, str):
-            schema_type = SchemaAttributeType.OBJECT
+            schema_type = SchemaAttributeType.UNKNOWN_OBJECT_TYPE
 
         else:
             schema_type = SchemaAttributeType.STRING
