@@ -1,4 +1,3 @@
-import json
 import logging
 
 from copy import deepcopy
@@ -693,7 +692,7 @@ class ObjectBody:
 
         Keyword Arguments:
             attribute_name: Name of the attribute
-            default_return: Default value to return if the attribute is not found
+            default_return: Default value to return if the attribute is not found or the value is None
             strict: Whether to raise an exception if the attribute is not found
 
         Returns:
@@ -706,10 +705,17 @@ class ObjectBody:
             else:
                 return default_return
 
-        if attribute_name in self.attributes:
-            return self.attributes[attribute_name].value
+        attr_value = default_return
 
-        return self.unknown_attributes[attribute_name].value
+        if attribute_name in self.attributes:
+            if self.attributes[attribute_name].value is not None:
+                attr_value = self.attributes[attribute_name].value
+
+        elif attribute_name in self.unknown_attributes:
+            if self.unknown_attributes[attribute_name].value is not None:
+                attr_value = self.unknown_attributes[attribute_name].value
+
+        return attr_value
 
     def map_to(self, new_schema: Type[ObjectBodySchema], additions: Optional[Dict] = None,
                attribute_map: Optional[Dict] = None) -> 'ObjectBody':
