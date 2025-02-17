@@ -3,7 +3,7 @@ import logging
 from copy import deepcopy
 from dataclasses import asdict, dataclass
 from enum import auto, StrEnum
-from typing import Any, Dict, List, Optional, Union, Type
+from typing import Any, Callable, Dict, List, Optional, Union, Type
 
 from da_vinci.core.orm import (
     TableObject,
@@ -126,6 +126,7 @@ class SchemaAttribute:
     is_primary_key: bool = False
     object_schema: 'ObjectBodySchema' = None
     required: bool = True
+    secret: bool = False
 
     def table_object_attribute(self) -> TableObjectAttribute:
         """
@@ -473,7 +474,8 @@ class UnknownAttributeSchema(ObjectBodySchema):
 class ObjectBody:
     _UNKNOWN_ATTR_SCHEMA = UnknownAttributeSchema
 
-    def __init__(self, body: Union[Dict, 'ObjectBody'], schema: Union[ObjectBodySchema, Type[ObjectBodySchema]] = None):
+    def __init__(self, body: Union[Dict, 'ObjectBody'], schema: Union[ObjectBodySchema, Type[ObjectBodySchema]] = None,
+                 secret_masking_fn: Optional[Callable[[str], str]] = None):
         """
         ObjectBody is a class that represents an object in an event. It comes with support for nested validation
         and full validation against a schema when provided. 
@@ -484,6 +486,7 @@ class ObjectBody:
         Keyword Arguments:
             body: Body of the event
             schema: Schema of the event body
+            secret_masking_fn: Function to mask secret values
 
         Example:
             ```
@@ -574,6 +577,8 @@ class ObjectBody:
 
         self.schema = schema or self._UNKNOWN_ATTR_SCHEMA
 
+        self.secret_masking_fn = secret_masking_fn
+
         body_dict = body
 
         if isinstance(body, ObjectBody):
@@ -603,6 +608,9 @@ class ObjectBody:
                 raise MissingAttributeError(attribute.name)
 
             value = remaining_body.get(attribute.name, attribute.default_value)
+
+            if attribute.secret and self.secret_masking_fn:
+                value = self.secret_masking_fn(value)
 
             if attribute.type == SchemaAttributeType.OBJECT and value:
                 value = ObjectBody(value, attribute.object_schema)
@@ -700,13 +708,15 @@ class ObjectBody:
 
         return attribute_name in self.attributes or attribute_name in self.unknown_attributes
 
-    def get(self, attribute_name: str, default_return: Optional[Any] = None, strict: Optional[bool] = False) -> Any:
+    def get(self, attribute_name: str, default_return: Optional[Any] = None,
+            secret_unmasking_fn: Optional[Callable[[str], str]] = None, strict: Optional[bool] = False) -> Any:
         """
         Get an attribute from the event body
 
         Keyword Arguments:
             attribute_name: Name of the attribute
             default_return: Default value to return if the attribute is not found or the value is None
+            secret_unmasking_fn: Function to unmask secret values, only used if the attribute is a defined secret
             strict: Whether to raise an exception if the attribute is not found
 
         Returns:
@@ -724,6 +734,9 @@ class ObjectBody:
         if attribute_name in self.attributes:
             if self.attributes[attribute_name].value is not None:
                 attr_value = self.attributes[attribute_name].value
+
+                if self.attributes[attribute_name].schema_attribute.secret and secret_unmasking_fn:
+                    attr_value = secret_unmasking_fn(attr_value)
 
         elif attribute_name in self.unknown_attributes:
             if self.unknown_attributes[attribute_name].value is not None:
