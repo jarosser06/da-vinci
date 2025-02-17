@@ -1,11 +1,12 @@
 Changelog
 =========
 
-### 2024.12.6 (Unreleased)
+### 2024.12.6 (Latest)
 - Update Immutable object `get()` to support returning `default_return` when attr is found but value is None
 - Update Immutable object Unknown loader to support arbitrary object identification
+- Update Immutable object to support secret masking/unmasking
 
-### 2024.12.5 (Latest)
+### 2024.12.5
 - Fix Table Object to_dict bug for SET types
 - Add support for failure callbacks in the event system
 - Fix Immutable object _load when object and list attributes are None
