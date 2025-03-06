@@ -88,7 +88,7 @@ class Event:
             event_type=event_type,
             previous_event_id=self.event_id,
             callback_event_type=callback_event_type,
-            callback_event_type_on_failure=callback_event_type,
+            callback_event_type_on_failure=callback_event_type_on_failure,
         )
 
     def to_dict(self) -> Dict:

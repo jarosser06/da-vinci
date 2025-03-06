@@ -1,7 +1,10 @@
 Changelog
 =========
 
-### 2024.12.6 (Latest)
+### 2024.12.7 (Latest)
+- Fix Event object `next_event()` bug where it wasn't referencing the `callback_event_type_on_failure` attribute correctly
+
+### 2024.12.6
 - Update Immutable object `get()` to support returning `default_return` when attr is found but value is None
 - Update Immutable object Unknown loader to support arbitrary object identification
 - Update Immutable object to support secret masking/unmasking
