@@ -8,13 +8,14 @@ import boto3
 from botocore.exceptions import ClientError
 
 from da_vinci.core.exceptions import ResourceNotFoundError
-from da_vinci.core.resource_discovery import resource_endpoint_lookup
+from da_vinci.core.resource_discovery import ResourceDiscovery
 from da_vinci.core.orm.exceptions import (
     TableScanInvalidAttributeException,
     TableScanInvalidComparisonException,
 )
 from da_vinci.core.orm.table_object import (
     TableObject,
+    TableObjectAttribute,
     TableObjectAttributeType,
 )
 
@@ -203,12 +204,14 @@ class TableClient:
         self.table_endpoint_name = table_endpoint_name
 
         if not self.table_endpoint_name:
-            self.table_endpoint_name = resource_endpoint_lookup(
-                resource_type='table',
+            resource_discovery = ResourceDiscovery(
                 resource_name=self.table_name,
+                resource_type='table',
                 app_name=app_name,
                 deployment_id=deployment_id,
             )
+
+            self.table_endpoint_name = resource_discovery.endpoint_lookup()
 
         self.client = boto3.client('dynamodb')
 
@@ -224,12 +227,14 @@ class TableClient:
             table_object_class: The object class of the table to check
         """
         try:
-            resource_endpoint_lookup(
-                resource_type='table',
+            resource_discovery = ResourceDiscovery(
                 resource_name=table_object_class.table_name,
+                resource_type='table',
                 app_name=app_name,
                 deployment_id=deployment_id,
             )
+
+            resource_discovery.endpoint_lookup()
             
         except ResourceNotFoundError:
             return False

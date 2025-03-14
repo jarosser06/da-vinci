@@ -5,7 +5,7 @@ from dataclasses import asdict, dataclass
 from enum import auto, StrEnum
 from typing import Any, Callable, Dict, List, Optional, Union, Type
 
-from da_vinci.core.orm import (
+from da_vinci.core.orm.client import (
     TableObject,
     TableObjectAttribute,
     TableObjectAttributeType,

@@ -1,4 +1,5 @@
-ARG IMAGE=public.ecr.aws/lambda/python:3.12
+# the base image is passed in as argument
+ARG IMAGE
 FROM $IMAGE
 
 # set the pip cache location

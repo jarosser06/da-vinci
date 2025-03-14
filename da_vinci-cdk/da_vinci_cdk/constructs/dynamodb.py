@@ -20,13 +20,13 @@ from da_vinci.core.orm.table_object import TableObject, TableObjectAttributeType
 
 from da_vinci_cdk.constructs.access_management import ResourceAccessPolicy
 from da_vinci_cdk.constructs.base import custom_type_name, resource_namer
-from da_vinci_cdk.constructs.resource_discovery import DiscoverableResource
+from da_vinci_cdk.constructs.resource_discovery import DiscoverableResource, ResourceDiscoveryStorageSolution
 
 
 class DynamoDBTable(Construct):
     def __init__(self,  partition_key: cdk_dynamodb.Attribute, scope: Construct,
                  table_name: str, construct_id: Optional[str] = None,
-                 removal_policy: Optional[RemovalPolicy] = None,
+                 exclude_from_discovery: bool = False, removal_policy: Optional[RemovalPolicy] = None,
                  sort_key: Optional[cdk_dynamodb.Attribute] = None,
                  tags: List[Dict[str, Any]] = None,
                  time_to_live_attribute: Optional[str] = None,
@@ -39,6 +39,7 @@ class DynamoDBTable(Construct):
 
         Keyword Arguments:
             construct_id: Identifier for the construct
+            exclude_from_discovery: Whether to exclude the table from discovery
             partition_key: Partition key for the DynamoDB table
             removal_policy: Removal policy for the DynamoDB table
             scope: Parent construct for the DynamoDBTable
@@ -103,13 +104,14 @@ class DynamoDBTable(Construct):
             **kwargs,
         )
 
-        self._discovery_resource = DiscoverableResource(
-            construct_id=f'{construct_id}-resource',
-            scope=self,
-            resource_endpoint=self.table.table_name,
-            resource_name=table_name,
-            resource_type=ResourceType.TABLE,
-        )
+        if not exclude_from_discovery:
+            self._discovery_resource = DiscoverableResource(
+                construct_id=f'{construct_id}-resource',
+                scope=self,
+                resource_endpoint=self.table.table_name,
+                resource_name=table_name,
+                resource_type=ResourceType.TABLE,
+            )
 
         self.read_access_statement = cdk_iam.PolicyStatement(
             actions=['dynamodb:BatchGetItem',
@@ -145,27 +147,33 @@ class DynamoDBTable(Construct):
             ],
         )
 
-        self.param_access_statement = self._discovery_resource.parameter.access_statement()
-
         for policy_name in ('read', 'default'):
+            read_policy_statements = [
+                self.read_access_statement,
+            ]
+
+            if not exclude_from_discovery:
+                read_policy_statements.append(self._discovery_resource.access_statement)
+
             self.read_access_policy = ResourceAccessPolicy(
                 scope=scope,
                 policy_name=policy_name,
-                policy_statements=[
-                    self.read_access_statement,
-                    self.param_access_statement,
-                ],
+                policy_statements=read_policy_statements,
                 resource_name=table_name,
                 resource_type=ResourceType.TABLE,
             )
 
+        write_policy_statements = [
+            self.read_write_access_statement,
+        ]
+
+        if not exclude_from_discovery:
+            write_policy_statements.append(self._discovery_resource.access_statement)
+
         self.read_write_access_policy = ResourceAccessPolicy(
             scope=scope,
             policy_name='read_write',
-            policy_statements=[
-                self.read_write_access_statement,
-                self.param_access_statement,
-            ],
+            policy_statements=write_policy_statements,
             resource_name=table_name,
             resource_type=ResourceType.TABLE,
         )
@@ -179,7 +187,7 @@ class DynamoDBTable(Construct):
         """
         self.table.grant_read_data(resource)
 
-        self._discovery_resource.parameter.grant_read(resource)
+        self._discovery_resource.grant_read(resource=resource)
 
     def grant_read_write_access(self, resource: Construct):
         """
@@ -190,11 +198,12 @@ class DynamoDBTable(Construct):
         """
         self.table.grant_read_write_data(resource)
 
-        self._discovery_resource.parameter.grant_read(resource)
+        self._discovery_resource.grant_read(resource=resource)
 
     @classmethod
     def from_orm_table_object(cls, table_object: TableObject, scope: Construct,
                               construct_id: Optional[str] = None,
+                              exclude_from_discovery: bool = False,
                               removal_policy: Optional[RemovalPolicy] = None,
                               tags: List[Dict[str, Any]] = None) -> 'DynamoDBTable':
         """
@@ -203,6 +212,7 @@ class DynamoDBTable(Construct):
         Keyword Arguments:
             table_object: The TableObject to use to initialize the DynamoDBTable
             construct_id: Identifier for the construct
+            exclude_from_discovery: Whether to exclude the table from discovery
             removal_policy: Removal policy for the DynamoDB table
             scope: Parent construct for the DynamoDBTable
             tags: Tags to apply to the DynamoDB table
@@ -244,6 +254,7 @@ class DynamoDBTable(Construct):
 
         init_args = {
             'construct_id': construct_id,
+            'exclude_from_discovery': exclude_from_discovery,
             'partition_key': cdk_dynamodb.Attribute(
                 name=table_object.partition_key_attribute.dynamodb_key_name,
                 type=partition_key_type,
@@ -290,7 +301,8 @@ class DynamoDBTable(Construct):
     @staticmethod
     def table_full_name_lookup(scope: Construct, table_name: str, 
                                app_name: Optional[str] = None,
-                               deployment_id: Optional[str] = None) -> str:
+                               deployment_id: Optional[str] = None,
+                               resource_discovery_storage_solution: str = ResourceDiscoveryStorageSolution.SSM) -> str:
         """
         Lookup the full name for the DynamoDB table
 
@@ -307,6 +319,7 @@ class DynamoDBTable(Construct):
             scope=scope,
             app_name=app_name,
             deployment_id=deployment_id,
+            storage_solution=resource_discovery_storage_solution,
         )
 
 
@@ -329,13 +342,15 @@ class DynamoDBItem(Construct):
             support_updates: Whether the item supports updates
             table_object: The TableObject to use to initialize the DynamoDBItem
         """
-
         super().__init__(scope, construct_id)
 
         self.custom_type_name = custom_type_name
 
+        resource_discovery_storage_solution = self.node.get_context('resource_discovery_storage_solution')
+
         self.full_table_name = DynamoDBTable.table_full_name_lookup(
             scope=self,
+            resource_discovery_storage_solution=resource_discovery_storage_solution,
             table_name=table_object.table_name,
         )
 
@@ -343,7 +358,6 @@ class DynamoDBItem(Construct):
 
         if support_updates:
             on_update = self.update(table_object)
-
 
         self.resource = AwsCustomResource(
             scope=self,

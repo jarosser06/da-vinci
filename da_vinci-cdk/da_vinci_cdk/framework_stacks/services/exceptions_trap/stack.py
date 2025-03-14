@@ -62,6 +62,7 @@ class ExceptionsTrapStack(Stack):
 
         self.exceptions_trap = SimpleRESTService(
             base_image=self.library_base_image,
+            architecture=architecture,
             description='Catches exceptions and stores them in a DynamoDB table',
             disable_framework_access_requests=True,
             entry=self.runtime_path,

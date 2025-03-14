@@ -4,14 +4,14 @@ from datetime import datetime, UTC as utc_tz
 from enum import auto, StrEnum
 from typing import Any, List, Optional, Union
 
-from da_vinci.core.orm import (
+from da_vinci.core.orm.client import (
     TableClient,
     TableObject,
     TableObjectAttribute,
     TableObjectAttributeType,
     TableScanDefinition,
 )
-
+from da_vinci.core.base import GLOBAL_SETTINGS_TABLE_NAME
 
 class GlobalSettingType(StrEnum):
     """Setting Types"""
@@ -23,7 +23,7 @@ class GlobalSettingType(StrEnum):
 
 class GlobalSetting(TableObject):
     description = 'Application Settings'
-    table_name = 'global_settings'
+    table_name = GLOBAL_SETTINGS_TABLE_NAME
 
     partition_key_attribute = TableObjectAttribute(
         name='namespace',

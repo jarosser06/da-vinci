@@ -1,7 +1,16 @@
 Changelog
 =========
 
-### 2024.12.7 (Latest)
+### 2025.4.23 (Latest)
+- Add support for service discovery backed by DynamoDB
+- Rename Da Vinci Tables by prepending `da_vinci`
+- Add `da_vinci_cdk.constructs.ai.AIInferenceProfile` construct to create inference profiles as discoverable resources
+- Allow for recursive loop on event bus services
+- Fix Lambda x86_64 architecture usage
+- (**Potentially Breaking**) Remove global_setting toggle, global setting is now required
+- (**Potentially Breaking**) Remove `__init__.py` from ORM, Object classes can be accessed from client import `da_vinci.core.orm.client`
+
+### 2024.12.7
 - Fix Event object `next_event()` bug where it wasn't referencing the `callback_event_type_on_failure` attribute correctly
 
 ### 2024.12.6

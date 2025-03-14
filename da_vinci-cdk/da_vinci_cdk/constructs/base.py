@@ -11,6 +11,8 @@ from aws_cdk import (
 
 from constructs import Construct
 
+from da_vinci.core.base import standard_aws_resource_name
+
 
 def custom_type_name(name: str, prefix: Optional[str] = 'DaVinci',
                      separator: Optional[str] = '@') -> str:
@@ -36,8 +38,8 @@ def resource_namer(name: str, scope: Construct):
     app_name = scope.node.get_context('app_name')
 
     deployment_id = scope.node.get_context('deployment_id')
-
-    return f'{app_name}-{deployment_id}-{name}'
+    
+    return standard_aws_resource_name(app_name, deployment_id, name)
 
 
 def apply_framework_tags(resource: Construct, scope: Construct):

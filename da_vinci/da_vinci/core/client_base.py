@@ -1,4 +1,4 @@
-'''Base Client Classess'''
+'''Base Client Classes'''
 import json
 
 from dataclasses import dataclass
@@ -12,7 +12,7 @@ from requests_auth_aws_sigv4 import AWSSigV4
 
 from da_vinci.core.json import DaVinciObjectEncoder
 from da_vinci.core.resource_discovery import (
-    resource_endpoint_lookup,
+    ResourceDiscovery,
     ResourceType,
 )
 
@@ -29,12 +29,14 @@ class BaseClient:
         if self.endpoint:
             return
 
-        self.endpoint = resource_endpoint_lookup(
+        resource_discovery = ResourceDiscovery(
             resource_type=self.resource_type,
             resource_name=self.resource_name,
             app_name=self.app_name,
-            deployment_id=self.deployment_id,
+            deployment_id=self.deployment_id
         )
+
+        self.endpoint = resource_discovery.endpoint_lookup()
 
 
 @dataclass

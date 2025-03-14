@@ -3,6 +3,8 @@ import os
 from aws_cdk import DockerImage, Duration
 from aws_cdk import aws_iam as cdk_iam
 
+from aws_cdk.aws_lambda import RecursiveLoop
+
 from constructs import Construct
 
 from da_vinci_cdk.framework_stacks.tables.event_bus_subscriptions.stack import (
@@ -56,13 +58,15 @@ class EventBusStack(Stack):
 
         self.bus_service = AsyncService(
             base_image=self.library_base_image,
+            architecture=architecture,
             description='Invokes functions with event bodies from the event bus',
             entry=self.runtime_path,
             handler='handler',
             index='bus.py',
+            recursive_loop=RecursiveLoop.ALLOW,
             resource_access_requests=[
                 ResourceAccessRequest(
-                    resource_name='event_bus_subscriptions',
+                    resource_name='da_vinci_event_bus_subscriptions',
                     resource_type='table',
                     policy_name='read',
                 ),
@@ -86,18 +90,19 @@ class EventBusStack(Stack):
 
         self.bus_watcher = SimpleRESTService(
             base_image=self.library_base_image,
+            architecture=architecture,
             description='Handles responses from functions executed from the event bus',
             entry=self.runtime_path,
             handler='api',
             index='bus_watcher.py',
             resource_access_requests=[
                 ResourceAccessRequest(
-                    resource_name='event_bus_subscriptions',
+                    resource_name='da_vinci_event_bus_subscriptions',
                     resource_type='table',
                     policy_name='read',
                 ),
                 ResourceAccessRequest(
-                    resource_name='event_bus_responses',
+                    resource_name='da_vinci_event_bus_responses',
                     resource_type='table',
                     policy_name='read_write',
                 ),   
