@@ -8,13 +8,14 @@ import boto3
 from botocore.exceptions import ClientError
 
 from da_vinci.core.exceptions import ResourceNotFoundError
-from da_vinci.core.resource_discovery import resource_endpoint_lookup
+from da_vinci.core.resource_discovery import ResourceDiscovery
 from da_vinci.core.orm.exceptions import (
     TableScanInvalidAttributeException,
     TableScanInvalidComparisonException,
 )
 from da_vinci.core.orm.table_object import (
     TableObject,
+    TableObjectAttribute,
     TableObjectAttributeType,
 )
 
@@ -117,6 +118,7 @@ class TableScanDefinition:
 
             if name in loaded_attrs:
                 attr = loaded_attrs[name]
+
             else:
                 attr = self.table_object_class.attribute_definition(name)
 
@@ -129,6 +131,7 @@ class TableScanDefinition:
 
             expr_part = ''
             if comparison == 'contains':
+
                 expr_part = f'contains({attr.dynamodb_key_name}, {attr_key})'
 
             else:
@@ -147,6 +150,7 @@ class TableScanDefinition:
                 attr_dynamodb = attr.as_dynamodb_attribute(value)
 
             expression_attributes[attr_key] = attr_dynamodb[attr.dynamodb_key_name]
+
             expression.append(expr_part)
 
         return ' AND '.join(expression), expression_attributes
@@ -195,7 +199,8 @@ class TableScanDefinition:
 
 class TableClient:
     def __init__(self, default_object_class: TableObject, app_name: Optional[str] = None,
-                 deployment_id: Optional[str] = None, table_endpoint_name: Optional[str] = None):
+                 deployment_id: Optional[str] = None, table_endpoint_name: Optional[str] = None,
+                 resource_discovery_storage_solution: Optional[str] = None):
         self.default_object_class = default_object_class
 
         self.table_name = self.default_object_class.table_name
@@ -203,12 +208,15 @@ class TableClient:
         self.table_endpoint_name = table_endpoint_name
 
         if not self.table_endpoint_name:
-            self.table_endpoint_name = resource_endpoint_lookup(
-                resource_type='table',
+            resource_discovery = ResourceDiscovery(
                 resource_name=self.table_name,
+                resource_type='table',
                 app_name=app_name,
                 deployment_id=deployment_id,
+                storage_solution=resource_discovery_storage_solution,
             )
+
+            self.table_endpoint_name = resource_discovery.endpoint_lookup()
 
         self.client = boto3.client('dynamodb')
 
@@ -224,12 +232,14 @@ class TableClient:
             table_object_class: The object class of the table to check
         """
         try:
-            resource_endpoint_lookup(
-                resource_type='table',
+            resource_discovery = ResourceDiscovery(
                 resource_name=table_object_class.table_name,
+                resource_type='table',
                 app_name=app_name,
                 deployment_id=deployment_id,
             )
+
+            resource_discovery.endpoint_lookup()
             
         except ResourceNotFoundError:
             return False
@@ -336,7 +346,7 @@ class TableClient:
         """
         all = []
 
-        for page in self.paginated():
+        for page in self.paginated(call='scan'):
             all.extend(page)
 
         return all
@@ -386,6 +396,7 @@ class TableClient:
                 TableName=self.table_endpoint_name,
                 Item=table_object.to_dynamodb_item(),
             )
+
         except ClientError as e:
             if e.response['Error']['Code'] == 'ValidationException':
                 error_message = e.response['Error']['Message']
@@ -531,6 +542,8 @@ class TableClient:
 
         # Handle updates (SET operations)
         if updates:
+            update_instructions = []
+
             for attribute_name, value in updates.items():
                 # Check for dot notation (e.g. 'json_map.sub_key')
                 if '.' in attribute_name:
@@ -543,26 +556,39 @@ class TableClient:
                     dynamo_value = f":val_{attribute_name.replace('.', '_')}"
 
                     # Construct the SET expression for nested MAP
-                    update_expressions.append(f"SET {dynamo_key}.{nested_key} = {dynamo_value}")
+                    update_instructions.append(f"{dynamo_key}.{nested_key} = {dynamo_value}")
 
                     # Prepare the attribute value and name mappings
                     expression_attribute_values[dynamo_value] = value
 
                     expression_attribute_names.update({f"#{part}": part for part in parts})
+
+                    expression_attribute_names[dynamo_key] = self.default_object_class.attribute_definition(parts[0]).dynamodb_key_name
+
+                # Regular attribute (non-nested)
                 else:
-                    # Regular attribute (non-nested)
                     dynamo_key = f"#{attribute_name}"
 
                     dynamo_value = f":val_{attribute_name}"
 
-                    update_expressions.append(f"SET {dynamo_key} = {dynamo_value}")
+                    attr_definition = self.default_object_class.attribute_definition(attribute_name)
 
-                    expression_attribute_values[dynamo_value] = self.default_object_class.attribute_definition(attribute_name).dynamodb_value(value)
+                    update_instructions.append(f"{dynamo_key} = {dynamo_value}")
 
-                    expression_attribute_names[dynamo_key] = attribute_name
+                    # Wrapping in a list b/c dict_values
+                    expression_attribute_values[dynamo_value] = list(attr_definition.as_dynamodb_attribute(value).values())[0]
+
+                    attr_def = self.default_object_class.attribute_definition(attribute_name)
+
+                    expression_attribute_names[dynamo_key] = attr_def.dynamodb_key_name
+
+            # Combine all SET expressions into a single string
+            update_expressions.append("SET " + ", ".join(update_instructions))
 
         # Handle removals (REMOVE operations)
         if remove_keys:
+            removals = []
+
             for attribute_name in remove_keys:
                 if '.' in attribute_name:
                     # Dot notation for removing nested MAP attributes
@@ -572,25 +598,35 @@ class TableClient:
 
                     nested_key = '.'.join([f"#{part}" for part in parts[1:]])
 
-                    update_expressions.append(f"REMOVE {dynamo_key}.{nested_key}")
+                    removals.append(f"{dynamo_key}.{nested_key}")
 
                     expression_attribute_names.update({f"#{part}": part for part in parts})
                 else:
                     # Regular attribute (non-nested)
                     dynamo_key = f"#{attribute_name}"
 
-                    update_expressions.append(f"REMOVE {dynamo_key}")
+                    removals.append(dynamo_key)
 
                     expression_attribute_names[dynamo_key] = attribute_name
 
+            update_expressions.append(f"REMOVE {', '.join(removals)}")
+
         # Combine all expressions into a single DynamoDB expression
         update_expression = " ".join(update_expressions)
+
+        logging.debug(f"Update expression: {update_expression}")
+
+        logging.debug(f"Expression attribute values: {expression_attribute_values}")
+
+        logging.debug(f"Expression attribute names: {expression_attribute_names}")
 
         # Generate the DynamoDB key for the object
         dynamodb_key = self.default_object_class.gen_dynamodb_key(
             partition_key_value=partition_key_value,
             sort_key_value=sort_key_value,
         )
+
+        logging.debug(f"DynamoDB key: {dynamodb_key}")
 
         # Execute the update in DynamoDB
         self.client.update_item(

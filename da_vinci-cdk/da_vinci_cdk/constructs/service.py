@@ -149,7 +149,7 @@ class AsyncService(Construct):
             scope=scope,
             policy_statements=[
                 self.queue_access_statement,
-                self.discovery_resource.parameter.access_statement(),
+                self.discovery_resource.access_statement,
             ],
             resource_name=service_name,
             resource_type=ResourceType.ASYNC_SERVICE,
@@ -163,8 +163,9 @@ class AsyncService(Construct):
         Keyword Arguments:
             resource: The resource to grant publish permissions to
         '''
-        self.discovery_resource.parameter.grant_read(resource)
-        self.queue.grant_send_messages(resource)
+        self.discovery_resource.grant_read(resource=resource)
+
+        self.queue.grant_send_messages(grantee=resource)
 
 
 class SimpleRESTService(Construct):
@@ -279,7 +280,7 @@ class SimpleRESTService(Construct):
             scope=scope,
             policy_statements=[
                 self.fn_url_access_statement,
-                self.discovery_resource.parameter.access_statement(),
+                self.discovery_resource.access_statement,
             ],
             resource_name=service_name,
             resource_type=ResourceType.REST_SERVICE,
@@ -292,8 +293,9 @@ class SimpleRESTService(Construct):
         Keyword Arguments:
             resource: The resource to grant invoke permissions to
         '''
-        self.discovery_resource.parameter.grant_read(resource)
-        self.function_url.grant_invoke_url(resource)
+        self.discovery_resource.grant_read(resource=resource)
+
+        self.function_url.grant_invoke_url(grantee=resource)
 
 
 class APIGatewayRESTService(Construct):

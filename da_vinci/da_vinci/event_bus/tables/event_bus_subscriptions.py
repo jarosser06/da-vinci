@@ -3,7 +3,7 @@
 from datetime import datetime, UTC as utc_tz
 from typing import List, Optional
 
-from da_vinci.core.orm import (
+from da_vinci.core.orm.client import (
     TableClient,
     TableObject,
     TableObjectAttribute,
@@ -14,7 +14,8 @@ from da_vinci.core.orm import (
 
 class EventBusSubscription(TableObject):
     description = 'Event Bus Subscriptions'
-    table_name = 'event_bus_subscriptions'
+
+    table_name = 'da_vinci_event_bus_subscriptions'
 
     partition_key_attribute = TableObjectAttribute(
         'event_type',

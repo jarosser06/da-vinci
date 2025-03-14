@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, UTC as utc_tz
 from typing import List, Optional 
 from uuid import uuid4
 
-from da_vinci.core.orm import (
+from da_vinci.core.orm.client import (
     TableClient,
     TableObject,
     TableObjectAttribute,
@@ -12,7 +12,7 @@ from da_vinci.core.orm import (
 
 
 class TrappedException(TableObject):
-    table_name = 'trapped_exceptions'
+    table_name = 'da_vinci_trapped_exceptions'
 
     description = 'Holds exceptions that have been trapped'
 

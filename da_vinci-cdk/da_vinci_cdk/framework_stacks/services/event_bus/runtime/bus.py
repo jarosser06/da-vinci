@@ -1,4 +1,9 @@
-'''Event Bus Router'''
+"""
+Event Bus Router
+
+# Last version this file was updated for:
+version: 2025.3.16
+"""
 import json
 import logging
 
@@ -32,7 +37,7 @@ class EventBus:
         Keyword Arguments:
             event: Event
         """
-        logging.debug(f'Invoking {event.event_type}: {event}')
+        logging.debug(f"Invoking {event.event_type}: {event}")
 
         subscriptions = EventBusSubscriptions()
 
@@ -41,23 +46,23 @@ class EventBus:
         )
 
         if not all_subs:
-            logging.debug(f'No subscriptions found for {event.event_type}')
+            logging.debug(f"No subscriptions found for {event.event_type}")
 
             self.event_responder.response(
                 event=event.to_dict(),
-                failure_reason='No active subscriptions found',
+                failure_reason="No active subscriptions found",
                 status=EventResponseStatus.NO_SUBSCRIPTIONS,
             )
 
             return
 
         for sub in all_subs:
-            logging.debug('Recording request in response table as routed')
+            logging.debug("Recording request in response table as routed")
 
             # Generate unique response id for each invocation
             response_id = str(uuid4())
 
-            logging.debug(f'Setting response id: {response_id}')
+            logging.debug(f"Setting response id: {response_id}")
 
             event.response_id = response_id
 
@@ -67,15 +72,15 @@ class EventBus:
                 status=EventResponseStatus.INITIALIZED,
             )
 
-            logging.debug(f'Invoking {sub.function_name}')
+            logging.debug(f"Invoking {sub.function_name}")
 
             response = self.aws_lambda.invoke(
                 FunctionName=sub.function_name,
-                InvocationType='Event',
+                InvocationType="Event",
                 Payload=json.dumps(event.to_dict(), cls=DaVinciObjectEncoder),
             )
 
-            logging.debug(f'Lambda invocation response: {response}')
+            logging.debug(f"Lambda invocation response: {response}")
 
 
 def handler(event: Dict, context: Dict):
@@ -86,13 +91,13 @@ def handler(event: Dict, context: Dict):
         event: Event payload
         context: Lambda context
     """
-    logging.debug(f'Event: {event}')
+    logging.debug(f"Event: {event}")
 
     bus = EventBus()
 
-    for record in event['Records']:
-        logging.debug(f'Record recieved: {record}')
+    for record in event["Records"]:
+        logging.debug(f"Record recieved: {record}")
 
-        event = Event.from_lambda_event(json.loads(record['body']))
+        event = Event.from_lambda_event(json.loads(record["body"]))
 
         bus.invoke_subscriptions(event)

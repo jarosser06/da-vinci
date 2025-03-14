@@ -1,6 +1,16 @@
 Changelog
 =========
 
+### 2025.4.20 (Unreleased)
+- Add support for initializing an empty ObjectBody
+- Fix ORM client update method to use proper DynamoDB Key names
+- Add support for regex validation of immutable objects
+- Add support for conditional required attributes in immutable object
+- Add support for service discovery backed by DynamoDB
+- Rename Da Vinci Tables by prepending `da_vinci`
+- (**Potentially Breaking**) Remove global_setting toggle, global setting is now required
+- (**Potentially Breaking**) Remove `__init__.py` from ORM, Object classes can be accessed from client import `da_vinci.core.orm.client`
+
 ### 2024.12.7 (Latest)
 - Fix Event object `next_event()` bug where it wasn't referencing the `callback_event_type_on_failure` attribute correctly
 
