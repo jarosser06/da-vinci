@@ -48,10 +48,14 @@ class EventBusSubscription(Construct):
 
         if table_name:
             self.table_name = table_name
+
         else:
+            resource_discovery_storage_solution = self.node.get_context('resource_discovery_storage_solution')
+
             self.table_name = DynamoDBTable.table_full_name_lookup(
+                resource_discovery_storage_solution=resource_discovery_storage_solution,
                 scope=self,
-                table_name='event_bus_subscriptions',
+                table_name='da_vinci_event_bus_subscriptions',
             )
 
         event_bus_subscription = EventBusSubscriptionTblObj(

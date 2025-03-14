@@ -4,7 +4,7 @@ from datetime import datetime, UTC as utc_tz
 from enum import auto, StrEnum
 from typing import Any, List, Optional, Union
 
-from da_vinci.core.orm import (
+from da_vinci.core.orm.client import (
     TableClient,
     TableObject,
     TableObjectAttribute,
@@ -23,7 +23,7 @@ class GlobalSettingType(StrEnum):
 
 class GlobalSetting(TableObject):
     description = 'Application Settings'
-    table_name = 'global_settings'
+    table_name = 'da_vinci_global_settings'
 
     partition_key_attribute = TableObjectAttribute(
         name='namespace',
@@ -105,8 +105,10 @@ class GlobalSetting(TableObject):
         """
         if self.setting_type == GlobalSettingType.BOOLEAN.name:
             return self.setting_value.lower() == 'true'
+
         elif self.setting_type == GlobalSettingType.FLOAT.name:
             return float(self.setting_value)
+
         elif self.setting_type == GlobalSettingType.INTEGER.name:
             return int(self.setting_value)
         

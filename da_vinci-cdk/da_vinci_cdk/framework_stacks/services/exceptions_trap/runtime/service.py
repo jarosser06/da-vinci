@@ -1,6 +1,6 @@
-'''
+"""
 Exception Trap Service module
-'''
+"""
 from datetime import datetime, timedelta, UTC as utc_tz
 from typing import Dict, Optional
 
@@ -14,7 +14,7 @@ from da_vinci.exception_trap.tables.trapped_exceptions import (
 )
 
 
-logging = Logger('da_vinci_framework::exception_trap')
+logging = Logger("da_vinci_framework::exception_trap")
 
 
 class ExceptionTrapService(SimpleRESTServiceBase):
@@ -26,7 +26,7 @@ class ExceptionTrapService(SimpleRESTServiceBase):
 
         super().__init__(
             routes=[
-                Route(handler=self.trap_exception, method='POST', path='/')
+                Route(handler=self.trap_exception, method="POST", path="/")
             ]
         )
 
@@ -45,9 +45,9 @@ class ExceptionTrapService(SimpleRESTServiceBase):
             log_namespace: The namespace for the logger
             metadata: Any additional metadata about the exception
         """
-        logging.debug(f'Trapping exception from {originating_event}')
+        logging.debug(f"Trapping exception from {originating_event}")
 
-        ttl_hours = setting_value('da_vinci_framework::exceptions_trap', 'exception_retention_hours')
+        ttl_hours = setting_value("da_vinci_framework::exceptions_trap", "exception_retention_hours")
 
         exception = TrappedException(
             created=datetime.now(tz=utc_tz),
@@ -61,12 +61,12 @@ class ExceptionTrapService(SimpleRESTServiceBase):
             time_to_live=datetime.now(tz=utc_tz) + timedelta(hours=ttl_hours),
         )
 
-        logging.debug(f'Trapped exception: {exception.to_dict()}')
+        logging.debug(f"Trapped exception: {exception.to_dict()}")
 
         self.trapped_exceptions.put(exception)
 
         return self.respond(
-            body={'message': 'exception noted'},
+            body={"message": "exception noted"},
             status_code=201,
         )
 

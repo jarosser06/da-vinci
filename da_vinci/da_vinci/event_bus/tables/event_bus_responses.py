@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, UTC as utc_tz
 from typing import Dict, List, Optional
 from uuid import uuid4
 
-from da_vinci.core.orm import (
+from da_vinci.core.orm.client import (
     TableClient,
     TableObject,
     TableObjectAttribute,
@@ -15,8 +15,9 @@ from da_vinci.core.orm.table_object import TableObject
 
 
 class EventBusResponse(TableObject):
-    description = 'Event Bus  Responses'
-    table_name = 'event_bus_responses'
+    description = 'Event Bus Responses'
+
+    table_name = 'da_vinci_event_bus_responses'
 
     partition_key_attribute = TableObjectAttribute(
         'event_type',

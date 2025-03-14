@@ -123,7 +123,7 @@ class Bucket(Construct):
             ],
         )
 
-        self.param_access_statement = self._discovery_resource.parameter.access_statement()
+        self.param_access_statement = self._discovery_resource.access_statement
 
         for policy_name in ('read', 'default'):
             self.read_access_policy = ResourceAccessPolicy(
@@ -234,7 +234,7 @@ class Bucket(Construct):
             ],
         )
 
-        param_access_statement = _discovery_resource.parameter.access_statement()
+        param_access_statement = _discovery_resource.access_statement
 
         for policy_name in ('read', 'default'):
             ResourceAccessPolicy(
@@ -279,7 +279,7 @@ class Bucket(Construct):
         """
         self.bucket.grant_read(resource)
 
-        self._discovery_resource.parameter.grant_read(resource)
+        self._discovery_resource.grant_read(resource=resource)
 
     def grant_read_write_access(self, resource: Construct) -> None:
         """
@@ -288,6 +288,6 @@ class Bucket(Construct):
         Keyword Arguments:
             resource: Resource to grant read and write access
         """
-        self.bucket.grant_read_write(resource)
+        self.bucket.grant_read_write(identity=resource)
 
-        self._discovery_resource.parameter.grant_read(resource)
+        self._discovery_resource.grant_read(resource=resource)

@@ -21,7 +21,6 @@ from da_vinci_cdk.constructs.access_management import (
     ResourceAccessPolicy,
 )
 from da_vinci_cdk.constructs.base import apply_framework_tags
-from da_vinci_cdk.constructs.resource_discovery import DiscoverableResource
 
 
 
@@ -39,6 +38,8 @@ class LambdaFunction(Construct):
                  disable_image_cache: Optional[bool] = False,
                  dockerfile: Optional[str] = 'Dockerfile',
                  function_name: Optional[str] = None,
+                 ignore_exceptions_access: Optional[bool] = False,
+                 ignore_settings_table_access: Optional[bool] = False,
                  managed_policies: Optional[List[cdk_iam.IManagedPolicy]] = None,
                  memory_size: Optional[int] = 128,
                  resource_access_requests: Optional[List[ResourceAccessRequest]] = None,
@@ -53,6 +54,7 @@ class LambdaFunction(Construct):
             index: Name of the entry file
             handler: Name of the handler
             scope: Parent construct for the LambdaFunction
+            add_settings_table_access: Add access to the settings table, only if global settings are enabled
             allow_custom_metrics: Allow custom metrics to be sent to CloudWatch
             architecture: Architecture to use for the Lambda function
             base_image: Base image to use for the Lambda function
@@ -61,6 +63,8 @@ class LambdaFunction(Construct):
             disable_image_cache: Disables the Docker image cache
             dockerfile: The name of the Dockerfile to use for the Lambda function
             function_name: Name of the Lambda function
+            ignore_exceptions_access: Ignore exceptions access
+            ignore_settings_table_access: Ignore settings table access
             managed_policies: List of managed policies to attach to the Lambda function
             memory_size: Amount of memory to allocate to the Lambda function
             timeout: Timeout for the Lambda function
@@ -98,6 +102,7 @@ class LambdaFunction(Construct):
             app_name=scope.node.get_context('app_name'),
             deployment_id=scope.node.get_context('deployment_id'),
             log_level=scope.node.get_context('log_level'),
+            resource_discovery_storage=scope.node.get_context('resource_discovery_storage_solution'),
         )
 
         environment[SETTINGS_ENABLED_VAR_NAME] = str(
@@ -112,9 +117,6 @@ class LambdaFunction(Construct):
 
         if s3_logging_bucket_name:
             environment['DA_VINCI_S3_LOGGING_BUCKET'] = s3_logging_bucket_name
-
-        else:
-            s3_logging_bucket = None
 
         fn_index = index.replace('.py', '')
 
@@ -173,17 +175,7 @@ class LambdaFunction(Construct):
 
         if global_settings_enabled and not disable_framework_access_requests:
             # Check if settings table requests are already present
-            add_settings_table_access = True
-
-            if resource_access_requests:
-                for existing_req in resource_access_requests:
-                    if existing_req.resource_name == GlobalSetting.table_name:
-                        add_settings_table_access = False
-                        break
-            else:
-                resource_access_requests = []
-
-            if add_settings_table_access:
+            if not ignore_settings_table_access:
                 resource_access_requests.append(
                     ResourceAccessRequest(
                         policy_name='read',
@@ -199,18 +191,7 @@ class LambdaFunction(Construct):
         )
 
         if exception_trap_enabled and not disable_framework_access_requests:
-            # Check if exceptions table requests are already present
-            add_exceptions_access = True
-
-            if resource_access_requests:
-                for existing_req in resource_access_requests:
-                    if existing_req.resource_name == 'exceptions_trap':
-                        add_exceptions_access = False
-                        break
-            else:
-                resource_access_requests = []
-
-            if add_exceptions_access:
+            if not ignore_exceptions_access:
                 resource_access_requests.append(
                     ResourceAccessRequest(
                         resource_type=ResourceType.REST_SERVICE,

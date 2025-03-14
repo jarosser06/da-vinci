@@ -1,4 +1,5 @@
 import json
+import logging
 
 from collections.abc import Callable
 from copy import deepcopy
@@ -20,7 +21,7 @@ class TableObjectAttributeType(StrEnum):
     NUMBER_LIST = auto()
     JSON_LIST = auto() # Not safe for storing empty attributes, native
     JSON_STRING_LIST = auto() # Safe for storing empty attributes
-    COMPOSITE_STRING = auto()
+    COMPOSITE_STRING = auto() # String in DynamoDB but a tuple of strings in Python
     STRING_SET = auto()
     NUMBER_SET = auto()
 
@@ -304,12 +305,7 @@ class TableObjectAttribute:
             if isinstance(value, str):
                 return value
 
-            arg_values = []
-
-            for arg in self.argument_names:
-                arg_values.append(getattr(self, arg))
-
-            return TableObjectAttribute.composite_string_value(arg_values)
+            return TableObjectAttribute.composite_string_value(value)
 
         # Handle list types
         elif TableObjectAttributeType.is_list(self.attribute_type):
@@ -502,7 +498,6 @@ class TableObject:
         attribute_lookup_prefix: Attribute lookup prefix, prefixes the attribute name when retrieving attributes
         attributes: List of attributes
         description: Description of the table
-        execute_on_update: Function to execute when the object is updated
         object_name: Name of the object, defaults to the class name. This should be set when
                      dynamically defining table objects.
         partition_key_attribute: Partition key attribute
@@ -567,12 +562,9 @@ class TableObject:
                 composite_args = []
 
                 for arg in attr.argument_names:
-                    if arg in kwargs:
-                        attr.set_attribute(self, kwargs[arg])
-                    else:
-                        raise MissingTableObjectAttributeException(arg)
-
                     composite_args.append(kwargs[arg])
+
+                attr.set_attribute(self, attr.composite_string_value(composite_args))
 
             elif attr.name in kwargs:
                 # If the value is None and the attribute has a default, use the default
@@ -647,13 +639,31 @@ class TableObject:
         """
         Get the value of an attribute
 
-        Keyword Arguments:
-            name -- Name of the attribute
-
-        Returns:
-            Any
+        Keyword arguments:
+        name -- Name of the attribute
         """
         return getattr(self, name)
+
+    def composite_attribute_values(self, name: str) -> Dict:
+        """
+        Get a dictionary representation of the composite attribute's values
+
+        Keyword arguments:
+        name -- Name of the attribute
+        """
+        attr = self.attribute_definition(name)
+
+        if not attr:
+            raise ValueError(f"Attribute {name} not found")
+
+        if attr.attribute_type is not TableObjectAttributeType.COMPOSITE_STRING:
+            raise ValueError(f"Attribute {name} is not a composite string")
+
+        full_value = self.attribute_value(name)
+
+        split_values = full_value.split('-')
+
+        return {arg: split_values[idx] for idx, arg in enumerate(attr.argument_names)}
 
     def execute_on_update(self):
         """
@@ -661,15 +671,15 @@ class TableObject:
 
         Override this method to provide custom behavior when the object is saved to DynamoDB
         """
-        pass
+        logging.debug('Executing default execute_on_update function ... nothing updated')
 
     def update(self, **kwargs):
         """
         Update the attributes of the object and provide a list of attribute names
         that were updated.
 
-        Keyword Arguments:
-            kwargs -- Attributes to update
+        Keyword arguments:
+        kwargs -- Attributes to update
         """
         changed_attrs = []
 
@@ -802,15 +812,9 @@ class TableObject:
         for attr in cls.all_attributes():
             if attr.dynamodb_key_name in item:
 
-                if attr.attribute_type is TableObjectAttributeType.COMPOSITE_STRING:
-                    val = item[attr.dynamodb_key_name]
+                val = item[attr.dynamodb_key_name]
 
-                    for idx, arg in enumerate(attr.argument_names):
-                        updated_item[arg] = val[idx]
-                else:
-                    val = item[attr.dynamodb_key_name]
-
-                    updated_item[attr.name] = attr.from_dynamodb_attribute(val)
+                updated_item[attr.name] = attr.from_dynamodb_attribute(val)
 
         return cls(**updated_item)
 

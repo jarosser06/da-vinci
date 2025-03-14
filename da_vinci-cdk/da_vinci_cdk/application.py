@@ -8,7 +8,7 @@ from os.path import (
     realpath,
 )
 
-from typing import Optional
+from typing import Optional, Union
 
 from aws_cdk import App as CDKApp
 from aws_cdk import (
@@ -18,12 +18,19 @@ from aws_cdk import (
 
 from constructs import Construct
 
+from da_vinci.core.resource_discovery import ResourceDiscoveryStorageSolution
+
+from da_vinci_cdk.constructs.base import resource_namer
 from da_vinci_cdk.constructs.dns import PublicDomain
 from da_vinci_cdk.constructs.global_setting import GlobalSetting
 from da_vinci_cdk.constructs.s3 import Bucket
 from da_vinci_cdk.framework_stacks.services.event_bus.stack import EventBusStack
 from da_vinci_cdk.framework_stacks.services.exceptions_trap.stack import ExceptionsTrapStack
 from da_vinci_cdk.framework_stacks.tables.global_settings.stack import GlobalSettingsTableStack
+from da_vinci_cdk.framework_stacks.tables.resource_registry.stack import (
+    ResourceRegistration as ResourceRegistrationTblObject,
+    ResourceRegistrationTableStack,
+)
 from da_vinci_cdk.stack import Stack
 
 
@@ -32,7 +39,8 @@ DA_VINCI_DISABLE_DOCKER_CACHE = getenv('DA_VINCI_DISABLE_DOCKER_CACHE', False)
 
 class CoreStack(Stack):
     def __init__(self, app_name: str, deployment_id: str, scope: Construct, stack_name: str,
-                 create_hosted_zone: bool = False, global_settings_enabled: bool = True,
+                 create_hosted_zone: bool = False, resource_discovery_table_name: Optional[str] = None,
+                 resource_discovery_storage_solution: str = ResourceDiscoveryStorageSolution.SSM,
                  root_domain_name: Optional[str] = None, s3_logging_bucket_name: str = None,
                  s3_logging_bucket_object_retention_days: Optional[int] = None, using_external_logging_bucket: bool = False):
         """
@@ -42,7 +50,6 @@ class CoreStack(Stack):
             app_name: Name of the application
             create_hosted_zone: Whether to create a hosted zone for the application if the root_domain_name is set (default: True)
             deployment_id: Identifier assigned to the installation
-            global_settings_enabled: Whether to build the global settings stack as part of the application (default: True)
             root_domain_name: Root domain name for the application (default: None)
             scope: Parent construct for the stack
             stack_name: Name of the stack
@@ -58,39 +65,58 @@ class CoreStack(Stack):
             stack_name=stack_name
         )
 
-        if global_settings_enabled:
-            self.add_required_stack(GlobalSettingsTableStack)
+        GlobalSetting(
+            description='Whether Global settings are enabled. Managed by framework deployment, do not modify!',
+            namespace='da_vinci_framework::core',
+            setting_key='global_settings_enabled',
+            setting_value=True,
+            scope=self,
+        )
 
+        GlobalSetting(
+            description='The name of the S3 Logging Bucket, null if not used. Managed by framework deployment, modify at your own risk!',
+            namespace='da_vinci_framework::core',
+            setting_key='s3_logging_bucket',
+            setting_value=s3_logging_bucket_name,
+            scope=self,
+        )
+
+        core_str_setting_keys = [
+            'app_name',
+            'deployment_id',
+            'log_level',
+        ]
+
+        for setting_key in core_str_setting_keys:
             GlobalSetting(
-                description='Whether Global settings are enabled. Managed by framework deployment, do not modify!',
+                description=f'The {setting_key} available to all components of the application.',
                 namespace='da_vinci_framework::core',
-                setting_key='global_settings_enabled',
-                setting_value=True,
+                setting_key=setting_key,
+                setting_value=self.node.get_context(setting_key),
+                scope=self,
+            )
+
+        GlobalSetting(
+            description='The storage solution for the Resource Discovery service. Managed by deployment process only!',
+            namespace='da_vinci_framework::core',
+            setting_key='resource_discovery_storage_solution',
+            setting_value=resource_discovery_storage_solution,
+            scope=self,
+        )
+
+        if resource_discovery_storage_solution == ResourceDiscoveryStorageSolution.DYNAMODB:
+            resource_discovery_full_table_name = resource_namer(
+                name=resource_discovery_table_name,
                 scope=self,
             )
 
             GlobalSetting(
-                description='The name of the S3 Logging Bucket, null if not used. Managed by framework deployment, modify at your own risk!',
+                description='The DynamoDB table name for the Resource Discovery service. Managed by deployment process only!',
                 namespace='da_vinci_framework::core',
-                setting_key='s3_logging_bucket',
-                setting_value=s3_logging_bucket_name,
+                setting_key='resource_discovery_table_name',
+                setting_value=resource_discovery_full_table_name,
                 scope=self,
             )
-
-            core_str_setting_keys = [
-                'app_name',
-                'deployment_id',
-                'log_level',
-            ]
-
-            for setting_key in core_str_setting_keys:
-                GlobalSetting(
-                    description=f'The {setting_key} available to all components of the application.',
-                    namespace='da_vinci_framework::core',
-                    setting_key=setting_key,
-                    setting_value=self.node.get_context(setting_key),
-                    scope=self,
-                )
 
         if s3_logging_bucket_name:
             if using_external_logging_bucket:
@@ -107,14 +133,13 @@ class CoreStack(Stack):
                 )
 
         if root_domain_name:
-            if global_settings_enabled:
-                GlobalSetting(
-                    description='The root domain for the application. Managed for deployment process only!',
-                    namespace='da_vinci_framework::core',
-                    setting_key='root_domain_name',
-                    setting_value=root_domain_name,
-                    scope=self,
-                )
+            GlobalSetting(
+                description='The root domain for the application. Managed for deployment process only!',
+                namespace='da_vinci_framework::core',
+                setting_key='root_domain_name',
+                setting_value=root_domain_name,
+                scope=self,
+            )
 
             if create_hosted_zone:
                 self.root_domain = PublicDomain(
@@ -130,9 +155,9 @@ class Application:
                  app_entry: Optional[str] = None, app_image_use_lib_base: Optional[bool] = True,
                  architecture: Optional[str] = cdk_lambda.Architecture.ARM_64,
                  create_hosted_zone: Optional[bool] = False, disable_docker_image_cache: Optional[bool] = DA_VINCI_DISABLE_DOCKER_CACHE,
-                 enable_global_settings: Optional[bool] = True, enable_exception_trap: Optional[bool] = True,
-                 enable_logging_bucket: Optional[bool] = False, enable_event_bus: Optional[bool] = False,
-                 existing_s3_logging_bucket_name: Optional[str] = None, log_level: Optional[str] = 'INFO',
+                 enable_exception_trap: Optional[bool] = True, enable_logging_bucket: Optional[bool] = False,
+                 enable_event_bus: Optional[bool] = False, existing_s3_logging_bucket_name: Optional[str] = None,
+                 log_level: Optional[str] = 'INFO', resource_discovery_storage_solution: Union[str, ResourceDiscoveryStorageSolution] = ResourceDiscoveryStorageSolution.SSM,
                  root_domain_name: Optional[str] = None, s3_logging_bucket_name_postfix: Optional[str] = None,
                  s3_logging_bucket_name_prefix: Optional[str] = None, s3_logging_bucket_object_retention_days: Optional[int] = None):
         """
@@ -150,10 +175,10 @@ class Application:
             deployment_id: Identifier assigned to the installation
             enable_exception_trap: Whether to enable the exception trap (default: True)
             enable_event_bus: Whether to include the event bus stack (default: False)
-            enable_global_settings: Whether to build the global settings stack as part of the application (default: True)
             enable_logging_bucket: Whether to enable the logging bucket (default: False)
             existing_s3_logging_bucket_name: Name of an existing S3 bucket to use for logging (default: None)
             log_level: Logging level to use for the application (default: INFO)
+            resource_discovery_storage_solution: Storage solution to use for resource discovery (default: SSM)
             root_domain_name: Root domain name for the application (default: None)
             s3_logging_bucket_name_postfix: Postfix name of the S3 bucket to use for logging, appends the deployment_id (default: None)
             s3_logging_bucket_name_prefix: Prefix name of the S3 bucket to use for logging, appends the deployment_id (default: None)
@@ -182,8 +207,6 @@ class Application:
         self.deployment_id = deployment_id
 
         self.log_level = log_level
-
-        self.global_settings_enabled = enable_global_settings
 
         self.root_domain_name = root_domain_name
 
@@ -231,39 +254,57 @@ class Application:
         else:
             s3_logging_bucket_name = None
 
+        resource_discovery_table_name = None
+
+        if resource_discovery_storage_solution not in [val for val in ResourceDiscoveryStorageSolution]:
+            raise ValueError(f'Invalid resource discovery storage solution "{resource_discovery_storage_solution}"')
+
+        if resource_discovery_storage_solution == ResourceDiscoveryStorageSolution.DYNAMODB:
+            resource_discovery_table_name = ResourceRegistrationTblObject.table_name
+
         context = {
             'app_name': self.app_name,
             'architecture': self.architecture,
             'deployment_id': self.deployment_id,
-            'global_settings_enabled': self.global_settings_enabled,
+            'global_settings_enabled': True,
             's3_logging_bucket_name': s3_logging_bucket_name,
             'event_bus_enabled': enable_event_bus,
             'exception_trap_enabled': enable_exception_trap,
             'log_level': self.log_level,
-            'root_domain_name': self.root_domain_name
+            'root_domain_name': self.root_domain_name,
+            'resource_discovery_storage_solution': resource_discovery_storage_solution,
+            'resource_discovery_table_name': resource_discovery_table_name,
         }
 
         self.cdk_app = CDKApp(context=context)
 
         self.dependency_stacks = []
 
-        if enable_global_settings:
-            global_settings_stack = self.add_uninitialized_stack(
-                stack=GlobalSettingsTableStack,
+        if resource_discovery_table_name:
+            resource_registration_stack = self.add_uninitialized_stack(
+                stack=ResourceRegistrationTableStack,
                 include_core_dependencies=False,
             )
 
-            self.dependency_stacks.append(global_settings_stack)
+            self.dependency_stacks.append(resource_registration_stack)
+
+        global_settings_stack = self.add_uninitialized_stack(
+            stack=GlobalSettingsTableStack,
+            include_core_dependencies=False,
+        )
+
+        self.dependency_stacks.append(global_settings_stack)
 
         self.core_stack = CoreStack(
             app_name=self.app_name,
             create_hosted_zone=create_hosted_zone,
             deployment_id=self.deployment_id,
-            global_settings_enabled=self.global_settings_enabled,
             scope=self.cdk_app,
             stack_name=self.generate_stack_name(CoreStack),
             root_domain_name=self.root_domain_name,
             using_external_logging_bucket=external_logging_bucket,
+            resource_discovery_storage_solution=resource_discovery_storage_solution,
+            resource_discovery_table_name=resource_discovery_table_name,
             s3_logging_bucket_name=s3_logging_bucket_name,
             s3_logging_bucket_object_retention_days=s3_logging_bucket_object_retention_days,
         )
@@ -303,6 +344,7 @@ class Application:
         import da_vinci
 
         da_vinci_spec = da_vinci.__spec__
+
         da_vinci_lib_path = da_vinci_spec.submodule_search_locations[0]
 
         return realpath(path_join(da_vinci_lib_path, '../'))
