@@ -26,7 +26,7 @@ from da_vinci_cdk.constructs.resource_discovery import DiscoverableResource
 class DynamoDBTable(Construct):
     def __init__(self,  partition_key: cdk_dynamodb.Attribute, scope: Construct,
                  table_name: str, construct_id: Optional[str] = None,
-                 removal_policy: Optional[RemovalPolicy] = None,
+                 exclude_from_discovery: bool = False, removal_policy: Optional[RemovalPolicy] = None,
                  sort_key: Optional[cdk_dynamodb.Attribute] = None,
                  tags: List[Dict[str, Any]] = None,
                  time_to_live_attribute: Optional[str] = None,
@@ -39,6 +39,7 @@ class DynamoDBTable(Construct):
 
         Keyword Arguments:
             construct_id: Identifier for the construct
+            exclude_from_discovery: Whether to exclude the table from discovery
             partition_key: Partition key for the DynamoDB table
             removal_policy: Removal policy for the DynamoDB table
             scope: Parent construct for the DynamoDBTable
@@ -103,13 +104,14 @@ class DynamoDBTable(Construct):
             **kwargs,
         )
 
-        self._discovery_resource = DiscoverableResource(
-            construct_id=f'{construct_id}-resource',
-            scope=self,
-            resource_endpoint=self.table.table_name,
-            resource_name=table_name,
-            resource_type=ResourceType.TABLE,
-        )
+        if not exclude_from_discovery:
+            self._discovery_resource = DiscoverableResource(
+                construct_id=f'{construct_id}-resource',
+                scope=self,
+                resource_endpoint=self.table.table_name,
+                resource_name=table_name,
+                resource_type=ResourceType.TABLE,
+            )
 
         self.read_access_statement = cdk_iam.PolicyStatement(
             actions=['dynamodb:BatchGetItem',
@@ -195,6 +197,7 @@ class DynamoDBTable(Construct):
     @classmethod
     def from_orm_table_object(cls, table_object: TableObject, scope: Construct,
                               construct_id: Optional[str] = None,
+                              exclude_from_discovery: bool = False,
                               removal_policy: Optional[RemovalPolicy] = None,
                               tags: List[Dict[str, Any]] = None) -> 'DynamoDBTable':
         """
@@ -203,6 +206,7 @@ class DynamoDBTable(Construct):
         Keyword Arguments:
             table_object: The TableObject to use to initialize the DynamoDBTable
             construct_id: Identifier for the construct
+            exclude_from_discovery: Whether to exclude the table from discovery
             removal_policy: Removal policy for the DynamoDB table
             scope: Parent construct for the DynamoDBTable
             tags: Tags to apply to the DynamoDB table
@@ -244,6 +248,7 @@ class DynamoDBTable(Construct):
 
         init_args = {
             'construct_id': construct_id,
+            'exclude_from_discovery': exclude_from_discovery,
             'partition_key': cdk_dynamodb.Attribute(
                 name=table_object.partition_key_attribute.dynamodb_key_name,
                 type=partition_key_type,
