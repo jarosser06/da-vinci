@@ -2,6 +2,9 @@ Changelog
 =========
 
 ### 2025.4.20 (Unreleased)
+- Add `da_vinci_cdk.constructs.ai.AIInferenceProfile` construct to create inference profiles as discoverable resources
+- Allow for recursive loop on event bus services
+- Fix Lambda x86_64 architecture usage
 - Add support for initializing an empty ObjectBody
 - Fix ORM client update method to use proper DynamoDB Key names
 - Add support for regex validation of immutable objects

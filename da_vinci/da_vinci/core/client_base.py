@@ -1,4 +1,4 @@
-'''Base Client Classess'''
+'''Base Client Classes'''
 import json
 
 from dataclasses import dataclass
@@ -34,8 +34,7 @@ class BaseClient:
             resource_type=self.resource_type,
             resource_name=self.resource_name,
             app_name=self.app_name,
-            deployment_id=self.deployment_id,
-            storage_solution=self.resource_discovery_storage,
+            deployment_id=self.deployment_id
         )
 
         self.endpoint = resource_discovery.endpoint_lookup()

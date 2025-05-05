@@ -11,7 +11,10 @@ from constructs import Construct
 
 from da_vinci.core.execution_environment import runtime_environment_dict
 from da_vinci.core.global_settings import SETTINGS_ENABLED_VAR_NAME
-from da_vinci.core.resource_discovery import ResourceType
+from da_vinci.core.resource_discovery import (
+    ResourceType,
+    RESOURCE_DISCOVERY_STORAGE_SOLUTION_VAR_NAME
+)
 from da_vinci.core.tables.global_settings import GlobalSetting
 
 from da_vinci.exception_trap.client import EXCEPTION_TRAP_ENV_VAR
@@ -25,6 +28,7 @@ from da_vinci_cdk.constructs.base import apply_framework_tags
 
 
 DEFAULT_BASE_IMAGE = 'public.ecr.aws/lambda/python:3.12'
+DEFAULT_BASE_IMAGE_x86='public.ecr.aws/lambda/python:3.12-x86_64'
 
 
 class LambdaFunction(Construct):
@@ -105,6 +109,10 @@ class LambdaFunction(Construct):
             resource_discovery_storage=scope.node.get_context('resource_discovery_storage_solution'),
         )
 
+        environment[RESOURCE_DISCOVERY_STORAGE_SOLUTION_VAR_NAME] = str(
+            scope.node.get_context('resource_discovery_storage_solution')
+        )
+
         environment[SETTINGS_ENABLED_VAR_NAME] = str(
             scope.node.get_context('global_settings_enabled')
         )
@@ -119,6 +127,9 @@ class LambdaFunction(Construct):
             environment['DA_VINCI_S3_LOGGING_BUCKET'] = s3_logging_bucket_name
 
         fn_index = index.replace('.py', '')
+
+        if base_image == DEFAULT_BASE_IMAGE and self.architecture == 'x86_64':
+            base_image = DEFAULT_BASE_IMAGE_x86
 
         cmd = [f'{fn_index}.{handler}']
 
