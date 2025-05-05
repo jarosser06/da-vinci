@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "da-vinci"
-version = "2025.4.23"
+version = "2025.4.20"
 description = "Da Vinci is used to rapidly build AWS Cloud Native based systems"
 authors = ["Jim Rosser"]
 license = "MIT"
@@ -11,7 +11,6 @@ python = "^3.11"
 boto3 = "^1.38.0"
 requests = "^2.32.3"
 requests-auth-aws-sigv4 = "0.7"
-
 
 [build-system]
 requires = ["poetry-core"]

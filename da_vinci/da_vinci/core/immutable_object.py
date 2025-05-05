@@ -1,6 +1,84 @@
-import logging
+"""
+The code in this module defines the ObjectBody and ObjectBodySchema classes, which are used to represent
+schema capable immutable objects. These classes provide functionality for validating, serializing, and deserializing
+objects against a defined schema. The schema can include various attribute types such as strings, numbers,
+booleans, datetimes, and nested objects. The ObjectBody class is designed to be immutable, meaning that once
+an object is created, its attributes cannot be modified.
 
-from copy import deepcopy
+
+The Schema supports multiple ways to control the requiredness of an attribute. The default is to require the attribute
+but, you can set the required flag to False. You can also use the required_conditions flag to specify a list of
+conditions that must be met for the attribute to be required.
+
+Example:
+    ```
+    from da_vinci.core.immutable_object import (
+        ObjectBody,
+        ObjectBodySchema,
+        SchemaAttribute,
+        SchemaAttributeType,
+    )
+    schema = ObjectBodySchema(
+        attributes=[
+            SchemaAttribute(
+                name='my_string',
+                type=SchemaAttributeType.STRING,
+            ),
+            SchemaAttribute(
+                name='my_number',
+                type=SchemaAttributeType.NUMBER,
+            ),
+            SchemaAttribute(
+                name='execution_type',
+                type=SchemaAttributeType.STRING,
+                enum=['type1', 'type2'],
+            ),
+            SchemaAttribute(
+                name='execution_type_2_req_arg',
+                type=SchemaAttributeType.STRING,
+                required_conditions=[
+                    {
+                        'operator': 'equals',
+                        'param': 'execution_type',
+                        'value': 'type1',
+                    },
+                ]
+            ),
+            SchemaAttribute(
+                name='execution_type_2_opt_arg',
+                type=SchemaAttributeType.STRING,
+            ) 
+        ]
+    )
+
+    body = ObjectBody(
+        body={
+            'my_string': 'my_string',
+            'my_number': 1,
+            'execution_type': 'type1',
+        },
+        schema=schema,
+    )
+
+    print(body.get('my_string'))  # my_string
+
+    print(body.get('my_number'))  # 1
+
+    print(body.get('execution_type'))  # type1
+
+    print(body.get('execution_type_2_req_arg'))  # None
+
+    ```
+
+
+**Note**: This module becomes all consuming and any object cast to an ObjectBody will be completely consumed including any sub-objects
+and lists of objects. Everything that looks like an object will be cast to an ObjectBody. This is done to ensure that the object is immutable and
+that the schema is enforced. This is a trade off that is made to ensure that the object is immutable and that the schema is enforced.
+"""
+
+import logging
+import re
+
 from dataclasses import asdict, dataclass
 from enum import auto, StrEnum
 from typing import Any, Callable, Dict, List, Optional, Union, Type
@@ -28,6 +106,7 @@ class ObjectBodyValidationResults:
         mismatched_types: List of mismatched types
         valid: Whether the object is valid
     """
+    validated_body: Dict
     mismatched_types: List[str] = None
     missing_attributes: List[str] = None
     valid: bool = True
@@ -62,6 +141,7 @@ class SchemaAttributeType(StrEnum):
     SchemaAttributeType is an enumeration of the types of schema
     attributes.
     """
+    ANY = auto()
     STRING = auto()
     NUMBER = auto()
     BOOLEAN = auto()
@@ -107,10 +187,57 @@ class SchemaAttributeType(StrEnum):
 
 
 @dataclass
+class RequiredCondition:
+    """
+    RequiredCondition is a class that represents a condition
+    that must be met for an attribute to be required.
+
+    Keyword Arguments:
+        operator: Operator to use for the condition
+        param: Parameter to check against
+        value: Value to check against
+    """
+    param: str
+    operator: str = "equals"
+    value: Any = None
+
+    def to_dict(self) -> Dict:
+        """
+        Convert the condition to a dictionary
+
+        Returns:
+            Dictionary representation of the condition
+        """
+        return asdict(self)
+
+
+@dataclass
+class RequiredConditionGroup:
+    """
+    RequiredConditionGroup is a class that represents a group of
+    conditions that must be met for an attribute to be required.
+
+    Keyword Arguments:
+        group_operator: Operator to use for the group
+        conditions: List of conditions in the group
+    """
+    group_operator: str
+    conditions: List[RequiredCondition]
+
+    def to_dict(self) -> Dict:
+        """
+        Convert the group to a dictionary
+
+        Returns:
+            Dictionary representation of the group
+        """
+        return asdict(self)
+
+
+@dataclass
 class SchemaAttribute:
     """
-    SchemaAttribute is a class that represents an attribute of an
-    event body.
+    SchemaAttribute is a class that represents an attribute of an schema
 
     Keyword Arguments:
         description: Description of the attribute 
@@ -123,10 +250,168 @@ class SchemaAttribute:
     type: SchemaAttributeType
     default_value: Any = None
     description: str = None
+    enum: List[Any] = None
     is_primary_key: bool = False
     object_schema: 'ObjectBodySchema' = None
+    regex_pattern: str = None
     required: bool = True
+    required_conditions: List[Union[Dict, RequiredCondition, RequiredConditionGroup]] = None
     secret: bool = False
+
+    def __post_init__(self):
+        """
+        Post init method to convert the required_conditions to a list of
+        RequiredCondition objects
+        """
+        if self.required_conditions:
+            normalized_conditions = []
+
+            for condition in self.required_conditions:
+                if isinstance(condition, dict):
+                    normalized_conditions.append(condition)
+
+                elif isinstance(condition, RequiredCondition):
+                    normalized_conditions.append(condition.to_dict())
+
+                elif isinstance(condition, RequiredConditionGroup):
+                    normalized_conditions.append(condition.to_dict())
+
+            self.required_conditions = normalized_conditions
+
+    def is_required(self, parameter_values: Dict[str, Any]) -> bool:
+        """
+        Determine if the attribute is required based on the flag and any
+        required_conditions.
+
+        Keyword arguments:
+        parameter_values -- Dictionary of parameter values to check against
+
+        Returns:
+            Whether the attribute is required
+        """
+        if self.required:
+            if self.required_conditions:
+                return self._evaluate_required_conditions(parameter_values)
+
+            return True
+
+        return False
+
+    def _evaluate_required_conditions(self, parameter_values: Dict) -> bool:
+        """
+        Evaluate a list of condition objects to determine if parameter is required
+        
+        Keyword arguments:
+        parameter_values -- Dictionary of parameter values to check against
+
+        Returns:
+            True if all conditions are met (AND logic), False otherwise
+        """
+        for condition in self.required_conditions:
+            # Handle condition groups with their own operator
+            if "group_operator" in condition:
+
+                group_result = self._evaluate_condition_group(condition, parameter_values)
+
+                if not group_result:
+
+                    return False
+
+            # Handle individual conditions
+            elif not self._evaluate_single_condition(condition, parameter_values):
+                return False
+                
+        return True
+
+    def _evaluate_condition_group(self, group: Dict, parameter_values: Dict) -> bool:
+        """
+        Evaluate a group of conditions based on group_operator
+
+        Keyword arguments:
+        group -- Dictionary representing the group of conditions
+        parameter_values -- Dictionary of parameter values to check against
+            
+        Returns:
+            Result of evaluating the group
+        """
+        operator = group.get("group_operator", "and")
+
+        conditions = group.get("conditions", [])
+        
+        if operator == "or":
+            # OR logic - return True if any condition is True
+            return any(self._evaluate_single_condition(cond, parameter_values) 
+                      for cond in conditions)
+        else:
+            # Default to AND logic - return False if any condition is False
+            return all(self._evaluate_single_condition(cond, parameter_values) 
+                      for cond in conditions)
+
+    def _evaluate_single_condition(self, condition: Dict, parameter_values: Dict) -> bool:
+        """
+        Evaluate a single condition object
+        
+        Keyword arguments:
+        condition -- Dictionary representing the condition
+        parameter_values -- Dictionary of parameter values to check against
+
+        Returns:
+            Result of evaluating the condition
+        """
+        op = condition.get("operator", "equals")
+
+        param = condition.get("param")
+
+        value = condition.get("value")
+        
+        # Parameter doesn't exist in values
+        if param not in parameter_values:
+            return op == "not_exists"
+
+        param_value = parameter_values[param]
+
+        # Evaluate based on operator
+        if op == "exists":
+            return param_value is not None
+
+        elif op == "not_exists":
+            return param_value is None
+
+        elif op == "equals":
+            return param_value == value
+
+        elif op == "not_equals":
+            return param_value != value
+
+        elif op == "gt":
+            return param_value > value
+
+        elif op == "gte":
+            return param_value >= value
+
+        elif op == "lt":
+            return param_value < value
+
+        elif op == "lte":
+            return param_value <= value
+
+        elif op == "in":
+            return param_value in value
+
+        elif op == "not_in":
+            return param_value not in value
+
+        elif op == "contains":
+            return value in param_value
+
+        elif op == "starts_with":
+            return str(param_value).startswith(str(value))
+
+        elif op == "ends_with":
+            return str(param_value).endswith(str(value))
+        
+        # Unknown operator
+        return False
 
     def table_object_attribute(self) -> TableObjectAttribute:
         """
@@ -139,7 +424,7 @@ class SchemaAttribute:
             name=self.name,
             default=self.default_value,
             description=self.description,
-            optional=self.required
+            optional=not self.required
         )
 
     def to_dict(self) -> Dict:
@@ -306,23 +591,49 @@ class ObjectBodySchema:
 
         mismatched_types = []
 
+        compiled_values = {}
+    
+        # First, add all default values from schema attributes
+        for attribute in cls.attributes:
+            if not attribute.required:
+                compiled_values[attribute.name] = attribute.default_value
+
+        compiled_values.update(obj)
+
         for attribute in cls.attributes:
             value = obj.get(attribute.name)
 
             logging.debug(f'Validating attribute {attribute.name} with value {value} against type {attribute.type}')
 
-            if attribute.required:
+            if attribute.is_required(parameter_values=compiled_values):
                 if attribute.name not in obj or value is None:
                     logging.debug(f'Attribute {attribute.name} is missing entirely or has a None value')
 
                     missing_attributes.append(attribute.name)
 
-            elif value:
+            if value:
                 # Skip None values, as they are valid for optional attributes
                 if value is None:
                     continue
 
-                if attribute.type == SchemaAttributeType.OBJECT:
+                # Both enum and regex do not work together
+                if attribute.enum:
+                    if value not in attribute.enum:
+                        mismatched_types.append(f"{attribute.name} (value not in allowed enum values)")
+
+                        continue
+
+                elif attribute.regex_pattern and attribute.type == SchemaAttributeType.STRING:
+
+                    if not re.match(attribute.regex_pattern, value):
+                        mismatched_types.append(f"{attribute.name} (value does not match regex pattern {attribute.regex_pattern})")
+
+                        continue
+
+                if attribute.type == SchemaAttributeType.ANY:
+                    continue
+
+                elif attribute.type == SchemaAttributeType.OBJECT:
                     if isinstance(value, dict):
                         continue
 
@@ -345,9 +656,11 @@ class ObjectBodySchema:
 
                 elif attribute.type == SchemaAttributeType.OBJECT_LIST:
                     if isinstance(value, list):
-                        continue
+                        if len(value) > 0 and not isinstance(value[0], ObjectBody):
+                            mismatched_types.append(attribute.name)
 
-                    elif isinstance(value, ObjectBody):
+                            continue
+
                         object_schema = attribute.object_schema
 
                         for item in value:
@@ -397,6 +710,7 @@ class ObjectBodySchema:
         valid_obj = len(missing_attributes) == 0 and len(mismatched_types) == 0
 
         return ObjectBodyValidationResults(
+            validated_body=compiled_values,
             missing_attributes=missing_attributes,
             mismatched_types=mismatched_types,
             valid=valid_obj,
@@ -474,7 +788,7 @@ class UnknownAttributeSchema(ObjectBodySchema):
 class ObjectBody:
     _UNKNOWN_ATTR_SCHEMA = UnknownAttributeSchema
 
-    def __init__(self, body: Union[Dict, 'ObjectBody'], schema: Union[ObjectBodySchema, Type[ObjectBodySchema]] = None,
+    def __init__(self, body: Union[Dict, 'ObjectBody', None] = None, schema: Union[ObjectBodySchema, Type[ObjectBodySchema]] = None,
                  secret_masking_fn: Optional[Callable[[str], str]] = None):
         """
         ObjectBody is a class that represents an object in an event. It comes with support for nested validation
@@ -579,7 +893,7 @@ class ObjectBody:
 
         self.secret_masking_fn = secret_masking_fn
 
-        body_dict = body
+        body_dict = body or {}
 
         if isinstance(body, ObjectBody):
             body_dict = body.to_dict()
@@ -596,17 +910,18 @@ class ObjectBody:
         Returns:
             Loaded body
         """
+        if not body and self.schema == self._UNKNOWN_ATTR_SCHEMA:
+            return
+
         validation = self.schema.validate_object(body)
 
         if not validation.valid:
             raise InvalidObjectSchemaError(validation)
 
-        remaining_body = deepcopy(body)
+        remaining_body = validation.validated_body
 
         for attribute in self.schema.attributes:
-            if attribute.required and attribute.name not in body:
-                raise MissingAttributeError(attribute.name)
-
+            # Somewhat redundant since the default value should have been set during validation
             value = remaining_body.get(attribute.name, attribute.default_value)
 
             if attribute.secret and self.secret_masking_fn:
@@ -616,6 +931,7 @@ class ObjectBody:
                 value = ObjectBody(value, attribute.object_schema)
 
             elif attribute.type == SchemaAttributeType.OBJECT_LIST and value:
+
                 value = [ObjectBody(item, attribute.object_schema) for item in value]
 
             self.attributes[attribute.name] = ObjectBodyAttribute(
@@ -708,7 +1024,7 @@ class ObjectBody:
 
         return attribute_name in self.attributes or attribute_name in self.unknown_attributes
 
-    def get(self, attribute_name: str, default_return: Optional[Any] = None,
+    def get(self, attribute_name: str, *, default_return: Optional[Any] = None,
             secret_unmasking_fn: Optional[Callable[[str], str]] = None, strict: Optional[bool] = False) -> Any:
         """
         Get an attribute from the event body

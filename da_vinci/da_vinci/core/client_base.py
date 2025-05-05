@@ -24,6 +24,7 @@ class BaseClient:
     endpoint: str = None
     app_name: str = None
     deployment_id: str = None
+    resource_discovery_storage: str = None
 
     def __post_init__(self):
         if self.endpoint:
@@ -49,6 +50,7 @@ class AsyncClientBase(BaseClient):
     app_name: str = None
     deployment_id: str = None
     resource_type: str = ResourceType.ASYNC_SERVICE
+    resource_discovery_storage: str = None
 
     def __post_init__(self):
         super().__post_init__()
@@ -75,7 +77,7 @@ class RESTClientResponse:
     '''
     response: requests.Response
     status_code: int
-    response_body: Dict = None
+    response_body: Union[Dict, str] = None
 
 
 @dataclass
@@ -91,6 +93,7 @@ class RESTClientBase(BaseClient):
     disable_auth: bool = False
     raise_on_failure: bool = True
     resource_type: str = ResourceType.REST_SERVICE
+    resource_discovery_storage: str = None
 
     def __post_init__(self):
         super().__post_init__()
@@ -130,7 +133,7 @@ class RESTClientBase(BaseClient):
                     return RESTClientResponse(
                         response=response,
                         status_code=response.status_code,
-                        response_body=None,
+                        response_body=response.content,
                     )
 
             try:

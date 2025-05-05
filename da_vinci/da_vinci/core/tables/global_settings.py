@@ -105,8 +105,10 @@ class GlobalSetting(TableObject):
         """
         if self.setting_type == GlobalSettingType.BOOLEAN.name:
             return self.setting_value.lower() == 'true'
+
         elif self.setting_type == GlobalSettingType.FLOAT.name:
             return float(self.setting_value)
+
         elif self.setting_type == GlobalSettingType.INTEGER.name:
             return int(self.setting_value)
         

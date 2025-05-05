@@ -276,10 +276,8 @@ class ResourceDiscovery:
 
         except ssm.exceptions.ParameterNotFound:
             logger.error(f"Resource {self.resource_name} of type {self.resource_type} not found in SSM.")
-
             raise ResourceNotFoundError(resource_name=self.resource_name, resource_type=self.resource_type)
 
         except Exception as e:
             logger.exception(f"An error occurred while fetching resource {self.resource_name} of type {self.resource_type}: {e}")
-
             raise

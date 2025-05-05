@@ -8,16 +8,19 @@ from da_vinci.core.exceptions import (
 
 APP_NAME_ENV_NAME = 'DA_VINCI_APP_NAME'
 DEPLOYMENT_ID_ENV_NAME = 'DA_VINCI_DEPLOYMENT_ID'
+SERVICE_DISC_STOR_ENV_NAME = 'DA_VINCI_RESOURCE_DISCOVERY_STORAGE'
 
 
 REQUIRED_RUNTIME_VARIABLES = (
     APP_NAME_ENV_NAME,
     DEPLOYMENT_ID_ENV_NAME,
+    SERVICE_DISC_STOR_ENV_NAME,
 )
 
 __APP_USAGE_VAR_NAMES = {
     APP_NAME_ENV_NAME: 'app_name',
     DEPLOYMENT_ID_ENV_NAME: 'deployment_id',
+    SERVICE_DISC_STOR_ENV_NAME: 'resource_discovery_storage',
 }
 
 
@@ -30,7 +33,7 @@ def validate_expected_environment_variables():
             raise MissingRequiredRuntimeVariableError(f'Environment variable {env_name} not found')
 
 
-def runtime_environment_dict(app_name: str, deployment_id: str,
+def runtime_environment_dict(app_name: str, deployment_id: str, resource_discovery_storage: str,
                              log_level: Optional[str] = None) -> Dict:
     '''
     Return runtime environment variables as a dictionary
@@ -38,11 +41,13 @@ def runtime_environment_dict(app_name: str, deployment_id: str,
     Keyword Arguments:
         app_name: Name of the application
         deployment_id: Identifier assigned to the installation
+        resource_discovery_storage: Storage location for service discovery
         log_level: Logging level to use for the application (default: INFO)
     '''
     result = {
         APP_NAME_ENV_NAME: app_name,
         DEPLOYMENT_ID_ENV_NAME: deployment_id,
+        SERVICE_DISC_STOR_ENV_NAME: resource_discovery_storage,
     }
 
     if log_level:
