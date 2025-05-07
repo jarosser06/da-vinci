@@ -141,11 +141,7 @@ class RESTClientBase(BaseClient):
                 response_body = response.json()
 
             except json.JSONDecodeError as json_error:
-                if response.status_code == 204:
-                    # 204 No Content
                     response_body = None
-
-                raise ValueError(f'Failed to parse response body: {response.text}\n{json_error}')
 
         else:
             response_body = None
