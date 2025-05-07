@@ -22,20 +22,20 @@ Example:
         attributes=[
             SchemaAttribute(
                 name='my_string',
-                type=SchemaAttributeType.STRING,
+                type_name=SchemaAttributeType.STRING,
             ),
             SchemaAttribute(
                 name='my_number',
-                type=SchemaAttributeType.NUMBER,
+                type_name=SchemaAttributeType.NUMBER,
             ),
             SchemaAttribute(
                 name='execution_type',
-                type=SchemaAttributeType.STRING,
+                type_name=SchemaAttributeType.STRING,
                 enum=['type1', 'type2'],
             ),
             SchemaAttribute(
                 name='execution_type_2_req_arg',
-                type=SchemaAttributeType.STRING,
+                type_name=SchemaAttributeType.STRING,
                 required_conditions=[
                     {
                         'operator': 'equals',
@@ -46,7 +46,7 @@ Example:
             ),
             SchemaAttribute(
                 name='execution_type_2_opt_arg',
-                type=SchemaAttributeType.STRING,
+                type_name=SchemaAttributeType.STRING,
             ) 
         ]
     )
@@ -465,48 +465,48 @@ class ObjectBodySchema:
             attributes=[
                 SchemaAttribute(
                     name='my_string',
-                    type=SchemaAttributeType.STRING,
+                    type_name=SchemaAttributeType.STRING,
                 ),
                 SchemaAttribute(
                     name='my_number',
-                    type=SchemaAttributeType.NUMBER,
+                    type_name=SchemaAttributeType.NUMBER,
                 ),
                 SchemaAttribute(
                     name='my_bool',
-                    type=SchemaAttributeType.BOOLEAN,
+                    type_name=SchemaAttributeType.BOOLEAN,
                 ),
                 SchemaAttribute(
                     name='my_datetime',
-                    type=SchemaAttributeType.DATETIME,
+                    type_name=SchemaAttributeType.DATETIME,
                 ),
                 SchemaAttribute(
                     name='my_object',
-                    type=SchemaAttributeType.OBJECT,
+                    type_name=SchemaAttributeType.OBJECT,
                     object_schema=ObjectBodySchema(
                         attributes=[
                             SchemaAttribute(
                                 name='my_string',
-                                type=SchemaAttributeType.STRING,
+                                type_name=SchemaAttributeType.STRING,
                             ),
                         ]
                     )
                 ),
                 SchemaAttribute(
                     name='my_string_list',
-                    type=SchemaAttributeType.STRING_LIST,
+                    type_name=SchemaAttributeType.STRING_LIST,
                 ),
                 SchemaAttribute(
                     name='my_number_list',
-                    type=SchemaAttributeType.NUMBER_LIST,
+                    type_name=SchemaAttributeType.NUMBER_LIST,
                 ),
                 SchemaAttribute(
                     name='my_object_list',
-                    type=SchemaAttributeType.OBJECT_LIST,
+                    type_name=SchemaAttributeType.OBJECT_LIST,
                     object_schema=ObjectBodySchema(
                         attributes=[
                             SchemaAttribute(
                                 name='my_string',
-                                type=SchemaAttributeType.STRING,
+                                type_name=SchemaAttributeType.STRING,
                             ),
                         ]
                     )
@@ -794,7 +794,7 @@ class ObjectBodyUnknownAttribute(ObjectBodyAttribute):
         self.schema_attribute = SchemaAttribute(
             name=self.name,
             required=False,
-            type=schema_type,
+            type_name=schema_type,
         )
 
 
@@ -833,23 +833,23 @@ class ObjectBody:
                 attributes=[
                     SchemaAttribute(
                         name='my_string',
-                        type=SchemaAttributeType.STRING,
+                        type_name=SchemaAttributeType.STRING,
                     ),
                     SchemaAttribute(
                         name='my_number',
-                        type=SchemaAttributeType.NUMBER,
+                        type_name=SchemaAttributeType.NUMBER,
                     ),
                     SchemaAttribute(
                         name='my_bool',
-                        type=SchemaAttributeType.BOOLEAN,
+                        type_name=SchemaAttributeType.BOOLEAN,
                     ),
                     SchemaAttribute(
                         name='my_datetime',
-                        type=SchemaAttributeType.DATETIME,
+                        type_name=SchemaAttributeType.DATETIME,
                     ),
                     SchemaAttribute(
                         name='my_object',
-                        type=SchemaAttributeType.OBJECT,
+                        type_name=SchemaAttributeType.OBJECT,
                         object_schema=ObjectBodySchema(
                             attributes=[
                                 SchemaAttribute(
@@ -861,20 +861,20 @@ class ObjectBody:
                     ),
                     SchemaAttribute(
                         name='my_string_list',
-                        type=SchemaAttributeType.STRING_LIST,
+                        type_name=SchemaAttributeType.STRING_LIST,
                     ),
                     SchemaAttribute(
                         name='my_number_list',
-                        type=SchemaAttributeType.NUMBER_LIST,
+                        type_name=SchemaAttributeType.NUMBER_LIST,
                     ),
                     SchemaAttribute(
                         name='my_object_list',
-                        type=SchemaAttributeType.OBJECT_LIST,
+                        type_name=SchemaAttributeType.OBJECT_LIST,
                         object_schema=ObjectBodySchema(
                             attributes=[
                                 SchemaAttribute(
                                     name='my_string',
-                                    type=SchemaAttributeType.STRING,
+                                    type_name=SchemaAttributeType.STRING,
                                 ),
                             ]
                         )
