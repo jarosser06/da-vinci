@@ -262,7 +262,6 @@ class SchemaAttribute:
     required: bool = True
     required_conditions: List[Union[Dict, RequiredCondition, RequiredConditionGroup]] = None
     secret: bool = False
-    vanity_name: Optional[str] = None
 
     def __post_init__(self):
         """
@@ -614,9 +613,9 @@ class ObjectBodySchema:
 
             logging.debug(f'Validating attribute {attribute.name} with value {value} against type {actual_type_name}')
 
-            if hasattr(attribute, 'vanity_name') and attribute.vanity_name in cls.vanity_types:
+            if cls.vanity_types and attribute.type_name in cls.vanity_types:
 
-                actual_type_name = cls.vanity_types[attribute.vanity_name]
+                actual_type_name = cls.vanity_types[attribute.type_name]
 
             if attribute.is_required(parameter_values=compiled_values):
                 if attribute.name not in obj or value is None:
@@ -940,8 +939,8 @@ class ObjectBody:
 
             actual_type_name = attribute.type_name
 
-            if hasattr(attribute, 'vanity_name') and attribute.vanity_name in self.schema.vanity_types:
-                actual_type_name = self.schema.vanity_types[attribute.vanity_name]
+            if self.schema.vanity_types and attribute.type_name in self.schema.vanity_types:
+                actual_type_name = self.schema.vanity_types[attribute.type_name]
 
             if attribute.secret and self.secret_masking_fn:
                 value = self.secret_masking_fn(value)
