@@ -450,6 +450,8 @@ class ObjectBodySchema:
     Keyword Arguments:
         attributes: List of attributes in the schema
         description: Description of the schema
+        name: Name of the schema
+        vanity_types: Dictionary of vanity types
 
     Example:
         ```
@@ -532,16 +534,18 @@ class ObjectBodySchema:
         """
         attributes = []
 
-        for attribute in schema_dict.get('attributes', []):
+        for attribute in schema_dict.get("attributes", []):
             attributes.append(SchemaAttribute(**attribute))
 
         obj_klass = type(object_name, (cls,), {})
 
         obj_klass.attributes = attributes
 
-        obj_klass.description = schema_dict.get('description')
+        obj_klass.description = schema_dict.get("description")
 
-        obj_klass.name=schema_dict.get('name')
+        obj_klass.name=schema_dict.get("name")
+
+        obj_klass.vanity_types = schema_dict.get("vanity_types")
 
         return obj_klass
 
@@ -554,9 +558,10 @@ class ObjectBodySchema:
             Dictionary representation of the schema
         """
         return {
-            'attributes': [attribute.to_dict() for attribute in cls.attributes],
-            'description': cls.description,
-            'name': cls.name,
+            "attributes": [attribute.to_dict() for attribute in cls.attributes],
+            "description": cls.description,
+            "name": cls.name,
+            "vanity_types": cls.vanity_types,
         }
 
     @classmethod
