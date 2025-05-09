@@ -928,24 +928,29 @@ class ObjectBody:
         Returns:
             Loaded body
         """
-        if not body and self.schema == self._UNKNOWN_ATTR_SCHEMA:
+        schema = self.schema
+
+        if schema is None:
+            schema = self._UNKNOWN_ATTR_SCHEMA
+
+        if not body and schema == self._UNKNOWN_ATTR_SCHEMA:
             return
 
-        validation = self.schema.validate_object(body)
+        validation = schema.validate_object(body)
 
         if not validation.valid:
             raise InvalidObjectSchemaError(validation)
 
         remaining_body = validation.validated_body
 
-        for attribute in self.schema.attributes:
+        for attribute in schema.attributes:
             # Somewhat redundant since the default value should have been set during validation
             value = remaining_body.get(attribute.name, attribute.default_value)
 
             actual_type_name = attribute.type_name
 
-            if self.schema.vanity_types and attribute.type_name in self.schema.vanity_types:
-                actual_type_name = self.schema.vanity_types[attribute.type_name]
+            if schema.vanity_types and attribute.type_name in schema.vanity_types:
+                actual_type_name = schema.vanity_types[attribute.type_name]
 
             if attribute.secret and self.secret_masking_fn:
                 value = self.secret_masking_fn(value)
