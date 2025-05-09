@@ -683,6 +683,9 @@ class ObjectBodySchema:
                         object_schema = attribute.object_schema
 
                         for item in value:
+                            if not object_schema:
+                                continue
+
                             results = object_schema.validate_object(item)
 
                             if not results.valid:
