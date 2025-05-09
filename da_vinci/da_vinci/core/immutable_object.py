@@ -370,7 +370,7 @@ class SchemaAttribute:
         value = condition.get("value")
         
         # Parameter doesn't exist in values
-        if param not in parameter_values:
+        if param not in parameter_values or parameter_values[param] is None:
             return op == "not_exists"
 
         param_value = parameter_values[param]
