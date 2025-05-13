@@ -152,6 +152,7 @@ class SchemaAttributeType(StrEnum):
     BOOLEAN = auto()
     DATETIME = auto()
     OBJECT = auto()
+    LIST = auto()
     STRING_LIST = auto()
     NUMBER_LIST = auto()
     OBJECT_LIST = auto()
@@ -181,7 +182,7 @@ class SchemaAttributeType(StrEnum):
         elif self == SchemaAttributeType.OBJECT:
             return TableObjectAttributeType.JSON_STRING
 
-        elif self == SchemaAttributeType.STRING_LIST:
+        elif self == SchemaAttributeType.STRING_LIST or self == SchemaAttributeType.LIST:
             return TableObjectAttributeType.STRING_LIST
 
         elif self == SchemaAttributeType.NUMBER_LIST:
@@ -672,6 +673,12 @@ class ObjectBodySchema:
 
                     else:
                         mismatched_types.append(attribute.name)
+
+                elif actual_type_name == SchemaAttributeType.LIST:
+                    if not isinstance(value, list):
+                        mismatched_types.append(attribute.name)
+
+                        continue
 
                 elif actual_type_name == SchemaAttributeType.OBJECT_LIST:
                     if isinstance(value, list):
