@@ -6,11 +6,13 @@ from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from functools import wraps
 from os import getenv
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 from da_vinci.core.client_base import RESTClientBase
 from da_vinci.core.json import DaVinciObjectEncoder
 from da_vinci.core.logging import Logger
+
+from da_vinci.core.immutable_object import ObjectBody
 
 
 EXCEPTION_TRAP_ENV_VAR = 'DaVinciFramework_ExceptionTrapEnabled'
@@ -66,8 +68,8 @@ class ExceptionReporter(RESTClientBase):
         super().__init__(resource_name='exceptions_trap')
 
     def report(self, function_name: str, exception: str, exception_traceback: str,
-                originating_event: Dict, metadata: Optional[Dict] = None,
-                 log_execution_id: Optional[str] = None, log_namespace: Optional[str] = None):
+               originating_event: Union[Dict, ObjectBody], metadata: Optional[Union[Dict, ObjectBody]] = None,
+               log_execution_id: Optional[str] = None, log_namespace: Optional[str] = None):
         """
         Report an exception to the exception trap
 
@@ -80,6 +82,10 @@ class ExceptionReporter(RESTClientBase):
             metadata: Any additional metadata about the exception
             originating_event: The event that caused the exception
         """
+        originating_event = originating_event.to_dict() if isinstance(originating_event, ObjectBody) else originating_event
+
+        metadata = metadata.to_dict() if isinstance(metadata, ObjectBody) else metadata
+
         req_body = ReportedException(
             exception=exception,
             exception_traceback=exception_traceback,
