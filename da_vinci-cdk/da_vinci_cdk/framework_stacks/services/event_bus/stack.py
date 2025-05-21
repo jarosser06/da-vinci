@@ -58,6 +58,7 @@ class EventBusStack(Stack):
 
         self.bus_service = AsyncService(
             base_image=self.library_base_image,
+            architecture=architecture,
             description='Invokes functions with event bodies from the event bus',
             entry=self.runtime_path,
             handler='handler',
@@ -89,6 +90,7 @@ class EventBusStack(Stack):
 
         self.bus_watcher = SimpleRESTService(
             base_image=self.library_base_image,
+            architecture=architecture,
             description='Handles responses from functions executed from the event bus',
             entry=self.runtime_path,
             handler='api',

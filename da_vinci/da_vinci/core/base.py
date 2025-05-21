@@ -1,4 +1,4 @@
-
+GLOBAL_SETTINGS_TABLE_NAME = 'da_vinci_global_settings'
 
 def standard_aws_resource_name(app_name: str, deployment_id: str, name: str):
     """

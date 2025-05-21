@@ -39,6 +39,9 @@ from da_vinci_cdk.stack import Stack
 
 DA_VINCI_DISABLE_DOCKER_CACHE = getenv('DA_VINCI_DISABLE_DOCKER_CACHE', False)
 
+DA_VINCI_DOCKER_BASE_IMAGE='public.ecr.aws/lambda/python:3.12'
+
+DA_VINCI_DOCKER_BASE_IMAGE_x86='public.ecr.aws/lambda/python:3.12-x86_64'
 
 class CoreStack(Stack):
     def __init__(self, app_name: str, deployment_id: str, scope: Construct, stack_name: str,
@@ -232,6 +235,9 @@ class Application:
         self.lib_docker_image = DockerImage.from_build(
             cache_disabled=disable_docker_image_cache,
             path=self.lib_container_entry,
+            build_args={
+                'IMAGE': DA_VINCI_DOCKER_BASE_IMAGE if architecture == cdk_lambda.Architecture.ARM_64 else DA_VINCI_DOCKER_BASE_IMAGE_x86,
+            }
         )
 
         if app_entry:
@@ -371,7 +377,7 @@ class Application:
     def add_uninitialized_stack(self, stack: Stack,
                                 include_core_dependencies: Optional[bool] = True) -> Stack:
         """
-        Add a new unintialized stack to the application. This is useful for
+        Add a new uninitialized stack to the application. This is useful for
         adding stacks that take standard parameters.
 
         Keyword Arguments:
