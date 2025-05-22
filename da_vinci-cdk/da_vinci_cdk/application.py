@@ -474,6 +474,8 @@ class SideCarApplication:
 
         self.deployment_id = deployment_id
 
+        self._stacks = {}
+
         self.lib_docker_image = DockerImage.from_build(
             cache_disabled=disable_docker_image_cache,
             path=self.lib_container_entry,
@@ -496,24 +498,31 @@ class SideCarApplication:
         else:
             self.app_docker_image = None
 
-        self._stacks = {}
+        parent_context = self._get_parent_context_values()
+
+        side_car_context = {
+            "app_name": self.app_name,
+            "architecture": self.architecture,
+            "deployment_id": self.deployment_id,
+            "global_settings_enabled": True,
+            "log_level": log_level,
+            "sidecar_app_name": self.sidecar_app_name,
+        }
+
+        for key, value in parent_context.items():
+            if key not in side_car_context:
+                side_car_context[key] = value
+
+        if side_car_context["resource_discovery_storage_solution"] == ResourceDiscoveryStorageSolution.DYNAMODB:
+            side_car_context["resource_discovery_table_name"] = ResourceRegistrationTblObject.table_name
 
         self.cdk_app = CDKApp(
-            context={
-                "app_name": self.app_name,
-                "architecture": self.architecture,
-                "deployment_id": self.deployment_id,
-                "global_settings_enabled": True,
-                "log_level": log_level,
-                "sidecar_app_name": self.sidecar_app_name,
-            }
+            context=side_car_context,
         )
 
         self.dependency_stacks = []
 
-        self._set_parent_context_values()
-
-    def _set_parent_context_values(self) -> Dict:
+    def _get_parent_context_values(self) -> Dict:
         """
         Set the context values using values from the parent application
         """
@@ -526,28 +535,25 @@ class SideCarApplication:
             "event_bus_enabled",
             "exception_trap_enabled",
             "resource_discovery_storage_solution",
-            "resource_discovery_table_name",
             "root_domain_name",
             "s3_logging_bucket",
         ]
 
+        results = {}
+
         for key in required_context_keys:
-            try:
-                setting_result = global_settings_tbl.get(
-                    namespace='da_vinci_framework::core',
-                    setting_key=key,
-                )
+            setting_result = global_settings_tbl.get(
+                namespace='da_vinci_framework::core',
+                setting_key=key,
+            )
 
-                if not setting_result:
-                    value = None
+            if not setting_result:
+                results[key] = None
 
-                else:
-                    value=setting_result.value_as_type()
+            else:
+                results[key] = setting_result.value_as_type()
 
-                self.cdk_app.node.set_context(key=key, value=value)
-
-            except Exception as e:
-                raise ValueError(f'Unable to set CDK application context value for "{key}"') from e
+        return results
 
     @staticmethod
     def generate_stack_name(stack: Stack) -> str:

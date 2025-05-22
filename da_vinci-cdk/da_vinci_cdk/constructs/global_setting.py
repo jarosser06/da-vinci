@@ -129,7 +129,6 @@ class GlobalSettingLookup(Construct):
             parameters={
                 'Key': self.item_key,
                 'TableName': self.full_table_name,
-                'ConsistentRead': True
             },
             physical_resource_id=PhysicalResourceId.of(
                 f'{self.namespace}-{self.setting_key}-lookup'
