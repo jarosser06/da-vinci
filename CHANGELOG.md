@@ -8,6 +8,8 @@ Changelog
 - Add support for conditional required attributes in immutable object
 - Add support for service discovery backed by DynamoDB
 - Rename Da Vinci Tables by prepending `da_vinci`
+- Add support for side car applications
+- (**Potentially Breaking**) Normalized Object Body to operate more similar to a native dictionary
 - (**Potentially Breaking**) Remove global_setting toggle, global setting is now required
 - (**Potentially Breaking**) Remove `__init__.py` from ORM, Object classes can be accessed from client import `da_vinci.core.orm.client`
 
