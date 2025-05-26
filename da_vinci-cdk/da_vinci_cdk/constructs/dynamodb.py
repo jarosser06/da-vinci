@@ -148,17 +148,17 @@ class DynamoDBTable(Construct):
         )
 
         for policy_name in ('read', 'default'):
-            read_policy_stements = [
+            read_policy_statements = [
                 self.read_access_statement,
             ]
 
             if not exclude_from_discovery:
-                read_policy_stements.append(self._discovery_resource.access_statement)
+                read_policy_statements.append(self._discovery_resource.access_statement)
 
             self.read_access_policy = ResourceAccessPolicy(
                 scope=scope,
                 policy_name=policy_name,
-                policy_statements=read_policy_stements,
+                policy_statements=read_policy_statements,
                 resource_name=table_name,
                 resource_type=ResourceType.TABLE,
             )
