@@ -28,16 +28,22 @@ def custom_type_name(name: str, prefix: Optional[str] = 'DaVinci',
     return f'Custom::{prefix}{separator}{name}'
 
 
-def resource_namer(name: str, scope: Construct):
+def resource_namer(name: str, scope: Construct, app_name: Optional[str] = None,
+                   deployment_id: Optional[str] = None) -> str:
     """
     Generate a name for a resource by adding a prefix of app_name-deployment_id
 
     Keyword Arguments:
-        name: The base name of the resource
+    name -- The name of the resource
+    scope -- The scope of the construct
+    app_name -- The name of the application (optional, defaults to context value)
+    deployment_id -- The deployment ID (optional, defaults to context value)
     """
-    app_name = scope.node.get_context('app_name')
+    if not app_name:
+        app_name = scope.node.get_context('app_name')
 
-    deployment_id = scope.node.get_context('deployment_id')
+    if not deployment_id:
+        deployment_id = scope.node.get_context('deployment_id')
     
     return standard_aws_resource_name(app_name, deployment_id, name)
 

@@ -18,7 +18,7 @@ from aws_cdk import (
 
 from constructs import Construct
 
-from da_vinci.core.global_settings import GlobalSettings
+from da_vinci.core.global_settings import GlobalSettings, GlobalSetting as GlobalSettingTblObj
 from da_vinci.core.resource_discovery import ResourceDiscoveryStorageSolution
 
 from da_vinci_cdk.constructs.base import resource_namer
@@ -529,6 +529,12 @@ class SideCarApplication:
         global_settings_tbl = GlobalSettings(
             app_name=self.app_name,
             deployment_id=self.deployment_id,
+            table_endpoint_name=resource_namer(
+                app_name=self.app_name,
+                deployment_id=self.deployment_id,
+                name=GlobalSettingTblObj.table_name,
+                scope=self
+            )
         )
 
         required_context_keys = [
