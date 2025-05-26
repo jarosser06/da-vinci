@@ -111,7 +111,11 @@ class GlobalSetting(TableObject):
 
         elif self.setting_type == GlobalSettingType.INTEGER.name:
             return int(self.setting_value)
-        
+
+        # Capture string None as Python None
+        elif self.setting_value == "None":
+            return None
+
         return self.setting_value
 
 

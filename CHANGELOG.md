@@ -2,6 +2,7 @@ Changelog
 =========
 
 ### 2025.4.20 (Unreleased)
+- Global Setting as value method converts string `None` to Python null object
 - Add support for initializing an empty ObjectBody
 - Fix ORM client update method to use proper DynamoDB Key names
 - Add support for regex validation of immutable objects
