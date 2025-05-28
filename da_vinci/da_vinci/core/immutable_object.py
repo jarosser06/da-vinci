@@ -1062,7 +1062,7 @@ class ObjectBody:
 
         return attribute_name in self.attributes or attribute_name in self.unknown_attributes
 
-    def get(self, attribute_name: str, *, default_return: Optional[Any] = None,
+    def get(self, attribute_name: str, default_return: Optional[Any] = None,
             secret_unmasking_fn: Optional[Callable[[str], str]] = None, strict: Optional[bool] = False) -> Any:
         """
         Get an attribute from the event body
