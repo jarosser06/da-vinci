@@ -173,6 +173,7 @@ class Application:
     def __init__(self, app_name: str, deployment_id: str,
                  app_entry: Optional[str] = None, app_image_use_lib_base: Optional[bool] = True,
                  architecture: Optional[str] = cdk_lambda.Architecture.ARM_64,
+                 custom_context: Optional[Dict] = None,
                  create_hosted_zone: Optional[bool] = False, disable_docker_image_cache: Optional[bool] = DA_VINCI_DISABLE_DOCKER_CACHE,
                  enable_exception_trap: Optional[bool] = True, enable_logging_bucket: Optional[bool] = False,
                  enable_event_bus: Optional[bool] = False, existing_s3_logging_bucket_name: Optional[str] = None,
@@ -284,6 +285,7 @@ class Application:
         context = {
             'app_name': self.app_name,
             'architecture': self.architecture,
+            'custom_context': custom_context or {},
             'deployment_id': self.deployment_id,
             'global_settings_enabled': True,
             's3_logging_bucket': s3_logging_bucket_name,
