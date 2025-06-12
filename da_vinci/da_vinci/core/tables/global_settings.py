@@ -11,7 +11,7 @@ from da_vinci.core.orm.client import (
     TableObjectAttributeType,
     TableScanDefinition,
 )
-
+from da_vinci.core.base import GLOBAL_SETTINGS_TABLE_NAME
 
 class GlobalSettingType(StrEnum):
     """Setting Types"""
@@ -23,7 +23,7 @@ class GlobalSettingType(StrEnum):
 
 class GlobalSetting(TableObject):
     description = 'Application Settings'
-    table_name = 'da_vinci_global_settings'
+    table_name = GLOBAL_SETTINGS_TABLE_NAME
 
     partition_key_attribute = TableObjectAttribute(
         name='namespace',

@@ -5,9 +5,9 @@ from da_vinci.core.exceptions import GlobalSettingsNotEnabledError, GlobalSettin
 from da_vinci.core.orm.client import TableClient
 from da_vinci.core.tables.global_settings import GlobalSetting, GlobalSettings
 
-
 SETTINGS_ENABLED_VAR_NAME = 'DaVinciFramework_GlobalSettingsEnabled'
 
+cache = {}
 
 def global_settings_available() -> bool:
     """
@@ -26,7 +26,7 @@ def global_settings_available() -> bool:
     )
 
 
-def setting_value(namespace: str, setting_key: str) -> Union[Any, None]:
+def setting_value(namespace: str, setting_key: str, skip_cache: bool = False) -> Union[Any, None]:
     """
     Retrieve a setting value as the correct Python type, given
     a namespace and key
@@ -35,6 +35,10 @@ def setting_value(namespace: str, setting_key: str) -> Union[Any, None]:
         setting_key: The setting key
         namespace: The namespace of the setting
     """
+    cache_key = f'{namespace}.{setting_key}'
+    if not skip_cache and cache_key in cache:
+        return cache[cache_key]
+
     if not global_settings_available():
         raise GlobalSettingsNotEnabledError()
 
@@ -46,7 +50,10 @@ def setting_value(namespace: str, setting_key: str) -> Union[Any, None]:
     )
 
     if setting:
-        return setting.value_as_type()
+        value = setting.value_as_type()
+        if not skip_cache:
+            cache[cache_key] = value
+        return value
     else:
         raise GlobalSettingNotFoundError(
             namespace=namespace,

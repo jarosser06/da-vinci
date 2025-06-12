@@ -8,10 +8,9 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-boto3 = "^1.37.13"
+boto3 = "^1.38.0"
 requests = "^2.32.3"
 requests-auth-aws-sigv4 = "0.7"
-
 
 [build-system]
 requires = ["poetry-core"]

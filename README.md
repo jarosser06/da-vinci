@@ -50,14 +50,16 @@ Check the [Changelog](CHANGELOG.md) for specifics about what changed.
 ### Example Da Vinci CDK Application
 
 ```python
-from da_vinci_cdk.application
+from da_vinci_cdk.application import Application
 
 env = 'prototype'
 
 app = Application(
     app_name='my_app',
-    install_id=f'rosser-{env}',
+    deployment_id=f'{env}',
 )
+
+app.add_uninitialized_stack(MyAppStack)
 
 app.synth()
 ```

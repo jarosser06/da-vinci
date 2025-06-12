@@ -1,22 +1,30 @@
 '''Resource Discovery Module'''
 import logging
 import time
+import os
+
 from enum import StrEnum
 from typing import Optional, Union
 
 import boto3
 
-from da_vinci.core.base import standard_aws_resource_name
+from da_vinci.core.base import (
+    GLOBAL_SETTINGS_TABLE_NAME,
+    standard_aws_resource_name
+)
 from da_vinci.core.execution_environment import (
     APP_NAME_ENV_NAME,
     DEPLOYMENT_ID_ENV_NAME,
-    SERVICE_DISC_STOR_ENV_NAME,
     load_runtime_environment_variables
 )
 from da_vinci.core.exceptions import ResourceNotFoundError
 from da_vinci.core.tables.resource_registry import ResourceRegistration
 
+logger = logging.getLogger(__name__)
+
 SSM_SERVICE_DISCOVERY_PREFIX = '/da_vinci_framework/service_discovery'
+
+RESOURCE_DISCOVERY_STORAGE_SOLUTION_VAR_NAME = 'DaVinciFramework_ResourceDiscoveryStorageSolution'
 
 # Cache setup
 cache = {}
@@ -25,7 +33,6 @@ CACHE_TTL = 300  # Cache Time-to-Live in seconds (5 minutes)
 
 cache_timestamps = {}
 
-
 class ResourceType(StrEnum):
     '''Resource types registered with service discovery'''
     ASYNC_SERVICE = 'async_service'
@@ -33,13 +40,12 @@ class ResourceType(StrEnum):
     DOMAIN = 'domain'
     REST_SERVICE = 'rest_service'
     TABLE = 'table'
-
+    LLM = 'llm'
 
 class ResourceDiscoveryStorageSolution(StrEnum):
     '''Resource discovery storage solutions'''
     DYNAMODB = 'dynamodb'
     SSM = 'ssm'
-
 
 class ResourceDiscovery:
     def __init__(self, resource_type: Union[ResourceType, str], resource_name: str,
@@ -58,8 +64,6 @@ class ResourceDiscovery:
 
         self.deployment_id = deployment_id
 
-        self.storage_solution = storage_solution
-
         lookup_values = []
 
         if not self.app_name:
@@ -67,9 +71,6 @@ class ResourceDiscovery:
 
         if not self.deployment_id:
             lookup_values.append(DEPLOYMENT_ID_ENV_NAME)
-
-        if not self.storage_solution:
-            lookup_values.append(SERVICE_DISC_STOR_ENV_NAME)
 
         if lookup_values:
             env_vars = load_runtime_environment_variables(variable_names=lookup_values)
@@ -80,12 +81,54 @@ class ResourceDiscovery:
             if not self.deployment_id:
                 self.deployment_id = env_vars['deployment_id']
 
-            if not self.storage_solution:
-                self.storage_solution = env_vars['resource_discovery_storage']
-
         self.resource_type = resource_type
 
         self.resource_name = resource_name
+
+        self.storage_solution = self._get_storage_solution(storage_solution)
+
+    def _get_storage_solution(self, storage_solution: ResourceDiscoveryStorageSolution = None) -> ResourceDiscoveryStorageSolution:
+        """
+        Get the storage solution for resource discovery. First we check the the environment variable.
+        If not present, we check the global settings table.
+        If not set, default to SSM.
+        """
+        if storage_solution:
+            logger.info(f'Using hard coded resource discovery storage solution {storage_solution}')
+            return storage_solution
+        
+        if RESOURCE_DISCOVERY_STORAGE_SOLUTION_VAR_NAME in os.environ:
+            storage_solution = ResourceDiscoveryStorageSolution(os.environ[RESOURCE_DISCOVERY_STORAGE_SOLUTION_VAR_NAME])
+            logger.info(f'Using environment variable resource discovery storage solution {storage_solution}')
+            return storage_solution
+
+        return self._setting_value_discovery_bypass()
+
+    def _setting_value_discovery_bypass(self) -> ResourceDiscoveryStorageSolution:
+        table_name = standard_aws_resource_name(
+            app_name=self.app_name,
+            deployment_id=self.deployment_id,
+            name=GLOBAL_SETTINGS_TABLE_NAME
+            )
+        
+        logger.debug(f'Looking up resource discovery storage solution on table {table_name}')
+
+        dynamodb = boto3.client('dynamodb')
+
+        response = dynamodb.get_item(
+                    TableName=table_name,
+                    Key={
+                        'Namespace': {'S': 'da_vinci_framework::core'},
+                        'SettingKey': {'S': 'resource_discovery_storage_solution'}
+                    })
+
+        if 'Item' in response and 'SettingValue' in response['Item']:
+            storage_solution = ResourceDiscoveryStorageSolution(response['Item']['SettingValue']['S'])
+            logger.info(f'Using global settings resource discovery storage solution {storage_solution}')
+            return storage_solution
+
+        logger.info(f'No resource discovery storage solution found in global settings, defaulting to SSM')
+        return ResourceDiscoveryStorageSolution.SSM
 
     @classmethod
     def ssm_parameter_name(cls, resource_type: Union[ResourceType, str], resource_name: str,
@@ -114,8 +157,6 @@ class ResourceDiscovery:
         '''
         Return the endpoint for a resource registered with service discovery.
         '''
-        logging.info(f"Endpoint lookup using storage solution: {self.storage_solution}")
-
         if self.storage_solution == ResourceDiscoveryStorageSolution.DYNAMODB:
             return self.service_registry_table_lookup()
 
@@ -138,11 +179,11 @@ class ResourceDiscovery:
         current_time = time.time()
 
         if cache_key in cache and (current_time - cache_timestamps[cache_key] < CACHE_TTL):
-            logging.info(f"Cache hit for resource: {self.resource_name} of type {self.resource_type} in DynamoDB")
+            logger.info(f"Cache hit for resource: {self.resource_name} of type {self.resource_type} in DynamoDB")
 
             return cache[cache_key]
         
-        logging.info(f"Cache miss for resource: {self.resource_name} of type {self.resource_type} in DynamoDB")
+        logger.info(f"Cache miss for resource: {self.resource_name} of type {self.resource_type} in DynamoDB")
         
         # Determine table name using the same convention as in the ORM
         table_name = standard_aws_resource_name(
@@ -151,8 +192,8 @@ class ResourceDiscovery:
             name=ResourceRegistration.table_name
         )
 
-        logging.info(f"Using DynamoDB table: {table_name} for resource discovery")
-        
+        logger.debug(f'Resource discovery table name: {table_name}')
+
         # Create direct DynamoDB client
         dynamodb = boto3.client('dynamodb')
 
@@ -175,17 +216,17 @@ class ResourceDiscovery:
 
                 cache_timestamps[cache_key] = current_time
                 
-                logging.info(f"Resource {self.resource_name} of type {self.resource_type} fetched from DynamoDB and cached.")
+                logger.info(f"Resource {self.resource_name} of type {self.resource_type} fetched from DynamoDB and cached.")
 
                 return endpoint
 
             else:
-                logging.error(f"Resource {self.resource_name} of type {self.resource_type} not found in DynamoDB.")
+                logger.error(f"Resource {self.resource_name} of type {self.resource_type} not found in DynamoDB.")
 
                 raise ResourceNotFoundError(resource_name=self.resource_name, resource_type=self.resource_type)
         
         except Exception as e:
-            logging.exception(f"An error occurred while fetching resource {self.resource_name} of type {self.resource_type} from DynamoDB: {e}")
+            logger.exception(f"An error occurred while fetching resource {self.resource_name} of type {self.resource_type} from DynamoDB table {table_name}: {e}")
 
             raise
 
@@ -213,11 +254,11 @@ class ResourceDiscovery:
         current_time = time.time()
 
         if param_name in cache and (current_time - cache_timestamps[param_name] < CACHE_TTL):
-            logging.info(f"Cache hit for resource: {self.resource_name} of type {self.resource_type}")
+            logger.info(f"Cache hit for resource: {self.resource_name} of type {self.resource_type}")
 
             return cache[param_name]
 
-        logging.info(f"Cache miss for resource: {self.resource_name} of type {self.resource_type}")
+        logger.info(f"Cache miss for resource: {self.resource_name} of type {self.resource_type}")
 
         ssm = boto3.client('ssm')
 
@@ -229,16 +270,14 @@ class ResourceDiscovery:
 
             cache_timestamps[param_name] = current_time
 
-            logging.info(f"Resource {self.resource_name} of type {self.resource_type} fetched from SSM and cached.")
+            logger.info(f"Resource {self.resource_name} of type {self.resource_type} fetched from SSM and cached.")
 
             return results['Parameter']['Value']
 
         except ssm.exceptions.ParameterNotFound:
-            logging.error(f"Resource {self.resource_name} of type {self.resource_type} not found in SSM.")
-
+            logger.error(f"Resource {self.resource_name} of type {self.resource_type} not found in SSM.")
             raise ResourceNotFoundError(resource_name=self.resource_name, resource_type=self.resource_type)
 
         except Exception as e:
-            logging.exception(f"An error occurred while fetching resource {self.resource_name} of type {self.resource_type}: {e}")
-
+            logger.exception(f"An error occurred while fetching resource {self.resource_name} of type {self.resource_type}: {e}")
             raise
