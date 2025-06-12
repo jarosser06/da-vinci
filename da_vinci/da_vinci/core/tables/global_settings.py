@@ -111,7 +111,11 @@ class GlobalSetting(TableObject):
 
         elif self.setting_type == GlobalSettingType.INTEGER.name:
             return int(self.setting_value)
-        
+
+        # Capture string None as Python None
+        elif self.setting_value == "None":
+            return None
+
         return self.setting_value
 
 
@@ -121,11 +125,21 @@ class GlobalSettingsScanDefinition(TableScanDefinition):
 
 
 class GlobalSettings(TableClient):
-    def __init__(self, app_name: Optional[str] = None, deployment_id: Optional[str] = None):
+    def __init__(self, app_name: Optional[str] = None, deployment_id: Optional[str] = None,
+                 table_endpoint_name: Optional[str] = None):
+        """
+        Global Settings Table Definitions
+
+        Keyword arguments:
+        app_name -- The name of the application
+        deployment_id -- The deployment ID
+        table_endpoint_name -- The endpoint name for the table
+        """
         super().__init__(
             default_object_class=GlobalSetting,
             app_name=app_name,
             deployment_id=deployment_id,
+            table_endpoint_name=table_endpoint_name,
         )
 
     def all(self) -> List[GlobalSetting]:

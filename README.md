@@ -66,4 +66,5 @@ app.synth()
 
 ### Example Applications
 
-[Caylent's Omnilake](https://github.com/caylent/omnilake) is the best current example application/framework that was built using the Da Vinci framework. It makes use of almost every major feature of the framework, including several examples of usage with the ORM.
+[Ratio](https://github.com/jarosser06/ratio) is the best current example application/framework that
+was built using the Da Vinci framework.

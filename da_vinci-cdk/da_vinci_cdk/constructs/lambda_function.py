@@ -121,7 +121,7 @@ class LambdaFunction(Construct):
 
         environment[EXCEPTION_TRAP_ENV_VAR] = str(exception_trap_enabled)
 
-        s3_logging_bucket_name = scope.node.try_get_context('s3_logging_bucket_name') or None
+        s3_logging_bucket_name = scope.node.try_get_context('s3_logging_bucket') or None
 
         if s3_logging_bucket_name:
             environment['DA_VINCI_S3_LOGGING_BUCKET'] = s3_logging_bucket_name

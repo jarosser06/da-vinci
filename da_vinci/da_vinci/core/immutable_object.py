@@ -22,20 +22,20 @@ Example:
         attributes=[
             SchemaAttribute(
                 name='my_string',
-                type=SchemaAttributeType.STRING,
+                type_name=SchemaAttributeType.STRING,
             ),
             SchemaAttribute(
                 name='my_number',
-                type=SchemaAttributeType.NUMBER,
+                type_name=SchemaAttributeType.NUMBER,
             ),
             SchemaAttribute(
                 name='execution_type',
-                type=SchemaAttributeType.STRING,
+                type_name=SchemaAttributeType.STRING,
                 enum=['type1', 'type2'],
             ),
             SchemaAttribute(
                 name='execution_type_2_req_arg',
-                type=SchemaAttributeType.STRING,
+                type_name=SchemaAttributeType.STRING,
                 required_conditions=[
                     {
                         'operator': 'equals',
@@ -46,7 +46,7 @@ Example:
             ),
             SchemaAttribute(
                 name='execution_type_2_opt_arg',
-                type=SchemaAttributeType.STRING,
+                type_name=SchemaAttributeType.STRING,
             ) 
         ]
     )
@@ -93,6 +93,11 @@ from da_vinci.core.orm.client import (
 class MissingAttributeError(Exception):
     def __init__(self, attribute_name: str):
         super().__init__(f'Missing required attribute {attribute_name}')
+
+
+class SchemaDeclarationError(Exception):
+    def __init__(self, message: str):
+        super().__init__(f'Schema declaration error: {message}')
 
 
 @dataclass
@@ -147,6 +152,7 @@ class SchemaAttributeType(StrEnum):
     BOOLEAN = auto()
     DATETIME = auto()
     OBJECT = auto()
+    LIST = auto()
     STRING_LIST = auto()
     NUMBER_LIST = auto()
     OBJECT_LIST = auto()
@@ -176,7 +182,7 @@ class SchemaAttributeType(StrEnum):
         elif self == SchemaAttributeType.OBJECT:
             return TableObjectAttributeType.JSON_STRING
 
-        elif self == SchemaAttributeType.STRING_LIST:
+        elif self == SchemaAttributeType.STRING_LIST or self == SchemaAttributeType.LIST:
             return TableObjectAttributeType.STRING_LIST
 
         elif self == SchemaAttributeType.NUMBER_LIST:
@@ -247,7 +253,7 @@ class SchemaAttribute:
         required: Whether the attribute is required
     """
     name: str
-    type: SchemaAttributeType
+    type_name: SchemaAttributeType
     default_value: Any = None
     description: str = None
     enum: List[Any] = None
@@ -365,7 +371,7 @@ class SchemaAttribute:
         value = condition.get("value")
         
         # Parameter doesn't exist in values
-        if param not in parameter_values:
+        if param not in parameter_values or parameter_values[param] is None:
             return op == "not_exists"
 
         param_value = parameter_values[param]
@@ -420,8 +426,8 @@ class SchemaAttribute:
         """
 
         return TableObjectAttribute(
-            attribute_type=self.type.table_object_attribute_type,
-            name=self.name,
+            attribute_type=self.type_name.table_object_attribute_type,
+            type_name=self.name,
             default=self.default_value,
             description=self.description,
             optional=not self.required
@@ -445,6 +451,8 @@ class ObjectBodySchema:
     Keyword Arguments:
         attributes: List of attributes in the schema
         description: Description of the schema
+        name: Name of the schema
+        vanity_types: Dictionary of vanity types
 
     Example:
         ```
@@ -458,48 +466,48 @@ class ObjectBodySchema:
             attributes=[
                 SchemaAttribute(
                     name='my_string',
-                    type=SchemaAttributeType.STRING,
+                    type_name=SchemaAttributeType.STRING,
                 ),
                 SchemaAttribute(
                     name='my_number',
-                    type=SchemaAttributeType.NUMBER,
+                    type_name=SchemaAttributeType.NUMBER,
                 ),
                 SchemaAttribute(
                     name='my_bool',
-                    type=SchemaAttributeType.BOOLEAN,
+                    type_name=SchemaAttributeType.BOOLEAN,
                 ),
                 SchemaAttribute(
                     name='my_datetime',
-                    type=SchemaAttributeType.DATETIME,
+                    type_name=SchemaAttributeType.DATETIME,
                 ),
                 SchemaAttribute(
                     name='my_object',
-                    type=SchemaAttributeType.OBJECT,
+                    type_name=SchemaAttributeType.OBJECT,
                     object_schema=ObjectBodySchema(
                         attributes=[
                             SchemaAttribute(
                                 name='my_string',
-                                type=SchemaAttributeType.STRING,
+                                type_name=SchemaAttributeType.STRING,
                             ),
                         ]
                     )
                 ),
                 SchemaAttribute(
                     name='my_string_list',
-                    type=SchemaAttributeType.STRING_LIST,
+                    type_name=SchemaAttributeType.STRING_LIST,
                 ),
                 SchemaAttribute(
                     name='my_number_list',
-                    type=SchemaAttributeType.NUMBER_LIST,
+                    type_name=SchemaAttributeType.NUMBER_LIST,
                 ),
                 SchemaAttribute(
                     name='my_object_list',
-                    type=SchemaAttributeType.OBJECT_LIST,
+                    type_name=SchemaAttributeType.OBJECT_LIST,
                     object_schema=ObjectBodySchema(
                         attributes=[
                             SchemaAttribute(
                                 name='my_string',
-                                type=SchemaAttributeType.STRING,
+                                type_name=SchemaAttributeType.STRING,
                             ),
                         ]
                     )
@@ -511,6 +519,7 @@ class ObjectBodySchema:
     attributes: List[SchemaAttribute]
     description: Optional[str] = None
     name: Optional[str] = None
+    vanity_types: Optional[Dict[str, Union[str, SchemaAttributeType]]] = None
 
     @classmethod
     def from_dict(cls, object_name: str, schema_dict: Dict) -> 'ObjectBodySchema':
@@ -526,16 +535,18 @@ class ObjectBodySchema:
         """
         attributes = []
 
-        for attribute in schema_dict.get('attributes', []):
+        for attribute in schema_dict.get("attributes", []):
             attributes.append(SchemaAttribute(**attribute))
 
         obj_klass = type(object_name, (cls,), {})
 
         obj_klass.attributes = attributes
 
-        obj_klass.description = schema_dict.get('description')
+        obj_klass.description = schema_dict.get("description")
 
-        obj_klass.name=schema_dict.get('name')
+        obj_klass.name=schema_dict.get("name")
+
+        obj_klass.vanity_types = schema_dict.get("vanity_types")
 
         return obj_klass
 
@@ -548,9 +559,10 @@ class ObjectBodySchema:
             Dictionary representation of the schema
         """
         return {
-            'attributes': [attribute.to_dict() for attribute in cls.attributes],
-            'description': cls.description,
-            'name': cls.name,
+            "attributes": [attribute.to_dict() for attribute in cls.attributes],
+            "description": cls.description,
+            "name": cls.name,
+            "vanity_types": cls.vanity_types,
         }
 
     @classmethod
@@ -603,7 +615,13 @@ class ObjectBodySchema:
         for attribute in cls.attributes:
             value = obj.get(attribute.name)
 
-            logging.debug(f'Validating attribute {attribute.name} with value {value} against type {attribute.type}')
+            actual_type_name = attribute.type_name
+
+            logging.debug(f'Validating attribute {attribute.name} with value {value} against type {actual_type_name}')
+
+            if cls.vanity_types and attribute.type_name in cls.vanity_types:
+
+                actual_type_name = cls.vanity_types[attribute.type_name]
 
             if attribute.is_required(parameter_values=compiled_values):
                 if attribute.name not in obj or value is None:
@@ -623,17 +641,19 @@ class ObjectBodySchema:
 
                         continue
 
-                elif attribute.regex_pattern and attribute.type == SchemaAttributeType.STRING:
+                elif attribute.regex_pattern:
+                    if not actual_type_name == SchemaAttributeType.STRING:
+                        raise SchemaDeclarationError("Regex pattern can only be used with STRING type")
 
                     if not re.match(attribute.regex_pattern, value):
                         mismatched_types.append(f"{attribute.name} (value does not match regex pattern {attribute.regex_pattern})")
 
                         continue
 
-                if attribute.type == SchemaAttributeType.ANY:
+                if actual_type_name == SchemaAttributeType.ANY:
                     continue
 
-                elif attribute.type == SchemaAttributeType.OBJECT:
+                elif actual_type_name == SchemaAttributeType.OBJECT:
                     if isinstance(value, dict):
                         continue
 
@@ -654,9 +674,15 @@ class ObjectBodySchema:
                     else:
                         mismatched_types.append(attribute.name)
 
-                elif attribute.type == SchemaAttributeType.OBJECT_LIST:
+                elif actual_type_name == SchemaAttributeType.LIST:
+                    if not isinstance(value, list):
+                        mismatched_types.append(attribute.name)
+
+                        continue
+
+                elif actual_type_name == SchemaAttributeType.OBJECT_LIST:
                     if isinstance(value, list):
-                        if len(value) > 0 and not isinstance(value[0], ObjectBody):
+                        if len(value) > 0 and not isinstance(value[0], (dict, ObjectBody)):
                             mismatched_types.append(attribute.name)
 
                             continue
@@ -664,6 +690,9 @@ class ObjectBodySchema:
                         object_schema = attribute.object_schema
 
                         for item in value:
+                            if not object_schema:
+                                continue
+
                             results = object_schema.validate_object(item)
 
                             if not results.valid:
@@ -674,7 +703,7 @@ class ObjectBodySchema:
                     else:
                         mismatched_types.append(attribute.name)
 
-                elif attribute.type == SchemaAttributeType.STRING_LIST:
+                elif actual_type_name == SchemaAttributeType.STRING_LIST:
                     if isinstance(value, list):
                         if len(value) > 0 and not isinstance(value[0], str):
                             mismatched_types.append(attribute.name)
@@ -684,7 +713,7 @@ class ObjectBodySchema:
                     else:
                         mismatched_types.append(attribute.name)
 
-                elif attribute.type == SchemaAttributeType.NUMBER_LIST:
+                elif actual_type_name == SchemaAttributeType.NUMBER_LIST:
                     if isinstance(value, list):
 
                         if len(value) > 0 and not isinstance(value[0], int) and not isinstance(value[0], float):
@@ -694,25 +723,24 @@ class ObjectBodySchema:
 
                     mismatched_types.append(attribute.name)
 
-
-                elif attribute.type == SchemaAttributeType.BOOLEAN:
+                elif actual_type_name == SchemaAttributeType.BOOLEAN:
                     if not isinstance(value, bool):
                         mismatched_types.append(attribute.name)
 
-                elif attribute.type == SchemaAttributeType.NUMBER:
+                elif actual_type_name == SchemaAttributeType.NUMBER:
                     if not isinstance(value, int) and not isinstance(value, float):
                         mismatched_types.append(attribute.name)
 
-                elif attribute.type == SchemaAttributeType.STRING:
+                elif actual_type_name == SchemaAttributeType.STRING:
                     if not isinstance(value, str):
                         mismatched_types.append(attribute.name)
 
         valid_obj = len(missing_attributes) == 0 and len(mismatched_types) == 0
 
         return ObjectBodyValidationResults(
-            validated_body=compiled_values,
             missing_attributes=missing_attributes,
             mismatched_types=mismatched_types,
+            validated_body=compiled_values,
             valid=valid_obj,
         )
 
@@ -776,7 +804,7 @@ class ObjectBodyUnknownAttribute(ObjectBodyAttribute):
         self.schema_attribute = SchemaAttribute(
             name=self.name,
             required=False,
-            type=schema_type,
+            type_name=schema_type,
         )
 
 
@@ -815,23 +843,23 @@ class ObjectBody:
                 attributes=[
                     SchemaAttribute(
                         name='my_string',
-                        type=SchemaAttributeType.STRING,
+                        type_name=SchemaAttributeType.STRING,
                     ),
                     SchemaAttribute(
                         name='my_number',
-                        type=SchemaAttributeType.NUMBER,
+                        type_name=SchemaAttributeType.NUMBER,
                     ),
                     SchemaAttribute(
                         name='my_bool',
-                        type=SchemaAttributeType.BOOLEAN,
+                        type_name=SchemaAttributeType.BOOLEAN,
                     ),
                     SchemaAttribute(
                         name='my_datetime',
-                        type=SchemaAttributeType.DATETIME,
+                        type_name=SchemaAttributeType.DATETIME,
                     ),
                     SchemaAttribute(
                         name='my_object',
-                        type=SchemaAttributeType.OBJECT,
+                        type_name=SchemaAttributeType.OBJECT,
                         object_schema=ObjectBodySchema(
                             attributes=[
                                 SchemaAttribute(
@@ -843,20 +871,20 @@ class ObjectBody:
                     ),
                     SchemaAttribute(
                         name='my_string_list',
-                        type=SchemaAttributeType.STRING_LIST,
+                        type_name=SchemaAttributeType.STRING_LIST,
                     ),
                     SchemaAttribute(
                         name='my_number_list',
-                        type=SchemaAttributeType.NUMBER_LIST,
+                        type_name=SchemaAttributeType.NUMBER_LIST,
                     ),
                     SchemaAttribute(
                         name='my_object_list',
-                        type=SchemaAttributeType.OBJECT_LIST,
+                        type_name=SchemaAttributeType.OBJECT_LIST,
                         object_schema=ObjectBodySchema(
                             attributes=[
                                 SchemaAttribute(
                                     name='my_string',
-                                    type=SchemaAttributeType.STRING,
+                                    type_name=SchemaAttributeType.STRING,
                                 ),
                             ]
                         )
@@ -910,27 +938,37 @@ class ObjectBody:
         Returns:
             Loaded body
         """
-        if not body and self.schema == self._UNKNOWN_ATTR_SCHEMA:
+        schema = self.schema
+
+        if schema is None:
+            schema = self._UNKNOWN_ATTR_SCHEMA
+
+        if not body and schema == self._UNKNOWN_ATTR_SCHEMA:
             return
 
-        validation = self.schema.validate_object(body)
+        validation = schema.validate_object(body)
 
         if not validation.valid:
             raise InvalidObjectSchemaError(validation)
 
         remaining_body = validation.validated_body
 
-        for attribute in self.schema.attributes:
+        for attribute in schema.attributes:
             # Somewhat redundant since the default value should have been set during validation
             value = remaining_body.get(attribute.name, attribute.default_value)
+
+            actual_type_name = attribute.type_name
+
+            if schema.vanity_types and attribute.type_name in schema.vanity_types:
+                actual_type_name = schema.vanity_types[attribute.type_name]
 
             if attribute.secret and self.secret_masking_fn:
                 value = self.secret_masking_fn(value)
 
-            if attribute.type == SchemaAttributeType.OBJECT and value:
+            if actual_type_name == SchemaAttributeType.OBJECT and value:
                 value = ObjectBody(value, attribute.object_schema)
 
-            elif attribute.type == SchemaAttributeType.OBJECT_LIST and value:
+            elif actual_type_name == SchemaAttributeType.OBJECT_LIST and value:
 
                 value = [ObjectBody(item, attribute.object_schema) for item in value]
 
@@ -983,8 +1021,8 @@ class ObjectBody:
         Yields:
             Tuple[str, Any]: A tuple containing the attribute name and its value
         """
-        for attr_name, attr in self.attributes.items():
-            yield attr_name, attr.value
+        for attr_name in self.attributes.keys():
+            yield attr_name
 
     def __setitem__(self, key: str, value: Any):
         """
@@ -1000,7 +1038,7 @@ class ObjectBody:
         Returns:
             List[Tuple[str, Any]]: List of tuples containing attribute names and values
         """
-        return list(self.__iter__())
+        return [(key, self.attributes[key].value) for key in self.attributes.keys()]
 
     def keys(self):
         """
@@ -1024,7 +1062,7 @@ class ObjectBody:
 
         return attribute_name in self.attributes or attribute_name in self.unknown_attributes
 
-    def get(self, attribute_name: str, *, default_return: Optional[Any] = None,
+    def get(self, attribute_name: str, default_return: Optional[Any] = None,
             secret_unmasking_fn: Optional[Callable[[str], str]] = None, strict: Optional[bool] = False) -> Any:
         """
         Get an attribute from the event body

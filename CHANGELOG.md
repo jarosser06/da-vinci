@@ -5,12 +5,15 @@ Changelog
 - Add `da_vinci_cdk.constructs.ai.AIInferenceProfile` construct to create inference profiles as discoverable resources
 - Allow for recursive loop on event bus services
 - Fix Lambda x86_64 architecture usage
+- Global Setting as value method converts string `None` to Python null object
 - Add support for initializing an empty ObjectBody
 - Fix ORM client update method to use proper DynamoDB Key names
 - Add support for regex validation of immutable objects
 - Add support for conditional required attributes in immutable object
 - Add support for service discovery backed by DynamoDB
 - Rename Da Vinci Tables by prepending `da_vinci`
+- Add support for side car applications
+- (**Potentially Breaking**) Normalized Object Body to operate more similar to a native dictionary
 - (**Potentially Breaking**) Remove global_setting toggle, global setting is now required
 - (**Potentially Breaking**) Remove `__init__.py` from ORM, Object classes can be accessed from client import `da_vinci.core.orm.client`
 
