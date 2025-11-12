@@ -1,0 +1,84 @@
+{
+  "name": "Da Vinci Development",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/da_vinci",
+  "remoteUser": "vscode",
+
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12"
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "latest"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.black-formatter",
+        "charliermarsh.ruff",
+        "ms-python.isort",
+        "ms-python.mypy-type-checker",
+        "ms-python.debugpy",
+        "amazonwebservices.aws-toolkit-vscode",
+        "github.vscode-github-actions",
+        "redhat.vscode-yaml",
+        "ms-vscode.vscode-json"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/workspaces/da_vinci/.venv/bin/python",
+        "python.formatting.provider": "none",
+        "[python]": {
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          },
+          "editor.defaultFormatter": "ms-python.black-formatter"
+        },
+        "black-formatter.args": [
+          "--line-length=100"
+        ],
+        "isort.args": [
+          "--profile=black"
+        ],
+        "ruff.lint.args": [
+          "--config=/workspaces/da_vinci/pyproject.toml"
+        ],
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": [
+          "da_vinci/tests",
+          "da_vinci-cdk/tests"
+        ],
+        "python.linting.enabled": true,
+        "python.linting.mypyEnabled": true,
+        "editor.rulers": [100],
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true,
+        "github-actions.workflows.pinned.workflows": [
+          ".github/workflows/*.yml"
+        ]
+      }
+    }
+  },
+
+  "postCreateCommand": "/workspaces/da_vinci/.devcontainer/setup.sh",
+
+  "forwardPorts": [],
+
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin"
+  }
+}
