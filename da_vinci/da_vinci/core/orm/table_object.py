@@ -1,11 +1,11 @@
 import json
 import logging
-
 from collections.abc import Callable
 from copy import deepcopy
-from datetime import datetime, UTC as utc_tz
-from enum import auto, StrEnum
-from typing import Any, Dict, List, Optional, Union
+from datetime import UTC as utc_tz
+from datetime import datetime
+from enum import StrEnum, auto
+from typing import Any
 
 from da_vinci.core.orm.exceptions import MissingTableObjectAttributeException
 
@@ -15,18 +15,18 @@ class TableObjectAttributeType(StrEnum):
     NUMBER = auto()
     BOOLEAN = auto()
     DATETIME = auto()
-    JSON = auto() # Not safe for storing empty attributes, native
-    JSON_STRING = auto() # Safe for storing empty attributes
+    JSON = auto()  # Not safe for storing empty attributes, native
+    JSON_STRING = auto()  # Safe for storing empty attributes
     STRING_LIST = auto()
     NUMBER_LIST = auto()
-    JSON_LIST = auto() # Not safe for storing empty attributes, native
-    JSON_STRING_LIST = auto() # Safe for storing empty attributes
-    COMPOSITE_STRING = auto() # String in DynamoDB but a tuple of strings in Python
+    JSON_LIST = auto()  # Not safe for storing empty attributes, native
+    JSON_STRING_LIST = auto()  # Safe for storing empty attributes
+    COMPOSITE_STRING = auto()  # String in DynamoDB but a tuple of strings in Python
     STRING_SET = auto()
     NUMBER_SET = auto()
 
     @classmethod
-    def is_list(cls, attribute_type: 'TableObjectAttributeType') -> bool:
+    def is_list(cls, attribute_type: "TableObjectAttributeType") -> bool:
         """
         Check if the attribute type is a list
 
@@ -51,12 +51,21 @@ class TableObjectAttributeType(StrEnum):
 
 
 class TableObjectAttribute:
-    def __init__(self, name: str, attribute_type: TableObjectAttributeType,
-                 argument_names: Optional[List[str]] = None, custom_exporter: Optional[Callable] = None,
-                 custom_importer: Optional[Callable] = None, description: Optional[str] = None,
-                 dynamodb_key_name: Optional[str] = None, default: Optional[Any] = None,
-                 exclude_from_dict: Optional[bool] = False, exclude_from_schema_description: Optional[bool] = False,
-                 is_indexed: bool = True, optional: bool = False):
+    def __init__(
+        self,
+        name: str,
+        attribute_type: TableObjectAttributeType,
+        argument_names: list[str] | None = None,
+        custom_exporter: Callable | None = None,
+        custom_importer: Callable | None = None,
+        description: str | None = None,
+        dynamodb_key_name: str | None = None,
+        default: Any | None = None,
+        exclude_from_dict: bool | None = False,
+        exclude_from_schema_description: bool | None = False,
+        is_indexed: bool = True,
+        optional: bool = False,
+    ):
         """
         Object representing an attribute of a TableObject
 
@@ -90,8 +99,10 @@ class TableObjectAttribute:
 
         self.is_indexed = is_indexed
 
-        if self.attribute_type is TableObjectAttributeType.JSON_STRING or \
-                self.attribute_type is TableObjectAttributeType.JSON_STRING_LIST:
+        if (
+            self.attribute_type is TableObjectAttributeType.JSON_STRING
+            or self.attribute_type is TableObjectAttributeType.JSON_STRING_LIST
+        ):
             self.is_indexed = False
 
         if dynamodb_key_name:
@@ -102,8 +113,13 @@ class TableObjectAttribute:
 
         self.argument_names = argument_names
 
-        if self.attribute_type == TableObjectAttributeType.COMPOSITE_STRING and not self.argument_names:
-            raise ValueError('argument_names must be provided when attribute_type is COMPOSITE_STRING')
+        if (
+            self.attribute_type == TableObjectAttributeType.COMPOSITE_STRING
+            and not self.argument_names
+        ):
+            raise ValueError(
+                "argument_names must be provided when attribute_type is COMPOSITE_STRING"
+            )
 
         self._default = default
 
@@ -118,7 +134,7 @@ class TableObjectAttribute:
         self.custom_importer = custom_importer
 
     @staticmethod
-    def composite_string_value(values: List[str]):
+    def composite_string_value(values: list[str]):
         """
         Return a full composite string value given a list of attribute values
 
@@ -126,7 +142,7 @@ class TableObjectAttribute:
             values -- List of values to join into the full composite string value
         """
 
-        return '-'.join(values)
+        return "-".join(values)
 
     @staticmethod
     def default_dynamodb_key_name(name: str) -> str:
@@ -140,10 +156,10 @@ class TableObjectAttribute:
             str
         """
 
-        return ''.join([wrd.capitalize() for wrd in name.split('_')])
+        return "".join([wrd.capitalize() for wrd in name.split("_")])
 
     @staticmethod
-    def timestamp_to_datetime(timestamp: Union[int, float]) -> datetime:
+    def timestamp_to_datetime(timestamp: int | float) -> datetime:
         """
         Convert a timestamp string to a datetime
 
@@ -178,10 +194,10 @@ class TableObjectAttribute:
             str
         """
 
-        descr = f'{self.name} - type: {self.attribute_type.to_str()}'
+        descr = f"{self.name} - type: {self.attribute_type.to_str()}"
 
         if self.description:
-            descr += f' description: {self.description}'
+            descr += f" description: {self.description}"
 
         return descr
 
@@ -189,7 +205,7 @@ class TableObjectAttribute:
     def default(self) -> Any:
         if callable(self._default):
             return self._default()
-        
+
         return self._default
 
     @property
@@ -200,32 +216,39 @@ class TableObjectAttribute:
         Returns:
             str
         """
-        dynamodb_type_label = 'S'
+        dynamodb_type_label = "S"
 
         # Handle number and datetime types
-        if self.attribute_type is TableObjectAttributeType.NUMBER \
-                or self.attribute_type is TableObjectAttributeType.DATETIME:
-            dynamodb_type_label = 'N'
+        if (
+            self.attribute_type is TableObjectAttributeType.NUMBER
+            or self.attribute_type is TableObjectAttributeType.DATETIME
+        ):
+            dynamodb_type_label = "N"
 
         # Handle JSON types
         elif self.attribute_type is TableObjectAttributeType.JSON:
-            dynamodb_type_label = 'M'
+            dynamodb_type_label = "M"
 
         # Handle boolean types
         elif self.attribute_type is TableObjectAttributeType.BOOLEAN:
-            dynamodb_type_label = 'BOOL'
+            dynamodb_type_label = "BOOL"
 
         # Handle list types
         elif TableObjectAttributeType.is_list(self.attribute_type):
-            dynamodb_type_label = 'L'
+            dynamodb_type_label = "L"
 
         # Handle set types
-        elif self.attribute_type in (TableObjectAttributeType.STRING_SET, TableObjectAttributeType.NUMBER_SET):
-            dynamodb_type_label = 'SS' if self.attribute_type == TableObjectAttributeType.STRING_SET else 'NS'
+        elif self.attribute_type in (
+            TableObjectAttributeType.STRING_SET,
+            TableObjectAttributeType.NUMBER_SET,
+        ):
+            dynamodb_type_label = (
+                "SS" if self.attribute_type == TableObjectAttributeType.STRING_SET else "NS"
+            )
 
         return dynamodb_type_label
 
-    def _infer_dynamodb_value(self, value: Any) -> Dict:
+    def _infer_dynamodb_value(self, value: Any) -> dict:
         """
         Helper method to infer DynamoDB value type for nested structures.
 
@@ -242,7 +265,7 @@ class TableObjectAttribute:
             return {"N": str(value)}
 
         elif isinstance(value, dict):
-            if 'M' in value:
+            if "M" in value:
                 return value
 
             return {"M": {k: self._infer_dynamodb_value(v) for k, v in value.items()}}
@@ -287,10 +310,12 @@ class TableObjectAttribute:
             elif not value:
                 return None
 
-            return  {k: self._infer_dynamodb_value(v) for k, v in value.items()}
+            return {k: self._infer_dynamodb_value(v) for k, v in value.items()}
 
-        elif self.attribute_type is TableObjectAttributeType.JSON_STRING or \
-                self.attribute_type is TableObjectAttributeType.JSON_STRING_LIST:
+        elif (
+            self.attribute_type is TableObjectAttributeType.JSON_STRING
+            or self.attribute_type is TableObjectAttributeType.JSON_STRING_LIST
+        ):
             if not value:
                 if self.attribute_type is TableObjectAttributeType.JSON_STRING_LIST:
                     return "[]"
@@ -315,16 +340,18 @@ class TableObjectAttribute:
                     return None
 
                 # Ensure each element in the list is converted properly
-                return [{"M": json.loads(item) if isinstance(item, str) else item} for item in value]
+                return [
+                    {"M": json.loads(item) if isinstance(item, str) else item} for item in value
+                ]
 
             if not value:
                 return []
 
             if self.attribute_type is TableObjectAttributeType.NUMBER_LIST:
-                label = 'N'
+                label = "N"
 
             else:
-                label = 'S'
+                label = "S"
 
             return [{label: str(val)} for val in value]
 
@@ -348,7 +375,7 @@ class TableObjectAttribute:
 
         return value
 
-    def as_dynamodb_attribute(self, value: Any) -> Dict:
+    def as_dynamodb_attribute(self, value: Any) -> dict:
         """
         Return the attribute as a DynamoDB attribute
 
@@ -356,12 +383,16 @@ class TableObjectAttribute:
             value -- Value to convert
         """
         # Skip None values or empty sets/dictionaries for JSON and Set types
-        if (self.attribute_type in (TableObjectAttributeType.STRING_SET, TableObjectAttributeType.NUMBER_SET)
-                and (value is None or not value)):
+        if self.attribute_type in (
+            TableObjectAttributeType.STRING_SET,
+            TableObjectAttributeType.NUMBER_SET,
+        ) and (value is None or not value):
             return None  # Skip empty sets
 
-        if self.attribute_type in (TableObjectAttributeType.JSON, TableObjectAttributeType.JSON_LIST) and \
-                (value is None or (isinstance(value, dict) and not value)):
+        if self.attribute_type in (
+            TableObjectAttributeType.JSON,
+            TableObjectAttributeType.JSON_LIST,
+        ) and (value is None or (isinstance(value, dict) and not value)):
             return None  # Skip empty JSON or JSON_LIST
 
         return {
@@ -370,36 +401,36 @@ class TableObjectAttribute:
             }
         }
 
-    def _infer_python_value(self, value: Dict) -> Any:
+    def _infer_python_value(self, value: dict) -> Any:
         """
         Helper method to convert DynamoDB types back to Python values.
 
         Keyword Arguments:
             value -- Value to convert
         """
-        if 'S' in value:
-            return value['S']
+        if "S" in value:
+            return value["S"]
 
-        elif 'N' in value:
-            return float(value['N']) if '.' in value['N'] else int(value['N'])
+        elif "N" in value:
+            return float(value["N"]) if "." in value["N"] else int(value["N"])
 
-        elif 'BOOL' in value:
-            return value['BOOL']
+        elif "BOOL" in value:
+            return value["BOOL"]
 
-        elif 'M' in value:
-            return {k: self._infer_python_value(v) for k, v in value['M'].items()}
+        elif "M" in value:
+            return {k: self._infer_python_value(v) for k, v in value["M"].items()}
 
-        elif 'L' in value:
-            return [self._infer_python_value(v) for v in value['L']]
+        elif "L" in value:
+            return [self._infer_python_value(v) for v in value["L"]]
 
-        elif 'NULL' in value:
+        elif "NULL" in value:
             return None
 
-        elif 'SS' in value:
-            return set(value['SS'])
+        elif "SS" in value:
+            return set(value["SS"])
 
-        elif 'NS' in value:
-            return set(map(int, value['NS']))
+        elif "NS" in value:
+            return set(map(int, value["NS"]))
 
         else:
             raise ValueError(f"Unsupported DynamoDB value type: {value}")
@@ -410,11 +441,11 @@ class TableObjectAttribute:
         """
         value = value[self.dynamodb_type_label]
 
-        if isinstance(value, str) and value == 'None':
+        if isinstance(value, str) and value == "None":
             return None
 
         if self.attribute_type is TableObjectAttributeType.NUMBER:
-            if '.' in value:
+            if "." in value:
                 return float(value)
 
             return int(value)
@@ -433,9 +464,9 @@ class TableObjectAttribute:
         # Handle other list types
         elif TableObjectAttributeType.is_list(self.attribute_type):
             if self.attribute_type is TableObjectAttributeType.NUMBER_LIST:
-                label = 'N'  
+                label = "N"
             else:
-                label = 'S'
+                label = "S"
 
             return [item[label] for item in value]
 
@@ -446,15 +477,17 @@ class TableObjectAttribute:
             return set(value)
 
         elif self.attribute_type is TableObjectAttributeType.COMPOSITE_STRING:
-            return tuple(value.split('-'))
+            return tuple(value.split("-"))
 
         elif self.attribute_type is TableObjectAttributeType.JSON:
             # If the value is already a dict (DynamoDB MAP), return it as is
             if isinstance(value, dict):
                 return {k: self._infer_python_value(v) for k, v in value.items()}
 
-        elif self.attribute_type is TableObjectAttributeType.JSON_STRING or \
-                self.attribute_type is TableObjectAttributeType.JSON_STRING_LIST:
+        elif (
+            self.attribute_type is TableObjectAttributeType.JSON_STRING
+            or self.attribute_type is TableObjectAttributeType.JSON_STRING_LIST
+        ):
             if not value:
                 if self.attribute_type is TableObjectAttributeType.JSON_STRING_LIST:
                     return []
@@ -538,15 +571,16 @@ class TableObject:
             ]
         ```
     """
+
     partition_key_attribute: TableObjectAttribute
     table_name: str
 
-    attribute_lookup_prefix: Optional[str] = None
-    attributes: List[TableObjectAttribute] = []
-    description: Optional[str] = None
+    attribute_lookup_prefix: str | None = None
+    attributes: list[TableObjectAttribute] = []
+    description: str | None = None
     object_name: str = None
-    sort_key_attribute: Optional[TableObjectAttribute] = None
-    ttl_attribute: Optional[TableObjectAttribute] = None
+    sort_key_attribute: TableObjectAttribute | None = None
+    ttl_attribute: TableObjectAttribute | None = None
 
     def __init__(self, **kwargs):
         """
@@ -557,8 +591,9 @@ class TableObject:
         for attr in self.all_attributes():
             self.__attr_index__[attr.name] = attr
 
-            if attr.attribute_type is TableObjectAttributeType.COMPOSITE_STRING \
-                    and set(kwargs.keys()).issuperset(set(attr.argument_names)):
+            if attr.attribute_type is TableObjectAttributeType.COMPOSITE_STRING and set(
+                kwargs.keys()
+            ).issuperset(set(attr.argument_names)):
                 composite_args = []
 
                 for arg in attr.argument_names:
@@ -584,10 +619,17 @@ class TableObject:
                     raise MissingTableObjectAttributeException(attr.name)
 
     @classmethod
-    def define(cls, partition_key_attribute: TableObjectAttribute, object_name: str, table_name: str,
-               attribute_lookup_prefix: Optional[str] = None, attributes: Optional[List[TableObjectAttribute]] = None,
-               description: Optional[str] = None, sort_key_attribute: Optional[TableObjectAttribute] = None,
-               ttl_attribute: Optional[TableObjectAttribute] = None) -> 'TableObject':
+    def define(
+        cls,
+        partition_key_attribute: TableObjectAttribute,
+        object_name: str,
+        table_name: str,
+        attribute_lookup_prefix: str | None = None,
+        attributes: list[TableObjectAttribute] | None = None,
+        description: str | None = None,
+        sort_key_attribute: TableObjectAttribute | None = None,
+        ttl_attribute: TableObjectAttribute | None = None,
+    ) -> "TableObject":
         """
         Define a TableObject
 
@@ -628,7 +670,7 @@ class TableObject:
         attr_keys = [attr.name for attr in self.all_attributes()]
 
         if self.attribute_lookup_prefix:
-            prefixed_name = f'{self.attribute_lookup_prefix}_{name}'
+            prefixed_name = f"{self.attribute_lookup_prefix}_{name}"
 
             if prefixed_name in attr_keys:
                 return getattr(self, prefixed_name, None)
@@ -644,7 +686,7 @@ class TableObject:
         """
         return getattr(self, name)
 
-    def composite_attribute_values(self, name: str) -> Dict:
+    def composite_attribute_values(self, name: str) -> dict:
         """
         Get a dictionary representation of the composite attribute's values
 
@@ -661,7 +703,7 @@ class TableObject:
 
         full_value = self.attribute_value(name)
 
-        split_values = full_value.split('-')
+        split_values = full_value.split("-")
 
         return {arg: split_values[idx] for idx, arg in enumerate(attr.argument_names)}
 
@@ -671,7 +713,7 @@ class TableObject:
 
         Override this method to provide custom behavior when the object is saved to DynamoDB
         """
-        logging.debug('Executing default execute_on_update function ... nothing updated')
+        logging.debug("Executing default execute_on_update function ... nothing updated")
 
     def update(self, **kwargs):
         """
@@ -696,7 +738,9 @@ class TableObject:
 
         return changed_attrs
 
-    def to_dict(self, exclude_attribute_names: Optional[List[str]] = None, json_compatible: Optional[bool] = False) -> Dict:
+    def to_dict(
+        self, exclude_attribute_names: list[str] | None = None, json_compatible: bool | None = False
+    ) -> dict:
         """
         Convert the object to a dict representation
 
@@ -715,12 +759,18 @@ class TableObject:
 
             val = getattr(self, attr.name)
 
-            if attr.attribute_type is TableObjectAttributeType.DATETIME and json_compatible \
-                and val is not None:
+            if (
+                attr.attribute_type is TableObjectAttributeType.DATETIME
+                and json_compatible
+                and val is not None
+            ):
                 val = val.isoformat()
 
-            if json_compatible and attr.attribute_type is TableObjectAttributeType.STRING_SET or \
-                    attr.attribute_type is TableObjectAttributeType.NUMBER_SET:
+            if (
+                json_compatible
+                and attr.attribute_type is TableObjectAttributeType.STRING_SET
+                or attr.attribute_type is TableObjectAttributeType.NUMBER_SET
+            ):
 
                 if val is not None:
                     val = list(val)
@@ -731,8 +781,8 @@ class TableObject:
             res[attr.name] = val
 
         return res
-    
-    def to_dynamodb_item(self) -> Dict:
+
+    def to_dynamodb_item(self) -> dict:
         """
         Convert the object to a DynamoDB item
 
@@ -762,7 +812,7 @@ class TableObject:
         return json.dumps(self.to_dict(json_compatible=True))
 
     @classmethod
-    def all_attributes(cls) -> List[TableObjectAttribute]:
+    def all_attributes(cls) -> list[TableObjectAttribute]:
         """
         Class method that returns all defined attributes on the class
         """
@@ -797,7 +847,7 @@ class TableObject:
         return None
 
     @classmethod
-    def from_dynamodb_item(cls, item: Dict) -> 'TableObject':
+    def from_dynamodb_item(cls, item: dict) -> "TableObject":
         """
         Create a TableObject from a DynamoDB item
 
@@ -819,8 +869,7 @@ class TableObject:
         return cls(**updated_item)
 
     @classmethod
-    def gen_dynamodb_key(cls, partition_key_value: str,
-                         sort_key_value: Optional[str] = None) -> Dict:
+    def gen_dynamodb_key(cls, partition_key_value: str, sort_key_value: str | None = None) -> dict:
         """
         Generate a DynamoDB key
 
@@ -831,19 +880,13 @@ class TableObject:
         Returns:
             Dict
         """
-        key = cls.partition_key_attribute.as_dynamodb_attribute(
-            partition_key_value
-        )
+        key = cls.partition_key_attribute.as_dynamodb_attribute(partition_key_value)
 
         if cls.sort_key_attribute:
             if not sort_key_value:
-                raise ValueError('Sort key attribute is required, no value provided')
+                raise ValueError("Sort key attribute is required, no value provided")
 
-            key.update(
-                cls.sort_key_attribute.as_dynamodb_attribute(
-                    sort_key_value
-                )
-            )
+            key.update(cls.sort_key_attribute.as_dynamodb_attribute(sort_key_value))
 
         return key
 
@@ -858,13 +901,13 @@ class TableObject:
         full_descr = cls.object_name or cls.__name__
 
         if cls.description:
-            full_descr += f' - {cls.description}'
+            full_descr += f" - {cls.description}"
 
         for attr in cls.all_attributes():
             if attr.exclude_from_schema_description:
                 continue
 
-            full_descr += f'\n  - {attr.schema_to_str()}'
+            full_descr += f"\n  - {attr.schema_to_str()}"
 
         return full_descr
 
@@ -886,11 +929,12 @@ class TableObject:
         for attr in cls.all_attributes():
             schema_str_list.append(attr.schema_to_str())
 
-        return '\n'.join(schema_str_list)
+        return "\n".join(schema_str_list)
 
     @staticmethod
-    def update_date_attributes(date_attribute_names: List[str], obj: 'TableObject',
-                               to_datetime: Optional[datetime] = None):
+    def update_date_attributes(
+        date_attribute_names: list[str], obj: "TableObject", to_datetime: datetime | None = None
+    ):
         """
         Update the record_last_updated attribute on the object. Helper method that is
         commonly used to construct execute_on_update functions.

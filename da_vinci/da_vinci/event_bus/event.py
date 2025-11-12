@@ -1,18 +1,24 @@
-'''Event Bus Primitives'''
+"""Event Bus Primitives"""
+
 import json
 import uuid
-
-from datetime import datetime, UTC
-from typing import Dict, Optional, Union
+from datetime import UTC, datetime
 
 from da_vinci.event_bus.object import ObjectBody
 
 
 class Event:
-    def __init__(self, body: Union[ObjectBody, Dict, str], event_type: str,
-                 callback_event_type: Optional[str] = None, callback_event_type_on_failure: Optional[str] = None,
-                 created: Optional[datetime] = None, event_id: str = None,
-                 previous_event_id: Optional[str] = None, response_id: Optional[str] = None):
+    def __init__(
+        self,
+        body: ObjectBody | dict | str,
+        event_type: str,
+        callback_event_type: str | None = None,
+        callback_event_type_on_failure: str | None = None,
+        created: datetime | None = None,
+        event_id: str = None,
+        previous_event_id: str | None = None,
+        response_id: str | None = None,
+    ):
         """
         Event is a class that represents an event that is published to
         the event bus.
@@ -55,7 +61,7 @@ class Event:
             self.created = datetime.now(tz=UTC)
 
     @staticmethod
-    def from_lambda_event(event: Dict) -> 'Event':
+    def from_lambda_event(event: dict) -> "Event":
         """
         Create a Event from a RAW Lambda event
 
@@ -68,8 +74,13 @@ class Event:
 
         return Event(**event)
 
-    def next_event(self, event_type: str, body: Union[Dict, str], callback_event_type: Optional[str] = None,
-                   callback_event_type_on_failure: Optional[str] = None) -> 'Event':
+    def next_event(
+        self,
+        event_type: str,
+        body: dict | str,
+        callback_event_type: str | None = None,
+        callback_event_type_on_failure: str | None = None,
+    ) -> "Event":
         """
         Create a new event that is linked to this event
 
@@ -91,18 +102,18 @@ class Event:
             callback_event_type_on_failure=callback_event_type_on_failure,
         )
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """
         Convert the event to a dictionary
         """
 
         return {
-            'body': self.body,
-            'callback_event_type': self.callback_event_type,
-            'callback_event_type_on_failure': self.callback_event_type_on_failure,
-            'created': self.created,
-            'event_id': self.event_id,
-            'event_type': self.event_type,
-            'previous_event_id': self.previous_event_id,
-            'response_id': self.response_id,
+            "body": self.body,
+            "callback_event_type": self.callback_event_type,
+            "callback_event_type_on_failure": self.callback_event_type_on_failure,
+            "created": self.created,
+            "event_id": self.event_id,
+            "event_type": self.event_type,
+            "previous_event_id": self.previous_event_id,
+            "response_id": self.response_id,
         }

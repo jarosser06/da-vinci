@@ -1,21 +1,22 @@
 import json
 import logging
-
-from datetime import datetime, UTC as utc_tz
+from datetime import UTC as utc_tz
+from datetime import datetime
 from os import environ
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import uuid4
 
 import boto3
 
-DEFAULT_LOG_LEVEL_NAME = 'INFO'
+DEFAULT_LOG_LEVEL_NAME = "INFO"
 
-S3_BUCKET_ENV_VAR = 'DA_VINCI_S3_LOGGING_BUCKET'
+S3_BUCKET_ENV_VAR = "DA_VINCI_S3_LOGGING_BUCKET"
 
 
 class S3LogHandler(logging.Handler):
     """Custom log handler to store logs in memory and offload them to S3."""
-    def __init__(self, execution_id: str, namespace: str, metadata: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, execution_id: str, namespace: str, metadata: dict[str, Any] | None = None):
         """
         Set up the S3 log handler with the execution ID and namespace.
 
@@ -42,14 +43,14 @@ class S3LogHandler(logging.Handler):
         record -- The log record
         """
         log_entry = {
-            'timestamp': datetime.now(tz=utc_tz).isoformat(),
-            'level': record.levelname,
-            'message': record.getMessage(),
+            "timestamp": datetime.now(tz=utc_tz).isoformat(),
+            "level": record.levelname,
+            "message": record.getMessage(),
         }
 
         self.log_entries.append(log_entry)
 
-    def get_log_entries(self) -> List:
+    def get_log_entries(self) -> list:
         """
         Return the collected log entries.
         """
@@ -70,16 +71,21 @@ class S3LogHandler(logging.Handler):
         Return the collected log entries as a dictionary.
         """
         return {
-            'execution_id': self.execution_id,
-            'metadata': self.metadata,
-            'namespace': self.namespace,
-            'entries': self.log_entries
+            "execution_id": self.execution_id,
+            "metadata": self.metadata,
+            "namespace": self.namespace,
+            "entries": self.log_entries,
         }
 
 
 class Logger:
-    def __init__(self, namespace: str, log_level_name: Optional[str] = None, s3_logging_enabled: Optional[bool] = False,
-                 s3_logging_bucket_name: Optional[str] = None):
+    def __init__(
+        self,
+        namespace: str,
+        log_level_name: str | None = None,
+        s3_logging_enabled: bool | None = False,
+        s3_logging_bucket_name: str | None = None,
+    ):
         """
         Initialize the logger with the namespace and log level name.
 
@@ -93,7 +99,7 @@ class Logger:
 
         self.execution_id = str(uuid4())  # Unique ID for each execution
 
-        log_level_name = log_level_name or environ.get('LOG_LEVEL', DEFAULT_LOG_LEVEL_NAME)
+        log_level_name = log_level_name or environ.get("LOG_LEVEL", DEFAULT_LOG_LEVEL_NAME)
 
         self.pylogger = logging.getLogger()
 
@@ -115,7 +121,7 @@ class Logger:
         else:
             self.s3_bucket = None
 
-        self.s3_client = boto3.client('s3') if self.s3_logging_enabled else None
+        self.s3_client = boto3.client("s3") if self.s3_logging_enabled else None
 
         if self.s3_logging_enabled:
             logging.info(f"S3 logging enabled: {self.s3_bucket}")
@@ -136,13 +142,11 @@ class Logger:
         try:
             log_data = json.dumps(self.s3_log_handler.to_dict(), indent=4)
 
-            self.s3_client.put_object(
-                Bucket=self.s3_bucket,
-                Key=log_filename,
-                Body=log_data
-            )
+            self.s3_client.put_object(Bucket=self.s3_bucket, Key=log_filename, Body=log_data)
 
-            self.pylogger.info(f"Log successfully uploaded to S3: s3://{self.s3_bucket}/{log_filename}")
+            self.pylogger.info(
+                f"Log successfully uploaded to S3: s3://{self.s3_bucket}/{log_filename}"
+            )
         except Exception as e:
             self.pylogger.error(f"Failed to upload log to S3: {e}")
 
@@ -164,7 +168,7 @@ class Logger:
     def info(self, message: str) -> None:
         """
         Add a log message with level INFO.
-        
+
         Keyword Arguments:
         message -- The log message
         """
@@ -175,7 +179,7 @@ class Logger:
         Add a log message with level WARNING.
 
         Keyword Arguments:
-        message -- The log message 
+        message -- The log message
         """
         self.pylogger.warning(message)
 

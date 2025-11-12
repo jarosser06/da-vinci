@@ -1,12 +1,11 @@
 from os import getenv
-from typing import Any, Union
+from typing import Any
 
-from da_vinci.core.exceptions import GlobalSettingsNotEnabledError, GlobalSettingNotFoundError
+from da_vinci.core.exceptions import GlobalSettingNotFoundError, GlobalSettingsNotEnabledError
 from da_vinci.core.orm.client import TableClient
 from da_vinci.core.tables.global_settings import GlobalSetting, GlobalSettings
 
-
-SETTINGS_ENABLED_VAR_NAME = 'DaVinciFramework_GlobalSettingsEnabled'
+SETTINGS_ENABLED_VAR_NAME = "DaVinciFramework_GlobalSettingsEnabled"
 
 
 def global_settings_available() -> bool:
@@ -19,14 +18,12 @@ def global_settings_available() -> bool:
     env_var = getenv(SETTINGS_ENABLED_VAR_NAME)
 
     if env_var is not None:
-        return env_var.lower() == 'true'
+        return env_var.lower() == "true"
 
-    return TableClient.table_resource_exists(
-        table_object_class=GlobalSetting
-    )
+    return TableClient.table_resource_exists(table_object_class=GlobalSetting)
 
 
-def setting_value(namespace: str, setting_key: str) -> Union[Any, None]:
+def setting_value(namespace: str, setting_key: str) -> Any | None:
     """
     Retrieve a setting value as the correct Python type, given
     a namespace and key
@@ -40,10 +37,7 @@ def setting_value(namespace: str, setting_key: str) -> Union[Any, None]:
 
     settings = GlobalSettings()
 
-    setting = settings.get(
-        namespace=namespace,
-        setting_key=setting_key
-    )
+    setting = settings.get(namespace=namespace, setting_key=setting_key)
 
     if setting:
         return setting.value_as_type()

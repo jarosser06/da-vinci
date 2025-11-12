@@ -1,18 +1,23 @@
-[tool.poetry]
+[project]
 name = "da-vinci-cdk"
 version = "2025.4.20"
 description = "Da Vinci CDK components"
-authors = ["Jim Rosser"]
-license = "MIT"
+authors = [{ name = "Jim Rosser" }]
+license = { text = "MIT" }
 readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aws-cdk-lib>=2.184.1",
+    "constructs>=10.0.0",
+    "da-vinci",
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-aws-cdk-lib = "^2.184.1"
-constructs = "^10.0.0"
-da-vinci = { git = "https://github.com/jarosser06/da-vinci", develop = true, subdirectory = "da_vinci" }
+[tool.uv.sources]
+da-vinci = { workspace = true }
 
+[tool.hatch.build.targets.wheel]
+packages = ["da_vinci_cdk"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"

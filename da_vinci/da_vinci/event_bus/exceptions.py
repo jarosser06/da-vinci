@@ -1,4 +1,4 @@
-'''Exceptions for the event bus.'''
+"""Exceptions for the event bus."""
 
 
 class CircularDependencyException(ValueError):
@@ -10,4 +10,6 @@ class CircularDependencyException(ValueError):
             subscription_event_type (str): The event type that was subscribed to
             function_name (str): The name of the function that subscribed to the event type
         """
-        super().__init__(f'Function subscription {function_name} cannot subscribe to the self generated event {subscription_event_type}.')
+        super().__init__(
+            f"Function subscription {function_name} cannot subscribe to the self generated event {subscription_event_type}."
+        )

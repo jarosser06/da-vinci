@@ -1,70 +1,73 @@
-'''
+"""
 Provides the base class for constructing a REST service using the DaVinci framework
-'''
-import logging
-import json
-import traceback
+"""
 
-from dataclasses import asdict, dataclass
+import json
+import logging
+import traceback
 from collections.abc import Callable
-from typing import Any, Dict, List, Optional, Union
+from dataclasses import asdict, dataclass
+from typing import Any
 
 from da_vinci.core.exceptions import DuplicateRouteDefinitionError
-
 from da_vinci.exception_trap.client import ExceptionReporter
 
 
 @dataclass
 class SimpleRESTServiceResponse:
-    '''
+    """
     A response object for the DaVinci REST service. Contains the original requests.Response object,
     as well as the response body
-    '''
+    """
+
     body: Any
     status_code: int
-    headers: Dict = None
+    headers: dict = None
 
-    def to_dict(self) -> Dict:
-        '''
+    def to_dict(self) -> dict:
+        """
         Return the response as a dictionary expected by AWS Lambda for REST responses
-        '''
+        """
         resp_dikt = {
-            'body': self.body,
-            'statusCode': self.status_code,
+            "body": self.body,
+            "statusCode": self.status_code,
         }
 
         if self.headers:
-            resp_dikt['headers'] = self.headers
+            resp_dikt["headers"] = self.headers
 
-        return resp_dikt 
+        return resp_dikt
 
 
 class ErrorResponse(SimpleRESTServiceResponse):
-    '''
+    """
     Return a 400 response for an error
-    '''
+    """
+
     def __init__(self, response_message: str, status_code: int = 400):
         super().__init__(
-            body={'message': response_message, 'ok': False},
+            body={"message": response_message, "ok": False},
             status_code=status_code,
         )
 
 
 class NotFoundResponse(ErrorResponse):
-    '''
+    """
     Return a 404 response
-    '''
+    """
+
     def __init__(self, resource: str):
         super().__init__(
-            response_message=f'Resource {resource} not found',
+            response_message=f"Resource {resource} not found",
             status_code=404,
         )
 
 
 class InvalidRequestResponse(ErrorResponse):
-    '''
+    """
     Return a 400 response for an invalid request
-    '''
+    """
+
     def __init__(self, response_message: str):
         super().__init__(
             response_message=response_message,
@@ -77,15 +80,15 @@ class Route:
     handler: Callable
     method: str
     path: str
-    required_arguments: List[str] = None
+    required_arguments: list[str] = None
 
-    def validate_request(self, parameters: Dict = None) -> SimpleRESTServiceResponse:
-        '''
+    def validate_request(self, parameters: dict = None) -> SimpleRESTServiceResponse:
+        """
         Validate that the request contains all required parameters
 
         Keyword Arguments:
             parameters: Parameters to validate
-        '''
+        """
         if not self.required_arguments:
             return
 
@@ -94,16 +97,20 @@ class Route:
         if missing_arguments:
             request_dikt = asdict(self)
 
-            logging.info(f'Request {request_dikt} missing arguments: {missing_arguments}')
+            logging.info(f"Request {request_dikt} missing arguments: {missing_arguments}")
 
-            return InvalidRequestResponse(f'Request missing arguments: {missing_arguments}')
+            return InvalidRequestResponse(f"Request missing arguments: {missing_arguments}")
 
         return None
 
 
 class SimpleRESTServiceBase:
-    def __init__(self, routes: List[Route], exception_function_name: Optional[str] = None,
-                 exception_reporter: Optional[ExceptionReporter] = None):
+    def __init__(
+        self,
+        routes: list[Route],
+        exception_function_name: str | None = None,
+        exception_reporter: ExceptionReporter | None = None,
+    ):
         """
         Enabling the creation of a simple REST service using the DaVinci framework
 
@@ -124,12 +131,12 @@ class SimpleRESTServiceBase:
 
         self._route_map = self._build_route_map()
 
-        self._base_headers = {'Content-Type': 'application/json'}
+        self._base_headers = {"Content-Type": "application/json"}
 
-    def _build_route_map(self) -> Dict[str, Route]:
-        '''
+    def _build_route_map(self) -> dict[str, Route]:
+        """
         Build a map of routes
-        '''
+        """
         route_map = {}
 
         for route in self.routes:
@@ -143,35 +150,35 @@ class SimpleRESTServiceBase:
 
         return route_map
 
-    def handle(self, event: Dict):
-        '''
+    def handle(self, event: dict):
+        """
         Handle an incoming event
 
         Takes an AWS Lambda event and returns a response
 
         Keyword Arguments:
             event: AWS Lambda event
-        '''
-        req_info = event['requestContext']['http']
+        """
+        req_info = event["requestContext"]["http"]
 
         self.current_event = event
 
         self.current_request = req_info
 
-        method = req_info['method']
+        method = req_info["method"]
 
-        path = req_info['path']
+        path = req_info["path"]
 
         if method not in self._route_map or path not in self._route_map[method]:
-            return NotFoundResponse(f'{path} - {method}')
+            return NotFoundResponse(f"{path} - {method}")
 
         params = {}
 
-        if 'queryStringParameters' in event:
-            params = event['queryStringParameters']
+        if "queryStringParameters" in event:
+            params = event["queryStringParameters"]
 
-        elif 'body' in event:
-            params = json.loads(event['body'])
+        elif "body" in event:
+            params = json.loads(event["body"])
 
         route = self._route_map[method][path]
 
@@ -184,7 +191,7 @@ class SimpleRESTServiceBase:
             return route.handler(**params)
 
         except Exception as err:
-            logging.info(f'Exception occurred: {traceback.format_exc()}')
+            logging.info(f"Exception occurred: {traceback.format_exc()}")
 
             report_fn_name = self.exception_function_name or route.handler.__name__
 
@@ -197,20 +204,19 @@ class SimpleRESTServiceBase:
                 )
 
             return self.respond(
-                body='Internal server error',
+                body="Internal server error",
                 status_code=500,
             )
 
-    def respond(self, body: Union[Dict, str], status_code: int,
-                headers: Dict = None) -> Dict:
-        '''
+    def respond(self, body: dict | str, status_code: int, headers: dict = None) -> dict:
+        """
         Respond to a request
 
         Keyword Arguments:
             body: Body of the response
             status_code: HTTP status code of the response
             headers: Headers to include in the response (default: None)
-        '''
+        """
         headers = self._base_headers
 
         if headers:
