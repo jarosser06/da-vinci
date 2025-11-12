@@ -1,0 +1,20 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    hostname: da_vinci
+    volumes:
+      - ../..:/workspaces:cached
+      - ~/.ssh:/home/vscode/.ssh:ro
+      - ~/.aws:/home/vscode/.aws:ro
+    environment:
+      - AWS_PROFILE=${AWS_PROFILE:-default}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+    command: sleep infinity
+    networks:
+      - da_vinci_network
+
+networks:
+  da_vinci_network:
+    driver: bridge
