@@ -1,5 +1,5 @@
-from datetime import datetime, timedelta, UTC as utc_tz
-from typing import List, Optional 
+from datetime import UTC as utc_tz
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 from da_vinci.core.orm.client import (
@@ -12,83 +12,76 @@ from da_vinci.core.orm.client import (
 
 
 class TrappedException(TableObject):
-    table_name = 'da_vinci_trapped_exceptions'
+    table_name = "da_vinci_trapped_exceptions"
 
-    description = 'Holds exceptions that have been trapped'
+    description = "Holds exceptions that have been trapped"
 
     partition_key_attribute = TableObjectAttribute(
-        'function_name',
+        "function_name",
         TableObjectAttributeType.STRING,
-        description='The name of the function that produced the exception',
+        description="The name of the function that produced the exception",
     )
 
     sort_key_attribute = TableObjectAttribute(
-        'exception_id',
+        "exception_id",
         TableObjectAttributeType.STRING,
-        description='The ID of the exception',
+        description="The ID of the exception",
         default=lambda: str(uuid4()),
     )
 
     ttl_attribute = TableObjectAttribute(
-        'time_to_live',
+        "time_to_live",
         TableObjectAttributeType.DATETIME,
-        description='The TTL for the record',
-        default=lambda: datetime.now(tz=utc_tz) + timedelta(days=2)
+        description="The TTL for the record",
+        default=lambda: datetime.now(tz=utc_tz) + timedelta(days=2),
     )
 
     attributes = [
         TableObjectAttribute(
-            'created',
+            "created",
             TableObjectAttributeType.DATETIME,
-            description='The datetime the exception was created',
+            description="The datetime the exception was created",
         ),
-
         TableObjectAttribute(
-            'exception',
+            "exception",
             TableObjectAttributeType.STRING,
-            description='The exception that was trapped',
+            description="The exception that was trapped",
         ),
-
         TableObjectAttribute(
-            'exception_traceback',
+            "exception_traceback",
             TableObjectAttributeType.STRING,
-            description='The traceback of the exception',
+            description="The traceback of the exception",
         ),
-
         TableObjectAttribute(
-            'log_execution_id',
+            "log_execution_id",
             TableObjectAttributeType.STRING,
-            description='The execution ID of the log',
+            description="The execution ID of the log",
             optional=True,
         ),
-
         TableObjectAttribute(
-            'log_namespace',
+            "log_namespace",
             TableObjectAttributeType.STRING,
-            description='The namespace of the log',
+            description="The namespace of the log",
             optional=True,
         ),
-
         TableObjectAttribute(
-            'metadata',
+            "metadata",
             TableObjectAttributeType.JSON_STRING,
-            description='Any additional information about the exception',
+            description="Any additional information about the exception",
             default={},
             optional=True,
         ),
-
         TableObjectAttribute(
-            'originating_event',
+            "originating_event",
             TableObjectAttributeType.JSON_STRING,
-            description='The originating event that caused the exception',
+            description="The originating event that caused the exception",
         ),
-
         TableObjectAttribute(
-            'trapped_on',
+            "trapped_on",
             TableObjectAttributeType.DATETIME,
             default=lambda: datetime.now(tz=utc_tz),
-            description='The datetime the exception was trapped',
-        )
+            description="The datetime the exception was trapped",
+        ),
     ]
 
 
@@ -103,7 +96,7 @@ class TrappedExceptionsScanDefinition(TableScanDefinition):
 
 
 class TrappedExceptions(TableClient):
-    def __init__(self, app_name: Optional[str] = None, deployment_id: Optional[str] = None):
+    def __init__(self, app_name: str | None = None, deployment_id: str | None = None):
         """
         The client for the TrappedExceptions table
 
@@ -146,7 +139,7 @@ class TrappedExceptions(TableClient):
             table_object=trapped_exception,
         )
 
-    def scan(self, scan_definition: TrappedExceptionsScanDefinition) -> List[TrappedException]:
+    def scan(self, scan_definition: TrappedExceptionsScanDefinition) -> list[TrappedException]:
         """
         Scan trapped exceptions
 

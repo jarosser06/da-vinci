@@ -1,8 +1,9 @@
-'''Global Settings Table Definitions'''
+"""Global Settings Table Definitions"""
 
-from datetime import datetime, UTC as utc_tz
-from enum import auto, StrEnum
-from typing import Any, List, Optional, Union
+from datetime import UTC as utc_tz
+from datetime import datetime
+from enum import StrEnum, auto
+from typing import Any
 
 from da_vinci.core.orm.client import (
     TableClient,
@@ -15,6 +16,7 @@ from da_vinci.core.orm.client import (
 
 class GlobalSettingType(StrEnum):
     """Setting Types"""
+
     BOOLEAN = auto()
     FLOAT = auto()
     INTEGER = auto()
@@ -22,43 +24,43 @@ class GlobalSettingType(StrEnum):
 
 
 class GlobalSetting(TableObject):
-    description = 'Application Settings'
-    table_name = 'da_vinci_global_settings'
+    description = "Application Settings"
+    table_name = "da_vinci_global_settings"
 
     partition_key_attribute = TableObjectAttribute(
-        name='namespace',
+        name="namespace",
         attribute_type=TableObjectAttributeType.STRING,
-        description='The namespace that the setting belongs to',
+        description="The namespace that the setting belongs to",
     )
 
     sort_key_attribute = TableObjectAttribute(
-        name='setting_key',
+        name="setting_key",
         attribute_type=TableObjectAttributeType.STRING,
-        description='The setting key',
+        description="The setting key",
     )
 
     attributes = [
         TableObjectAttribute(
-            name='description',
+            name="description",
             attribute_type=TableObjectAttributeType.STRING,
-            description='The description of the setting',
+            description="The description of the setting",
             optional=True,
         ),
         TableObjectAttribute(
-            name='last_updated',
+            name="last_updated",
             attribute_type=TableObjectAttributeType.DATETIME,
             default=lambda: datetime.now(tz=utc_tz),
-            description='The last time the setting was updated',
+            description="The last time the setting was updated",
         ),
         TableObjectAttribute(
-            name='setting_type',
+            name="setting_type",
             attribute_type=TableObjectAttributeType.STRING,
-            description='The type of the setting',
+            description="The type of the setting",
         ),
         TableObjectAttribute(
-            name='setting_value',
+            name="setting_value",
             attribute_type=TableObjectAttributeType.STRING,
-            description='The value of the setting',
+            description="The value of the setting",
         ),
     ]
 
@@ -90,12 +92,12 @@ class GlobalSetting(TableObject):
             )
             ```
         """
-        if isinstance(kwargs.get('setting_type'), GlobalSettingType):
-            kwargs['setting_type'] = kwargs['setting_type'].name
+        if isinstance(kwargs.get("setting_type"), GlobalSettingType):
+            kwargs["setting_type"] = kwargs["setting_type"].name
 
         # Ensure the setting value is a string
-        if not isinstance(kwargs.get('setting_value'), str):
-            kwargs['setting_value'] = str(kwargs['setting_value'])
+        if not isinstance(kwargs.get("setting_value"), str):
+            kwargs["setting_value"] = str(kwargs["setting_value"])
 
         super().__init__(**kwargs)
 
@@ -104,7 +106,7 @@ class GlobalSetting(TableObject):
         Return the setting value as the correct type
         """
         if self.setting_type == GlobalSettingType.BOOLEAN.name:
-            return self.setting_value.lower() == 'true'
+            return self.setting_value.lower() == "true"
 
         elif self.setting_type == GlobalSettingType.FLOAT.name:
             return float(self.setting_value)
@@ -125,8 +127,12 @@ class GlobalSettingsScanDefinition(TableScanDefinition):
 
 
 class GlobalSettings(TableClient):
-    def __init__(self, app_name: Optional[str] = None, deployment_id: Optional[str] = None,
-                 table_endpoint_name: Optional[str] = None):
+    def __init__(
+        self,
+        app_name: str | None = None,
+        deployment_id: str | None = None,
+        table_endpoint_name: str | None = None,
+    ):
         """
         Global Settings Table Definitions
 
@@ -142,7 +148,7 @@ class GlobalSettings(TableClient):
             table_endpoint_name=table_endpoint_name,
         )
 
-    def all(self) -> List[GlobalSetting]:
+    def all(self) -> list[GlobalSetting]:
         """
         Get all settings
         """
@@ -157,7 +163,7 @@ class GlobalSettings(TableClient):
         """
         self.delete_object(setting)
 
-    def get(self, namespace: str, setting_key: str) -> Union[GlobalSetting, None]:
+    def get(self, namespace: str, setting_key: str) -> GlobalSetting | None:
         """
         Get a setting by namespace and setting key
 
@@ -179,7 +185,7 @@ class GlobalSettings(TableClient):
         """
         return self.put_object(setting)
 
-    def scan(self, scan_definition: TableScanDefinition) -> List[TableObject]:
+    def scan(self, scan_definition: TableScanDefinition) -> list[TableObject]:
         """
         Scan for settings
 

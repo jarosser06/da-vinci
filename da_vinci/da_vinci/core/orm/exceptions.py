@@ -1,4 +1,4 @@
-'''Custom Exceptions for the ORM'''
+"""Custom Exceptions for the ORM"""
 
 
 class AugmentedRetrievalInvalidQueryException(ValueError):
@@ -10,7 +10,7 @@ class AugmentedRetrievalInvalidQueryException(ValueError):
             query (str): The invalid query
             details (str): Details about why the query is invalid
         """
-        super().__init__(f'{query} is not a valid query: {details}')
+        super().__init__(f"{query} is not a valid query: {details}")
 
 
 class MissingTableObjectAttributeException(ValueError):
@@ -21,7 +21,7 @@ class MissingTableObjectAttributeException(ValueError):
         Keyword Arguments:
             attribute_name (str): The name of the attribute that was not provided
         """
-        super().__init__(f'Required argument {attribute_name}, was not provided')
+        super().__init__(f"Required argument {attribute_name}, was not provided")
 
 
 class TableScanQueryException(ValueError):
@@ -33,7 +33,7 @@ class TableScanQueryException(ValueError):
             attribute_name (str): The name of the attribute that was invalid
             attribute_type (str): The type of attribute that was invalid
         """
-        super().__init__(f'{attribute_name} is not a valid {attribute_type}')
+        super().__init__(f"{attribute_name} is not a valid {attribute_type}")
 
 
 class TableScanInvalidComparisonException(TableScanQueryException):
@@ -44,10 +44,7 @@ class TableScanInvalidComparisonException(TableScanQueryException):
         Keyword Arguments:
             comparison_name (str): The name of the invalid comparison operator
         """
-        super().__init__(
-            attribute_name=comparison_name,
-            attribute_type='comparison operator'
-        )
+        super().__init__(attribute_name=comparison_name, attribute_type="comparison operator")
 
 
 class TableScanInvalidAttributeException(TableScanQueryException):
@@ -58,10 +55,7 @@ class TableScanInvalidAttributeException(TableScanQueryException):
         Keyword Arguments:
             attribute_name (str): The name of the invalid attribute
         """
-        super().__init__(
-            attribute_name=attribute_name,
-            attribute_type='table object attribute'
-        )
+        super().__init__(attribute_name=attribute_name, attribute_type="table object attribute")
 
 
 class TableScanMissingAttributeException(ValueError):
@@ -72,4 +66,4 @@ class TableScanMissingAttributeException(ValueError):
         Keyword Arguments:
             attribute_name (str): The name of the missing attribute
         """
-        super().__init__(f'{attribute_name} was not provided')
+        super().__init__(f"{attribute_name} was not provided")

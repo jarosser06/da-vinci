@@ -1,7 +1,7 @@
-'''Event Bus  Responses Table'''
+"""Event Bus  Responses Table"""
 
-from datetime import datetime, timedelta, UTC as utc_tz
-from typing import Dict, List, Optional
+from datetime import UTC as utc_tz
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 from da_vinci.core.orm.client import (
@@ -15,74 +15,78 @@ from da_vinci.core.orm.table_object import TableObject
 
 
 class EventBusResponse(TableObject):
-    description = 'Event Bus Responses'
+    description = "Event Bus Responses"
 
-    table_name = 'da_vinci_event_bus_responses'
+    table_name = "da_vinci_event_bus_responses"
 
     partition_key_attribute = TableObjectAttribute(
-        'event_type',
+        "event_type",
         TableObjectAttributeType.STRING,
-        description='The event type that was subscribed to',
+        description="The event type that was subscribed to",
     )
 
     sort_key_attribute = TableObjectAttribute(
-        'response_id',
+        "response_id",
         TableObjectAttributeType.STRING,
         default=lambda: str(uuid4()),
-        description='The unique ID of the response',
+        description="The unique ID of the response",
     )
 
     ttl_attribute = TableObjectAttribute(
-        'time_to_live',
+        "time_to_live",
         TableObjectAttributeType.DATETIME,
         default=lambda: datetime.now(tz=utc_tz) + timedelta(hours=8),
-        description='The time to live for the table object',
+        description="The time to live for the table object",
     )
 
     attributes = [
         TableObjectAttribute(
-            'created',
+            "created",
             TableObjectAttributeType.DATETIME,
             default=lambda: datetime.now(tz=utc_tz),
-            description='The datetime the response was created',
+            description="The datetime the response was created",
         ),
-
         TableObjectAttribute(
-            'failure_reason',
+            "failure_reason",
             TableObjectAttributeType.STRING,
-            description='The reason for the failure',
+            description="The reason for the failure",
             optional=True,
         ),
-
         TableObjectAttribute(
-            'failure_traceback',
+            "failure_traceback",
             TableObjectAttributeType.STRING,
-            description='The traceback of the failure',
+            description="The traceback of the failure",
             optional=True,
         ),
-
         TableObjectAttribute(
-            'originating_event_id',
+            "originating_event_id",
             TableObjectAttributeType.STRING,
-            description='The ID of the event that triggered the response',
+            description="The ID of the event that triggered the response",
         ),
-
         TableObjectAttribute(
-            'original_event_body',
+            "original_event_body",
             TableObjectAttributeType.JSON_STRING,
-            description='The original event body',
+            description="The original event body",
         ),
-
         TableObjectAttribute(
-            'response_status',
+            "response_status",
             TableObjectAttributeType.STRING,
             description='The status of the response, either "SUCCESS", "FAILURE", "ROUTED", or "NO_ROUTE"',
         ),
     ]
 
-    def __init__(self, event_type: str, response_id: str, response_status: str, original_event_body: Dict,
-                 originating_event_id: str, created: Optional[datetime] = None, failure_reason: Optional[str] = None,
-                 failure_traceback: Optional[str] = None, time_to_live: Optional[datetime] = None):
+    def __init__(
+        self,
+        event_type: str,
+        response_id: str,
+        response_status: str,
+        original_event_body: dict,
+        originating_event_id: str,
+        created: datetime | None = None,
+        failure_reason: str | None = None,
+        failure_traceback: str | None = None,
+        time_to_live: datetime | None = None,
+    ):
         """
         Initialize an event bus response object
 
@@ -118,7 +122,7 @@ class EventBusResponsesScanDefinition(TableScanDefinition):
 
 
 class EventBusResponses(TableClient):
-    def __init__(self, app_name: Optional[str] = None, deployment_id: Optional[str] = None):
+    def __init__(self, app_name: str | None = None, deployment_id: str | None = None):
         super().__init__(
             app_name=app_name,
             deployment_id=deployment_id,
@@ -160,7 +164,7 @@ class EventBusResponses(TableClient):
         """
         return self.put_object(event_bus_subscription_response)
 
-    def scan(self, scan_definition: EventBusResponsesScanDefinition) -> List[EventBusResponse]:
+    def scan(self, scan_definition: EventBusResponsesScanDefinition) -> list[EventBusResponse]:
         """
         Scan event bus subscription responses
 

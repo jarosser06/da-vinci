@@ -1,21 +1,18 @@
 import json
 import logging
 import traceback
-
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from functools import wraps
 from os import getenv
-from typing import Dict, Optional, Union
+from typing import Optional
 
 from da_vinci.core.client_base import RESTClientBase
+from da_vinci.core.immutable_object import ObjectBody
 from da_vinci.core.json import DaVinciObjectEncoder
 from da_vinci.core.logging import Logger
 
-from da_vinci.core.immutable_object import ObjectBody
-
-
-EXCEPTION_TRAP_ENV_VAR = 'DaVinciFramework_ExceptionTrapEnabled'
+EXCEPTION_TRAP_ENV_VAR = "DaVinciFramework_ExceptionTrapEnabled"
 
 
 def exception_trap_enabled() -> bool:
@@ -26,7 +23,7 @@ def exception_trap_enabled() -> bool:
         bool
     """
 
-    return getenv(EXCEPTION_TRAP_ENV_VAR, 'false').lower() == 'true'
+    return getenv(EXCEPTION_TRAP_ENV_VAR, "false").lower() == "true"
 
 
 @dataclass
@@ -35,15 +32,16 @@ class ReportedException:
     ReportedException is a dataclass that represents an exception that was
     reported to the exception trap
     """
+
     exception: str
     exception_traceback: str
     function_name: str
-    originating_event: Dict
-    log_execution_id: Optional[str] = None
-    log_namespace: Optional[str] = None
-    metadata: Optional[Dict] = None
+    originating_event: dict
+    log_execution_id: str | None = None
+    log_namespace: str | None = None
+    metadata: dict | None = None
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """
         Create a dictionary representation of the ReportedException
 
@@ -63,13 +61,21 @@ class ReportedException:
 
         return json.dumps(self.to_dict(), cls=DaVinciObjectEncoder)
 
+
 class ExceptionReporter(RESTClientBase):
     def __init__(self):
-        super().__init__(resource_name='exceptions_trap')
+        super().__init__(resource_name="exceptions_trap")
 
-    def report(self, function_name: str, exception: str, exception_traceback: str,
-               originating_event: Union[Dict, ObjectBody], metadata: Optional[Union[Dict, ObjectBody]] = None,
-               log_execution_id: Optional[str] = None, log_namespace: Optional[str] = None):
+    def report(
+        self,
+        function_name: str,
+        exception: str,
+        exception_traceback: str,
+        originating_event: dict | ObjectBody,
+        metadata: dict | ObjectBody | None = None,
+        log_execution_id: str | None = None,
+        log_namespace: str | None = None,
+    ):
         """
         Report an exception to the exception trap
 
@@ -82,7 +88,11 @@ class ExceptionReporter(RESTClientBase):
             metadata: Any additional metadata about the exception
             originating_event: The event that caused the exception
         """
-        originating_event = originating_event.to_dict() if isinstance(originating_event, ObjectBody) else originating_event
+        originating_event = (
+            originating_event.to_dict()
+            if isinstance(originating_event, ObjectBody)
+            else originating_event
+        )
 
         metadata = metadata.to_dict() if isinstance(metadata, ObjectBody) else metadata
 
@@ -96,39 +106,46 @@ class ExceptionReporter(RESTClientBase):
             log_namespace=log_namespace,
         )
 
-        logging.debug(f'Reporting exception: {req_body.to_dict()}')
+        logging.debug(f"Reporting exception: {req_body.to_dict()}")
 
         self.post(body=req_body.to_dict())
 
 
-def fn_exception_reporter(func: Optional[Callable] = None, *, function_name: str = Optional[None],
-                          metadata: Optional[Dict] = None, logger: Optional[Logger] = None, re_raise: bool = False):
+def fn_exception_reporter(
+    func: Callable | None = None,
+    *,
+    function_name: str = Optional[None],
+    metadata: dict | None = None,
+    logger: Logger | None = None,
+    re_raise: bool = False,
+):
     """
     Wraps a function that handles an event and reports any exception
-    
+
     Keyword Arguments:
         function_name: The name of the function that raised the exception, if not provided, the function name will be used
         metadata: Any additional metadata about the exception
         logger: The logger to use for logging
         re_raise: If True, the exception will be re-raised after reporting
     """
+
     def reporter_wrapper(func: Callable):
 
         @wraps(func)
-        def wrapper(event: Dict, context: Dict):
+        def wrapper(event: dict, context: dict):
             _function_name = function_name or func.__name__
 
-            _logger = logger or Logger(namespace='da_vinci.exception_trap_client')
+            _logger = logger or Logger(namespace="da_vinci.exception_trap_client")
 
             try:
-                _logger.debug(f'Executing function {_function_name}({event})')
+                _logger.debug(f"Executing function {_function_name}({event})")
 
                 return func(event, context)
             except Exception as exc:
                 if exception_trap_enabled():
                     reporter = ExceptionReporter()
 
-                    _logger.debug(f'Function threw exception: {traceback.format_exc()}')
+                    _logger.debug(f"Function threw exception: {traceback.format_exc()}")
 
                     reporter.report(
                         originating_event=event,

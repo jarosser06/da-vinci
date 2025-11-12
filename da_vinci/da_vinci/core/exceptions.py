@@ -1,4 +1,5 @@
-'''All Da Vinci Base Exceptions'''
+"""All Da Vinci Base Exceptions"""
+
 
 class DuplicateRouteDefinitionError(Exception):
     def __init__(self, route_name: str):
@@ -10,7 +11,7 @@ class DuplicateRouteDefinitionError(Exception):
         Keyword Arguments:
             route_name (str): The name of the route that already exists
         """
-        super().__init__(f'Route definition for {route_name} already exists')
+        super().__init__(f"Route definition for {route_name} already exists")
 
 
 class GlobalSettingsNotEnabledError(Exception):
@@ -18,7 +19,7 @@ class GlobalSettingsNotEnabledError(Exception):
         """
         Indicates that global settings are not enabled
         """
-        super().__init__('Attempting to access global settings when they are not enabled')
+        super().__init__("Attempting to access global settings when they are not enabled")
 
 
 class GlobalSettingNotFoundError(Exception):
@@ -30,7 +31,7 @@ class GlobalSettingNotFoundError(Exception):
             setting_key (str): The key of the setting that was not found
             namespace (str): The namespace of the setting that was not found
         """
-        super().__init__(f'Setting {setting_key} in namespace {namespace} not found')
+        super().__init__(f"Setting {setting_key} in namespace {namespace} not found")
 
 
 class MissingRequiredRuntimeVariableError(RuntimeError):
@@ -41,7 +42,7 @@ class MissingRequiredRuntimeVariableError(RuntimeError):
         Keyword Arguments:
             variable_name (str): The name of the variable that was not found
         """
-        super().__init__(f'Required runtime variable {variable_name} not found')
+        super().__init__(f"Required runtime variable {variable_name} not found")
 
 
 class ResourceNotFoundError(Exception):
@@ -53,4 +54,4 @@ class ResourceNotFoundError(Exception):
             resource_name (str): The name of the resource that was not found
             resource_type (str): The type of resource that was not found
         """
-        super().__init__(f'Resource {resource_name} of type {resource_type} not found')
+        super().__init__(f"Resource {resource_name} of type {resource_type} not found")

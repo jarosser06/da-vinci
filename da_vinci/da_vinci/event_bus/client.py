@@ -1,29 +1,26 @@
-'''Event Bus Clients'''
+"""Event Bus Clients"""
+
 import json
 import logging
 import traceback
-
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from enum import auto, StrEnum
+from enum import StrEnum
 from functools import wraps
-from typing import Dict, Optional, Union
 
 from da_vinci.core.client_base import AsyncClientBase, RESTClientBase
 from da_vinci.core.immutable_object import ObjectBodySchema
 from da_vinci.core.json import DaVinciObjectEncoder
 from da_vinci.core.logging import Logger
-
 from da_vinci.event_bus.event import Event
-
 from da_vinci.exception_trap.client import ExceptionReporter
 
 
 class EventPublisher(AsyncClientBase):
     def __init__(self):
-        super().__init__(resource_name='event_bus')
+        super().__init__(resource_name="event_bus")
 
-    def submit(self, event: Event, delay: Optional[int] = None):
+    def submit(self, event: Event, delay: int | None = None):
         """
         Publish an event to the event bus
 
@@ -38,10 +35,10 @@ class EventPublisher(AsyncClientBase):
 
 
 class EventResponseStatus(StrEnum):
-    FAILURE = 'FAILURE'
-    INITIALIZED = 'INITIALIZED'
-    NO_SUBSCRIPTIONS = 'NO_SUBSCRIPTIONS'
-    SUCCESS = 'SUCCESS'
+    FAILURE = "FAILURE"
+    INITIALIZED = "INITIALIZED"
+    NO_SUBSCRIPTIONS = "NO_SUBSCRIPTIONS"
+    SUCCESS = "SUCCESS"
 
 
 @dataclass
@@ -50,13 +47,14 @@ class EventResponse:
     EventResponse is a dataclass that represents the response from an event
     handler.
     """
+
     event: Event
     status: EventResponseStatus
-    failure_reason: Optional[str] = None
-    failure_traceback: Optional[str] = None
-    response_id: Optional[str] = None
+    failure_reason: str | None = None
+    failure_traceback: str | None = None
+    response_id: str | None = None
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """
         Create a dictionary representation of the EventResponse
 
@@ -79,11 +77,16 @@ class EventResponse:
 
 class EventResponder(RESTClientBase):
     def __init__(self):
-        super().__init__(resource_name='event_bus_responses')
+        super().__init__(resource_name="event_bus_responses")
 
-    def response(self, event: Union[Event, Dict], status: Union[EventResponseStatus, str],
-                 failure_reason: Optional[str] = None, failure_traceback: Optional[str] = None,
-                 response_id: Optional[str] = None):
+    def response(
+        self,
+        event: Event | dict,
+        status: EventResponseStatus | str,
+        failure_reason: str | None = None,
+        failure_traceback: str | None = None,
+        response_id: str | None = None,
+    ):
         """
         Publish an EventResponse
 
@@ -109,10 +112,14 @@ class EventResponder(RESTClientBase):
         self.post(body=response_body.to_dict())
 
 
-def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
-                      function_name: Optional[str] = None, handle_callbacks: Optional[bool] = False,
-                      logger: Optional[Logger] = None, re_raise: Optional[bool] = False,
-                      schema: Optional[ObjectBodySchema] = None):
+def fn_event_response(
+    exception_reporter: ExceptionReporter | None = None,
+    function_name: str | None = None,
+    handle_callbacks: bool | None = False,
+    logger: Logger | None = None,
+    re_raise: bool | None = False,
+    schema: ObjectBodySchema | None = None,
+):
     """
     Wraps a function that tracks event responses. When wrapped, the function
     will report any results to the event watcher. The function can optionally validate the entire event body
@@ -126,12 +133,13 @@ def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
         re_raise: If True, the exception will be re-raised after reporting, optional
         schema: ObjectBodySchema-based object to use for validating the event body, optional. When provided, the event body will be validated
     """
+
     def event_response_wrapper(func: Callable):
         @wraps(func)
-        def wrapper(event: Dict, context: Dict):
-            logging.debug(f'Raw event {event}')
+        def wrapper(event: dict, context: dict):
+            logging.debug(f"Raw event {event}")
 
-            _logger = logger or Logger('da_vinci.event_bus.response_wrapper')
+            _logger = logger or Logger("da_vinci.event_bus.response_wrapper")
 
             _function_name = function_name or func.__name__
 
@@ -139,13 +147,13 @@ def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
 
             event_obj = Event.from_lambda_event(event=event)
 
-            _logger.s3_log_handler.put_metadata('originating_event', event_obj.to_dict())
+            _logger.s3_log_handler.put_metadata("originating_event", event_obj.to_dict())
 
             try:
-                logging.debug(f'Executing function with event {event}')
+                logging.debug(f"Executing function with event {event}")
 
                 if schema:
-                    logging.debug('Validating event body')
+                    logging.debug("Validating event body")
 
                     schema.validate_object(event_obj.body)
 
@@ -154,12 +162,12 @@ def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
                 # If the function returns a result and we are handling callbacks
                 # check if the event has a callback event type and publish the result
                 if fn_result and handle_callbacks:
-                    logging.debug('Function returned a result, checking for callback event type')
+                    logging.debug("Function returned a result, checking for callback event type")
 
-                    logging.debug(f'Event object {event_obj.to_dict()}')
+                    logging.debug(f"Event object {event_obj.to_dict()}")
 
                     if event_obj.callback_event_type:
-                        logging.debug('Function has a callback event type, publishing result')
+                        logging.debug("Function has a callback event type, publishing result")
 
                         event_publisher = EventPublisher()
 
@@ -167,26 +175,25 @@ def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
                             event=Event(
                                 body=fn_result,
                                 event_type=event_obj.callback_event_type,
-                                previous_event_id=event_obj.event_id
+                                previous_event_id=event_obj.event_id,
                             )
                         )
 
-                        logging.debug(f'Published callback event to {event_obj.callback_event_type}')
+                        logging.debug(
+                            f"Published callback event to {event_obj.callback_event_type}"
+                        )
 
-                event_responder.response(
-                    event=event_obj,
-                    status=EventResponseStatus.SUCCESS
-                )
+                event_responder.response(event=event_obj, status=EventResponseStatus.SUCCESS)
 
                 return fn_result
 
             except Exception as exc:
                 event_responder.response(
                     event=event_obj,
-                    status=EventResponseStatus.FAILURE, 
+                    status=EventResponseStatus.FAILURE,
                     failure_reason=str(exc),
                     failure_traceback=traceback.format_exc(),
-                    response_id=event_obj.response_id
+                    response_id=event_obj.response_id,
                 )
 
                 if exception_reporter:
@@ -201,34 +208,36 @@ def fn_event_response(exception_reporter: Optional[ExceptionReporter] = None,
                     )
 
                 if handle_callbacks:
-                    logging.debug('Checking for callback event type')
+                    logging.debug("Checking for callback event type")
 
                     if event_obj.callback_event_type_on_failure:
-                        logging.debug('Function has a callback event type, publishing failure')
+                        logging.debug("Function has a callback event type, publishing failure")
 
                         event_publisher = EventPublisher()
 
                         event_publisher.submit(
                             event=Event(
                                 body={
-                                    'da_vinci_event_bus_response': {
-                                        'status': 'failure',
-                                        'reason': str(exc),
-                                        'traceback': traceback.format_exc(),
+                                    "da_vinci_event_bus_response": {
+                                        "status": "failure",
+                                        "reason": str(exc),
+                                        "traceback": traceback.format_exc(),
                                     },
-                                    'originating_event_details': {
-                                        'event_id': event_obj.event_id,
-                                        'response_id': event_obj.response_id,
-                                        'event_type': event_obj.event_type,
-                                        'event_body': event_obj.body,
+                                    "originating_event_details": {
+                                        "event_id": event_obj.event_id,
+                                        "response_id": event_obj.response_id,
+                                        "event_type": event_obj.event_type,
+                                        "event_body": event_obj.body,
                                     },
                                 },
                                 event_type=event_obj.callback_event_type_on_failure,
-                                previous_event_id=event_obj.event_id
+                                previous_event_id=event_obj.event_id,
                             )
                         )
 
-                        logging.debug(f'Published callback event to {event_obj.callback_event_type}')
+                        logging.debug(
+                            f"Published callback event to {event_obj.callback_event_type}"
+                        )
 
                 traceback.print_exc()
 

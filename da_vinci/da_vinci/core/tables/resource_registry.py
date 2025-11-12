@@ -1,6 +1,7 @@
-'''Resource Registry Table Definition'''
+"""Resource Registry Table Definition"""
 
-from datetime import datetime, UTC as utc_tz
+from datetime import UTC as utc_tz
+from datetime import datetime
 
 from da_vinci.core.orm.table_object import (
     TableObject,
@@ -10,33 +11,32 @@ from da_vinci.core.orm.table_object import (
 
 
 class ResourceRegistration(TableObject):
-    description = 'Resource Registry'
+    description = "Resource Registry"
 
-    table_name = 'da_vinci_resource_registry'
+    table_name = "da_vinci_resource_registry"
 
     partition_key_attribute = TableObjectAttribute(
-        name='resource_type',
+        name="resource_type",
         attribute_type=TableObjectAttributeType.STRING,
-        description='The type of the resource',
+        description="The type of the resource",
     )
 
     sort_key_attribute = TableObjectAttribute(
-        name='resource_name',
+        name="resource_name",
         attribute_type=TableObjectAttributeType.STRING,
-        description='The unique global name of the resource',
+        description="The unique global name of the resource",
     )
 
     attributes = [
         TableObjectAttribute(
-            name='created_on',
+            name="created_on",
             attribute_type=TableObjectAttributeType.DATETIME,
-            description='The date and time the resource was registered',
+            description="The date and time the resource was registered",
             default=lambda: datetime.now(tz=utc_tz),
         ),
-
         TableObjectAttribute(
-            name='endpoint',
+            name="endpoint",
             attribute_type=TableObjectAttributeType.STRING,
-            description='The endpoint where the resource can be reached',
+            description="The endpoint where the resource can be reached",
         ),
     ]
