@@ -1,36 +1,42 @@
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from aws_cdk import (
-    aws_dynamodb as cdk_dynamodb,
-    aws_iam as cdk_iam,
     RemovalPolicy,
 )
-
+from aws_cdk import aws_dynamodb as cdk_dynamodb
+from aws_cdk import aws_iam as cdk_iam
 from aws_cdk.custom_resources import (
     AwsCustomResource,
     AwsCustomResourcePolicy,
     AwsSdkCall,
     PhysicalResourceId,
 )
-
 from constructs import Construct
 
-from da_vinci.core.resource_discovery import ResourceType
 from da_vinci.core.orm.table_object import TableObject, TableObjectAttributeType
-
+from da_vinci.core.resource_discovery import ResourceType
 from da_vinci_cdk.constructs.access_management import ResourceAccessPolicy
 from da_vinci_cdk.constructs.base import custom_type_name, resource_namer
-from da_vinci_cdk.constructs.resource_discovery import DiscoverableResource, ResourceDiscoveryStorageSolution
+from da_vinci_cdk.constructs.resource_discovery import (
+    DiscoverableResource,
+    ResourceDiscoveryStorageSolution,
+)
 
 
 class DynamoDBTable(Construct):
-    def __init__(self,  partition_key: cdk_dynamodb.Attribute, scope: Construct,
-                 table_name: str, construct_id: Optional[str] = None,
-                 exclude_from_discovery: bool = False, removal_policy: Optional[RemovalPolicy] = None,
-                 sort_key: Optional[cdk_dynamodb.Attribute] = None,
-                 tags: List[Dict[str, Any]] = None,
-                 time_to_live_attribute: Optional[str] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        partition_key: cdk_dynamodb.Attribute,
+        scope: Construct,
+        table_name: str,
+        construct_id: str | None = None,
+        exclude_from_discovery: bool = False,
+        removal_policy: RemovalPolicy | None = None,
+        sort_key: cdk_dynamodb.Attribute | None = None,
+        tags: list[dict[str, Any]] = None,
+        time_to_live_attribute: str | None = None,
+        **kwargs,
+    ):
         """
         Initialize a DynamoDBTable object
 
@@ -72,28 +78,25 @@ class DynamoDBTable(Construct):
             )
         """
 
-        construct_id = construct_id or f'dynamodb-table-{table_name}'
+        construct_id = construct_id or f"dynamodb-table-{table_name}"
 
         super().__init__(scope, construct_id)
 
         additional_tags = {
-            'DaVinciFramework::ApplicationName': scope.node.get_context('app_name'),
-            'DaVinciFramework::DeploymentId': scope.node.get_context('deployment_id'),
-            'DaVinciFrameworkManaged': 'True',
+            "DaVinciFramework::ApplicationName": scope.node.get_context("app_name"),
+            "DaVinciFramework::DeploymentId": scope.node.get_context("deployment_id"),
+            "DaVinciFrameworkManaged": "True",
         }
 
         if not tags:
             tags = []
 
         for additional_tag in additional_tags:
-            tags.append({
-                'key': additional_tag,
-                'value': additional_tags[additional_tag]
-            })
+            tags.append({"key": additional_tag, "value": additional_tags[additional_tag]})
 
         self.table = cdk_dynamodb.TableV2(
             scope=self,
-            id=f'{construct_id}-table',
+            id=f"{construct_id}-table",
             billing=cdk_dynamodb.Billing.on_demand(),
             partition_key=partition_key,
             removal_policy=removal_policy,
@@ -106,7 +109,7 @@ class DynamoDBTable(Construct):
 
         if not exclude_from_discovery:
             self._discovery_resource = DiscoverableResource(
-                construct_id=f'{construct_id}-resource',
+                construct_id=f"{construct_id}-resource",
                 scope=self,
                 resource_endpoint=self.table.table_name,
                 resource_name=table_name,
@@ -114,40 +117,44 @@ class DynamoDBTable(Construct):
             )
 
         self.read_access_statement = cdk_iam.PolicyStatement(
-            actions=['dynamodb:BatchGetItem',
-                     'dynamodb:DescribeTable',
-                     'dynamodb:GetRecords',
-                     'dynamodb:ConditionCheckItem',
-                     'dynamodb:GetItem',
-                     'dynamodb:Query',
-                     'dynamodb:GetShardIterator',
-                     'dynamodb:Scan'],
+            actions=[
+                "dynamodb:BatchGetItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetRecords",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:GetItem",
+                "dynamodb:Query",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Scan",
+            ],
             resources=[
                 self.table.table_arn,
-                f'{self.table.table_arn}/*',
+                f"{self.table.table_arn}/*",
             ],
         )
 
         self.read_write_access_statement = cdk_iam.PolicyStatement(
-            actions=['dynamodb:BatchGetItem',
-                     'dynamodb:BatchWriteItem',
-                     'dynamodb:DescribeTable',
-                     'dynamodb:GetRecords',
-                     'dynamodb:ConditionCheckItem',
-                     'dynamodb:GetItem',
-                     'dynamodb:DeleteItem',
-                     'dynamodb:UpdateItem',
-                     'dynamodb:PutItem',
-                     'dynamodb:Query',
-                     'dynamodb:GetShardIterator',
-                     'dynamodb:Scan'],
+            actions=[
+                "dynamodb:BatchGetItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetRecords",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:GetItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:PutItem",
+                "dynamodb:Query",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Scan",
+            ],
             resources=[
                 self.table.table_arn,
-                f'{self.table.table_arn}/*',
+                f"{self.table.table_arn}/*",
             ],
         )
 
-        for policy_name in ('read', 'default'):
+        for policy_name in ("read", "default"):
             read_policy_stements = [
                 self.read_access_statement,
             ]
@@ -172,7 +179,7 @@ class DynamoDBTable(Construct):
 
         self.read_write_access_policy = ResourceAccessPolicy(
             scope=scope,
-            policy_name='read_write',
+            policy_name="read_write",
             policy_statements=write_policy_statements,
             resource_name=table_name,
             resource_type=ResourceType.TABLE,
@@ -201,11 +208,15 @@ class DynamoDBTable(Construct):
         self._discovery_resource.grant_read(resource=resource)
 
     @classmethod
-    def from_orm_table_object(cls, table_object: TableObject, scope: Construct,
-                              construct_id: Optional[str] = None,
-                              exclude_from_discovery: bool = False,
-                              removal_policy: Optional[RemovalPolicy] = None,
-                              tags: List[Dict[str, Any]] = None) -> 'DynamoDBTable':
+    def from_orm_table_object(
+        cls,
+        table_object: TableObject,
+        scope: Construct,
+        construct_id: str | None = None,
+        exclude_from_discovery: bool = False,
+        removal_policy: RemovalPolicy | None = None,
+        tags: list[dict[str, Any]] = None,
+    ) -> "DynamoDBTable":
         """
         Lazy constructor that allows defining a DynamoDBTable from a TableObject
 
@@ -253,16 +264,16 @@ class DynamoDBTable(Construct):
         )
 
         init_args = {
-            'construct_id': construct_id,
-            'exclude_from_discovery': exclude_from_discovery,
-            'partition_key': cdk_dynamodb.Attribute(
+            "construct_id": construct_id,
+            "exclude_from_discovery": exclude_from_discovery,
+            "partition_key": cdk_dynamodb.Attribute(
                 name=table_object.partition_key_attribute.dynamodb_key_name,
                 type=partition_key_type,
             ),
-            'removal_policy': removal_policy,
-            'scope': scope,
-            'table_name': table_object.table_name,
-            'tags': tags,
+            "removal_policy": removal_policy,
+            "scope": scope,
+            "table_name": table_object.table_name,
+            "tags": tags,
         }
 
         if table_object.sort_key_attribute:
@@ -270,18 +281,20 @@ class DynamoDBTable(Construct):
                 orm_type=table_object.sort_key_attribute.attribute_type,
             )
 
-            init_args['sort_key'] = cdk_dynamodb.Attribute(
+            init_args["sort_key"] = cdk_dynamodb.Attribute(
                 name=table_object.sort_key_attribute.dynamodb_key_name,
                 type=sort_key_type,
             )
 
         if table_object.ttl_attribute:
-            init_args['time_to_live_attribute'] = table_object.ttl_attribute.dynamodb_key_name
+            init_args["time_to_live_attribute"] = table_object.ttl_attribute.dynamodb_key_name
 
         return cls(**init_args)
 
     @staticmethod
-    def attribute_type_from_orm_type(orm_type: TableObjectAttributeType) -> cdk_dynamodb.AttributeType:
+    def attribute_type_from_orm_type(
+        orm_type: TableObjectAttributeType,
+    ) -> cdk_dynamodb.AttributeType:
         """
         Return the corresponding DynamoDB AttributeType for a TableObjectAttributeType
 
@@ -292,17 +305,22 @@ class DynamoDBTable(Construct):
             The corresponding DynamoDB AttributeType
         """
 
-        if orm_type is TableObjectAttributeType.DATETIME \
-                or orm_type is TableObjectAttributeType.NUMBER:
+        if (
+            orm_type is TableObjectAttributeType.DATETIME
+            or orm_type is TableObjectAttributeType.NUMBER
+        ):
             return cdk_dynamodb.AttributeType.NUMBER
 
         return cdk_dynamodb.AttributeType.STRING
 
     @staticmethod
-    def table_full_name_lookup(scope: Construct, table_name: str, 
-                               app_name: Optional[str] = None,
-                               deployment_id: Optional[str] = None,
-                               resource_discovery_storage_solution: str = ResourceDiscoveryStorageSolution.SSM) -> str:
+    def table_full_name_lookup(
+        scope: Construct,
+        table_name: str,
+        app_name: str | None = None,
+        deployment_id: str | None = None,
+        resource_discovery_storage_solution: str = ResourceDiscoveryStorageSolution.SSM,
+    ) -> str:
         """
         Lookup the full name for the DynamoDB table
 
@@ -323,12 +341,18 @@ class DynamoDBTable(Construct):
         )
 
 
-DEFAULT_ITEM_TYPE_NAME = custom_type_name(name='DynamoDBItem')
+DEFAULT_ITEM_TYPE_NAME = custom_type_name(name="DynamoDBItem")
 
 
 class DynamoDBItem(Construct):
-    def __init__(self, construct_id: str, scope: Construct, table_object: TableObject,
-                 custom_type_name: Optional[str] = DEFAULT_ITEM_TYPE_NAME, support_updates: bool = False):
+    def __init__(
+        self,
+        construct_id: str,
+        scope: Construct,
+        table_object: TableObject,
+        custom_type_name: str | None = DEFAULT_ITEM_TYPE_NAME,
+        support_updates: bool = False,
+    ):
         """
         Initialize a DynamoDBItem object
 
@@ -346,7 +370,9 @@ class DynamoDBItem(Construct):
 
         self.custom_type_name = custom_type_name
 
-        resource_discovery_storage_solution = self.node.get_context('resource_discovery_storage_solution')
+        resource_discovery_storage_solution = self.node.get_context(
+            "resource_discovery_storage_solution"
+        )
 
         self.full_table_name = DynamoDBTable.table_full_name_lookup(
             scope=self,
@@ -361,11 +387,11 @@ class DynamoDBItem(Construct):
 
         self.resource = AwsCustomResource(
             scope=self,
-            id=f'{construct_id}-custom-resource',
+            id=f"{construct_id}-custom-resource",
             policy=AwsCustomResourcePolicy.from_sdk_calls(
                 resources=[
-                    f'arn:aws:dynamodb:*:*:table/{self.full_table_name}',
-                    f'arn:aws:dynamodb:*:*:table/{self.full_table_name}/*',
+                    f"arn:aws:dynamodb:*:*:table/{self.full_table_name}",
+                    f"arn:aws:dynamodb:*:*:table/{self.full_table_name}/*",
                 ]
             ),
             on_create=self.put(table_object),
@@ -388,7 +414,7 @@ class DynamoDBItem(Construct):
             bool: True if the attribute has changed, False otherwise
         """
         try:
-            old_item = old_item_call.get('Item', {})
+            old_item = old_item_call.get("Item", {})
 
             if attr_name not in old_item:
                 return True
@@ -418,7 +444,7 @@ class DynamoDBItem(Construct):
         if table_object.sort_key_attribute:
             resource_id_items.append(table_object.sort_key_attribute.dynamodb_key_name)
 
-        return PhysicalResourceId.of('-'.join(resource_id_items))
+        return PhysicalResourceId.of("-".join(resource_id_items))
 
     def put(self, table_object: TableObject) -> AwsSdkCall:
         """
@@ -428,11 +454,11 @@ class DynamoDBItem(Construct):
             table_object: The TableObject to use to initialize the DynamoDBItem
         """
         return AwsSdkCall(
-            action='putItem',
-            service='DynamoDB',
+            action="putItem",
+            service="DynamoDB",
             parameters={
-                'Item': table_object.to_dynamodb_item(),
-                'TableName': self.full_table_name,
+                "Item": table_object.to_dynamodb_item(),
+                "TableName": self.full_table_name,
             },
             physical_resource_id=self.physical_resource_id(table_object),
         )
@@ -449,7 +475,9 @@ class DynamoDBItem(Construct):
             AwsSdkCall: The update call if there are changes, or a no-op call if no changes
         """
         # Get the item's key attributes
-        partition_key_value = table_object.attribute_value(table_object.partition_key_attribute.name)
+        partition_key_value = table_object.attribute_value(
+            table_object.partition_key_attribute.name
+        )
 
         sort_key_value = None
 
@@ -466,13 +494,9 @@ class DynamoDBItem(Construct):
 
         # Get the previous state from CloudFormation's old_value
         get_item_call = AwsSdkCall(
-            action='getItem',
-            service='DynamoDB',
-            parameters={
-                'Key': item_key,
-                'TableName': self.full_table_name,
-                'ConsistentRead': True
-            },
+            action="getItem",
+            service="DynamoDB",
+            parameters={"Key": item_key, "TableName": self.full_table_name, "ConsistentRead": True},
             physical_resource_id=self.physical_resource_id(table_object),
         )
 
@@ -485,9 +509,10 @@ class DynamoDBItem(Construct):
 
         for attr_name, attr_value in dynamodb_item.items():
             # Skip key attributes as they can't be updated
-            if (attr_name == table_object.partition_key_attribute.dynamodb_key_name or 
-                (table_object.sort_key_attribute and 
-                 attr_name == table_object.sort_key_attribute.dynamodb_key_name)):
+            if attr_name == table_object.partition_key_attribute.dynamodb_key_name or (
+                table_object.sort_key_attribute
+                and attr_name == table_object.sort_key_attribute.dynamodb_key_name
+            ):
                 continue
 
             # Check if the attribute value has changed
@@ -507,14 +532,14 @@ class DynamoDBItem(Construct):
             return None
 
         return AwsSdkCall(
-            action='updateItem',
-            service='DynamoDB',
+            action="updateItem",
+            service="DynamoDB",
             parameters={
-                'Key': item_key,
-                'TableName': self.full_table_name,
-                'UpdateExpression': f"SET {', '.join(update_expressions)}",
-                'ExpressionAttributeNames': expression_names,
-                'ExpressionAttributeValues': expression_values,
+                "Key": item_key,
+                "TableName": self.full_table_name,
+                "UpdateExpression": f"SET {', '.join(update_expressions)}",
+                "ExpressionAttributeNames": expression_names,
+                "ExpressionAttributeValues": expression_values,
             },
             physical_resource_id=self.physical_resource_id(table_object),
         )
@@ -526,12 +551,14 @@ class DynamoDBItem(Construct):
         Keyword Arguments:
             table_object: The TableObject to use to initialize the DynamoDBItem
         """
-        partition_key_value=table_object.attribute_value(table_object.partition_key_attribute.name)
+        partition_key_value = table_object.attribute_value(
+            table_object.partition_key_attribute.name
+        )
 
         sort_key_value = None
 
         if table_object.sort_key_attribute:
-            sort_key_value=table_object.attribute_value(table_object.sort_key_attribute.name)
+            sort_key_value = table_object.attribute_value(table_object.sort_key_attribute.name)
 
         item_key = table_object.gen_dynamodb_key(
             partition_key_value=partition_key_value,
@@ -539,11 +566,11 @@ class DynamoDBItem(Construct):
         )
 
         return AwsSdkCall(
-            action='deleteItem',
-            service='DynamoDB',
+            action="deleteItem",
+            service="DynamoDB",
             parameters={
-                'Key': item_key,
-                'TableName': self.full_table_name,
+                "Key": item_key,
+                "TableName": self.full_table_name,
             },
             physical_resource_id=self.physical_resource_id(table_object),
         )

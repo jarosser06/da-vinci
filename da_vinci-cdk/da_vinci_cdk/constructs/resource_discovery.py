@@ -1,32 +1,34 @@
-from typing import Any, Optional
+from typing import Any
 
-from constructs import Construct
-
-from aws_cdk import (
-    aws_dynamodb as dynamodb,
-    aws_iam as cdk_iam,
-)
-
+from aws_cdk import aws_dynamodb as dynamodb
+from aws_cdk import aws_iam as cdk_iam
 from aws_cdk.custom_resources import (
     AwsCustomResource,
     AwsCustomResourcePolicy,
     AwsSdkCall,
     PhysicalResourceId,
 )
+from constructs import Construct
 
 from da_vinci.core.orm.table_object import TableObject
 from da_vinci.core.resource_discovery import ResourceDiscovery, ResourceDiscoveryStorageSolution
 from da_vinci.core.tables.resource_registry import ResourceRegistration
-
 from da_vinci_cdk.constructs.base import (
+    GlobalVariable,
     custom_type_name,
     resource_namer,
-    GlobalVariable,
 )
 
 
 class DiscoverableResourceDynamoDBItem(Construct):
-    def __init__(self, construct_id: str, scope: Construct, endpoint: str, registration_name: str, registration_type: str):
+    def __init__(
+        self,
+        construct_id: str,
+        scope: Construct,
+        endpoint: str,
+        registration_name: str,
+        registration_type: str,
+    ):
         """
         Initialize a DiscoverableResourceDynamoDBItem object
 
@@ -39,7 +41,7 @@ class DiscoverableResourceDynamoDBItem(Construct):
         """
         super().__init__(scope, construct_id)
 
-        self.custom_type_name = custom_type_name(name='DiscoverableResourceDynamoDBItem')
+        self.custom_type_name = custom_type_name(name="DiscoverableResourceDynamoDBItem")
 
         self.registration_obj = ResourceRegistration(
             endpoint=endpoint,
@@ -47,7 +49,7 @@ class DiscoverableResourceDynamoDBItem(Construct):
             resource_type=registration_type,
         )
 
-        tbl_name = scope.node.get_context('resource_discovery_table_name')
+        tbl_name = scope.node.get_context("resource_discovery_table_name")
 
         # DynamoDB Endpoints are just the actual table name, can use resource_namer
         # to determine the exact table name
@@ -55,11 +57,11 @@ class DiscoverableResourceDynamoDBItem(Construct):
 
         self.resource = AwsCustomResource(
             scope=self,
-            id=f'{construct_id}-custom-resource',
+            id=f"{construct_id}-custom-resource",
             policy=AwsCustomResourcePolicy.from_sdk_calls(
                 resources=[
-                    f'arn:aws:dynamodb:*:*:table/{self.full_table_name}',
-                    f'arn:aws:dynamodb:*:*:table/{self.full_table_name}/*',
+                    f"arn:aws:dynamodb:*:*:table/{self.full_table_name}",
+                    f"arn:aws:dynamodb:*:*:table/{self.full_table_name}/*",
                 ]
             ),
             on_create=self.put(self.registration_obj),
@@ -82,7 +84,7 @@ class DiscoverableResourceDynamoDBItem(Construct):
             bool: True if the attribute has changed, False otherwise
         """
         try:
-            old_item = old_item_call.get('Item', {})
+            old_item = old_item_call.get("Item", {})
 
             if attr_name not in old_item:
                 return True
@@ -112,19 +114,17 @@ class DiscoverableResourceDynamoDBItem(Construct):
         if registration.sort_key_attribute:
             resource_id_items.append(registration.sort_key_attribute.dynamodb_key_name)
 
-        return PhysicalResourceId.of('-'.join(resource_id_items))
+        return PhysicalResourceId.of("-".join(resource_id_items))
 
     def access_statement(self) -> cdk_iam.PolicyStatement:
         """
         Generate a policy statement to access the DynamoDB item
         """
         return cdk_iam.PolicyStatement(
-            actions=[
-                'dynamodb:GetItem'
-            ],
+            actions=["dynamodb:GetItem"],
             resources=[
-                f'arn:aws:dynamodb:*:*:table/{self.full_table_name}',
-            ]
+                f"arn:aws:dynamodb:*:*:table/{self.full_table_name}",
+            ],
         )
 
     def put(self, registration: ResourceRegistration) -> AwsSdkCall:
@@ -135,11 +135,11 @@ class DiscoverableResourceDynamoDBItem(Construct):
             registration: The TableObject to use to initialize the DynamoDBItem
         """
         return AwsSdkCall(
-            action='putItem',
-            service='DynamoDB',
+            action="putItem",
+            service="DynamoDB",
             parameters={
-                'Item': registration.to_dynamodb_item(),
-                'TableName': self.full_table_name,
+                "Item": registration.to_dynamodb_item(),
+                "TableName": self.full_table_name,
             },
             physical_resource_id=self.physical_resource_id(registration),
         )
@@ -156,7 +156,9 @@ class DiscoverableResourceDynamoDBItem(Construct):
             AwsSdkCall: The update call if there are changes, or a no-op call if no changes
         """
         # Get the item's key attributes
-        partition_key_value = registration.attribute_value(registration.partition_key_attribute.name)
+        partition_key_value = registration.attribute_value(
+            registration.partition_key_attribute.name
+        )
 
         sort_key_value = None
 
@@ -173,13 +175,9 @@ class DiscoverableResourceDynamoDBItem(Construct):
 
         # Get the previous state from CloudFormation's old_value
         get_item_call = AwsSdkCall(
-            action='getItem',
-            service='DynamoDB',
-            parameters={
-                'Key': item_key,
-                'TableName': self.full_table_name,
-                'ConsistentRead': True
-            },
+            action="getItem",
+            service="DynamoDB",
+            parameters={"Key": item_key, "TableName": self.full_table_name, "ConsistentRead": True},
             physical_resource_id=self.physical_resource_id(registration),
         )
 
@@ -192,9 +190,10 @@ class DiscoverableResourceDynamoDBItem(Construct):
 
         for attr_name, attr_value in dynamodb_item.items():
             # Skip key attributes as they can't be updated
-            if (attr_name == registration.partition_key_attribute.dynamodb_key_name or 
-                (registration.sort_key_attribute and 
-                 attr_name == registration.sort_key_attribute.dynamodb_key_name)):
+            if attr_name == registration.partition_key_attribute.dynamodb_key_name or (
+                registration.sort_key_attribute
+                and attr_name == registration.sort_key_attribute.dynamodb_key_name
+            ):
                 continue
 
             # Check if the attribute value has changed
@@ -214,14 +213,14 @@ class DiscoverableResourceDynamoDBItem(Construct):
             return None
 
         return AwsSdkCall(
-            action='updateItem',
-            service='DynamoDB',
+            action="updateItem",
+            service="DynamoDB",
             parameters={
-                'Key': item_key,
-                'TableName': self.full_table_name,
-                'UpdateExpression': f"SET {', '.join(update_expressions)}",
-                'ExpressionAttributeNames': expression_names,
-                'ExpressionAttributeValues': expression_values,
+                "Key": item_key,
+                "TableName": self.full_table_name,
+                "UpdateExpression": f"SET {', '.join(update_expressions)}",
+                "ExpressionAttributeNames": expression_names,
+                "ExpressionAttributeValues": expression_values,
             },
             physical_resource_id=self.physical_resource_id(registration),
         )
@@ -233,12 +232,14 @@ class DiscoverableResourceDynamoDBItem(Construct):
         Keyword Arguments:
             registration: The TableObject to use to initialize the DynamoDBItem
         """
-        partition_key_value=registration.attribute_value(registration.partition_key_attribute.name)
+        partition_key_value = registration.attribute_value(
+            registration.partition_key_attribute.name
+        )
 
         sort_key_value = None
 
         if registration.sort_key_attribute:
-            sort_key_value=registration.attribute_value(registration.sort_key_attribute.name)
+            sort_key_value = registration.attribute_value(registration.sort_key_attribute.name)
 
         item_key = registration.gen_dynamodb_key(
             partition_key_value=partition_key_value,
@@ -246,11 +247,11 @@ class DiscoverableResourceDynamoDBItem(Construct):
         )
 
         return AwsSdkCall(
-            action='deleteItem',
-            service='DynamoDB',
+            action="deleteItem",
+            service="DynamoDB",
             parameters={
-                'Key': item_key,
-                'TableName': self.full_table_name,
+                "Key": item_key,
+                "TableName": self.full_table_name,
             },
             physical_resource_id=self.physical_resource_id(registration),
         )
@@ -261,7 +262,15 @@ class DiscoverableResourceDynamoDBLookup(Construct):
     Lookup construct for discovering resources in DynamoDB
     This is a separate construct to allow for clean lifecycle management
     """
-    def __init__(self, scope: Construct, construct_id: str, resource_name: str, resource_type: str, table_name: str):
+
+    def __init__(
+        self,
+        scope: Construct,
+        construct_id: str,
+        resource_name: str,
+        resource_type: str,
+        table_name: str,
+    ):
         super().__init__(scope, construct_id)
 
         self.full_table_name = resource_namer(name=table_name, scope=self)
@@ -279,56 +288,64 @@ class DiscoverableResourceDynamoDBLookup(Construct):
         # Create a custom resource to look up the value
         self.lookup_resource = AwsCustomResource(
             scope=self,
-            id=f'{construct_id}-lookup',
+            id=f"{construct_id}-lookup",
             policy=AwsCustomResourcePolicy.from_sdk_calls(
                 resources=[
-                    f'arn:aws:dynamodb:*:*:table/{self.full_table_name}',
-                    f'arn:aws:dynamodb:*:*:table/{self.full_table_name}/*',
+                    f"arn:aws:dynamodb:*:*:table/{self.full_table_name}",
+                    f"arn:aws:dynamodb:*:*:table/{self.full_table_name}/*",
                 ]
             ),
             on_create=self._get_item_call(),
             on_update=self._get_item_call(),
-            resource_type='Custom::DynamoDBLookup',
+            resource_type="Custom::DynamoDBLookup",
         )
 
     def _get_item_call(self) -> AwsSdkCall:
         """
         Create a GetItem AWS SDK call for the resource lookup
-        
+
         Returns:
             AwsSdkCall: The GetItem call configuration
         """
         return AwsSdkCall(
-            action='getItem',
-            service='DynamoDB',
+            action="getItem",
+            service="DynamoDB",
             parameters={
-                'Key': self.item_key,
-                'TableName': self.full_table_name,
-                'ConsistentRead': True
+                "Key": self.item_key,
+                "TableName": self.full_table_name,
+                "ConsistentRead": True,
             },
             physical_resource_id=PhysicalResourceId.of(
-                f'{self.resource_type}-{self.resource_name}-lookup'
-            )
+                f"{self.resource_type}-{self.resource_name}-lookup"
+            ),
         )
-    
+
     def get_endpoint(self) -> str:
         """
         Get the endpoint from the lookup result
-        
+
         Returns:
             str: The endpoint of the discovered resource
         """
-        endpoint_attribute = 'Endpoint'
+        endpoint_attribute = "Endpoint"
 
-        return self.lookup_resource.get_response_field(f'Item.{endpoint_attribute}.S')
+        return self.lookup_resource.get_response_field(f"Item.{endpoint_attribute}.S")
 
 
 class DiscoverableResource(Construct):
-    def __init__(self, construct_id: str, scope: Construct, resource_endpoint: str,
-                 resource_name: str, resource_type: str, app_name: Optional[str] = None,
-                 deployment_id: Optional[str] = None, resource_discovery_storage_solution: Optional[str] = None):
+    def __init__(
+        self,
+        construct_id: str,
+        scope: Construct,
+        resource_endpoint: str,
+        resource_name: str,
+        resource_type: str,
+        app_name: str | None = None,
+        deployment_id: str | None = None,
+        resource_discovery_storage_solution: str | None = None,
+    ):
         """
-        Initialize a DiscoverableResource object to 
+        Initialize a DiscoverableResource object to
 
         ServiceDiscovery is a wrapper around a service discovery resource that
         provisions a resource utilizing the core service discovery pattern.
@@ -345,11 +362,13 @@ class DiscoverableResource(Construct):
         """
         super().__init__(scope, construct_id)
 
-        self.app_name = app_name or scope.node.get_context('app_name')
+        self.app_name = app_name or scope.node.get_context("app_name")
 
-        self.deployment_id = deployment_id or scope.node.get_context('deployment_id')
+        self.deployment_id = deployment_id or scope.node.get_context("deployment_id")
 
-        self.storage_solution = resource_discovery_storage_solution or scope.node.get_context('resource_discovery_storage_solution')
+        self.storage_solution = resource_discovery_storage_solution or scope.node.get_context(
+            "resource_discovery_storage_solution"
+        )
 
         self.resource_endpoint = resource_endpoint
 
@@ -366,7 +385,7 @@ class DiscoverableResource(Construct):
             )
 
             self.parameter = GlobalVariable(
-                construct_id=f'resource-discovery-ssm-parameter-{self.resource_name}',
+                construct_id=f"resource-discovery-ssm-parameter-{self.resource_name}",
                 scope=self,
                 ssm_key=ssm_key,
                 ssm_value=self.resource_endpoint,
@@ -376,7 +395,7 @@ class DiscoverableResource(Construct):
 
         else:
             self.dynamodb_item = DiscoverableResourceDynamoDBItem(
-                construct_id=f'resource-discovery-dynamodb-item-{self.resource_type}-{self.resource_name}',
+                construct_id=f"resource-discovery-dynamodb-item-{self.resource_type}-{self.resource_name}",
                 scope=self,
                 endpoint=self.resource_endpoint,
                 registration_name=self.resource_name,
@@ -386,8 +405,9 @@ class DiscoverableResource(Construct):
             self.access_statement = self.dynamodb_item.access_statement()
 
     @staticmethod
-    def _gen_ssm_parameter_name(app_name: str, deployment_id: str, resource_name: str,
-                                resource_type: str) -> str:
+    def _gen_ssm_parameter_name(
+        app_name: str, deployment_id: str, resource_name: str, resource_type: str
+    ) -> str:
         """
         Generate a resource name for a service discovery resource
 
@@ -406,9 +426,15 @@ class DiscoverableResource(Construct):
         )
 
     @classmethod
-    def read_endpoint(cls, resource_name: str, resource_type: str, scope: Construct,
-                      app_name: Optional[str] = None, deployment_id: Optional[str] = None,
-                      storage_solution: str = ResourceDiscoveryStorageSolution.SSM) -> str:
+    def read_endpoint(
+        cls,
+        resource_name: str,
+        resource_type: str,
+        scope: Construct,
+        app_name: str | None = None,
+        deployment_id: str | None = None,
+        storage_solution: str = ResourceDiscoveryStorageSolution.SSM,
+    ) -> str:
         """
         Read the endpoint for a service discovery resource
 
@@ -420,19 +446,19 @@ class DiscoverableResource(Construct):
             scope: Parent construct for the ServiceDiscovery.
             storage_solution: The storage solution to use for resource discovery
         """
-        lookup_args = {'resource_name': resource_name, 'resource_type': resource_type}
+        lookup_args = {"resource_name": resource_name, "resource_type": resource_type}
 
-        lookup_args['app_name'] = app_name or scope.node.get_context('app_name')
+        lookup_args["app_name"] = app_name or scope.node.get_context("app_name")
 
-        lookup_args['deployment_id'] = deployment_id or scope.node.get_context('deployment_id')
+        lookup_args["deployment_id"] = deployment_id or scope.node.get_context("deployment_id")
 
         actual_storage_solution = storage_solution or scope.node.get_context(
-            'resource_discovery_storage_solution'
+            "resource_discovery_storage_solution"
         )
 
         for arg_name, arg_value in lookup_args.items():
             if not arg_value:
-                raise ValueError(f'{arg_name} must not be None')
+                raise ValueError(f"{arg_name} must not be None")
 
         try:
             # Use SSM Parameter Store for lookup
@@ -445,29 +471,29 @@ class DiscoverableResource(Construct):
                 )
 
                 return endpoint
-            
+
             # Use DynamoDB for lookup
             else:
-                table_name = scope.node.get_context('resource_discovery_table_name')
-                
+                table_name = scope.node.get_context("resource_discovery_table_name")
+
                 if not table_name:
                     raise ValueError("resource_discovery_table_name must be set in context")
-                
+
                 # Create a construct ID that is unique to this lookup
-                construct_id = f'resource-discovery-lookup-{resource_type}-{resource_name}'
-                
+                construct_id = f"resource-discovery-lookup-{resource_type}-{resource_name}"
+
                 # Create the lookup construct
                 lookup = DiscoverableResourceDynamoDBLookup(
                     scope=scope,
                     construct_id=construct_id,
                     resource_name=resource_name,
                     resource_type=resource_type,
-                    table_name=table_name
+                    table_name=table_name,
                 )
-                
+
                 # Get the endpoint from the lookup
                 return lookup.get_endpoint()
-                
+
         except Exception as e:
             # Create a descriptive error
             error_msg = (
@@ -489,7 +515,7 @@ class DiscoverableResource(Construct):
             # Get a reference to the DynamoDB table
             table = dynamodb.TableV2.from_table_name(
                 scope=self,
-                id=f'imported-table-{self.dynamodb_item.full_table_name}',
+                id=f"imported-table-{self.dynamodb_item.full_table_name}",
                 table_name=self.dynamodb_item.full_table_name,
             )
 

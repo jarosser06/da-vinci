@@ -1,50 +1,49 @@
-from typing import List, Optional
-
 from aws_cdk import (
-    aws_lambda as cdk_lambda,
-    aws_iam as cdk_iam,
     Duration,
     Tags,
 )
-
+from aws_cdk import aws_iam as cdk_iam
+from aws_cdk import aws_lambda as cdk_lambda
 from constructs import Construct
 
 from da_vinci.core.execution_environment import runtime_environment_dict
 from da_vinci.core.global_settings import SETTINGS_ENABLED_VAR_NAME
 from da_vinci.core.resource_discovery import ResourceType
-from da_vinci.core.tables.global_settings import GlobalSetting
-
-from da_vinci.exception_trap.client import EXCEPTION_TRAP_ENV_VAR
-
+from da_vinci.core.tables.global_settings_table import GlobalSetting
+from da_vinci.exception_trap.exception_trap_client import EXCEPTION_TRAP_ENV_VAR
 from da_vinci_cdk.constructs.access_management import (
-    ResourceAccessRequest,
     ResourceAccessPolicy,
+    ResourceAccessRequest,
 )
 from da_vinci_cdk.constructs.base import apply_framework_tags
 
-
-
-DEFAULT_BASE_IMAGE = 'public.ecr.aws/lambda/python:3.12'
+DEFAULT_BASE_IMAGE = "public.ecr.aws/lambda/python:3.12"
 
 
 class LambdaFunction(Construct):
-    def __init__(self, construct_id: str, entry: str, index: str,
-                 handler: str, scope: Construct,
-                 allow_custom_metrics: Optional[bool] = False,
-                 architecture: Optional[str] = None,
-                 base_image: Optional[str] = DEFAULT_BASE_IMAGE,
-                 description: Optional[str] = None,
-                 disable_framework_access_requests: Optional[bool] = False,
-                 disable_image_cache: Optional[bool] = False,
-                 dockerfile: Optional[str] = 'Dockerfile',
-                 function_name: Optional[str] = None,
-                 ignore_exceptions_access: Optional[bool] = False,
-                 ignore_settings_table_access: Optional[bool] = False,
-                 managed_policies: Optional[List[cdk_iam.IManagedPolicy]] = None,
-                 memory_size: Optional[int] = 128,
-                 resource_access_requests: Optional[List[ResourceAccessRequest]] = None,
-                 timeout: Duration = Duration.seconds(30), **kwargs):
-
+    def __init__(
+        self,
+        construct_id: str,
+        entry: str,
+        index: str,
+        handler: str,
+        scope: Construct,
+        allow_custom_metrics: bool | None = False,
+        architecture: str | None = None,
+        base_image: str | None = DEFAULT_BASE_IMAGE,
+        description: str | None = None,
+        disable_framework_access_requests: bool | None = False,
+        disable_image_cache: bool | None = False,
+        dockerfile: str | None = "Dockerfile",
+        function_name: str | None = None,
+        ignore_exceptions_access: bool | None = False,
+        ignore_settings_table_access: bool | None = False,
+        managed_policies: list[cdk_iam.IManagedPolicy] | None = None,
+        memory_size: int | None = 128,
+        resource_access_requests: list[ResourceAccessRequest] | None = None,
+        timeout: Duration | None = None,
+        **kwargs,
+    ):
         """
         Creates a Lambda function using a Docker image
 
@@ -88,45 +87,46 @@ class LambdaFunction(Construct):
         if allow_custom_metrics:
             initial_access_statements = [
                 cdk_iam.PolicyStatement(
-                    actions=['cloudwatch:PutMetricData'],
+                    actions=["cloudwatch:PutMetricData"],
                     effect=cdk_iam.Effect.ALLOW,
-                    resources=['*'],
+                    resources=["*"],
                 )
             ]
         else:
             initial_access_statements = []
 
-        self.architecture = architecture or scope.node.get_context('architecture')
+        self.architecture = architecture or scope.node.get_context("architecture")
 
         environment = runtime_environment_dict(
-            app_name=scope.node.get_context('app_name'),
-            deployment_id=scope.node.get_context('deployment_id'),
-            log_level=scope.node.get_context('log_level'),
-            resource_discovery_storage=scope.node.get_context('resource_discovery_storage_solution'),
+            app_name=scope.node.get_context("app_name"),
+            deployment_id=scope.node.get_context("deployment_id"),
+            log_level=scope.node.get_context("log_level"),
+            resource_discovery_storage=scope.node.get_context(
+                "resource_discovery_storage_solution"
+            ),
         )
 
         environment[SETTINGS_ENABLED_VAR_NAME] = str(
-            scope.node.get_context('global_settings_enabled')
+            scope.node.get_context("global_settings_enabled")
         )
 
-        exception_trap_enabled = scope.node.get_context('exception_trap_enabled')
+        exception_trap_enabled = scope.node.get_context("exception_trap_enabled")
 
         environment[EXCEPTION_TRAP_ENV_VAR] = str(exception_trap_enabled)
 
-        s3_logging_bucket_name = scope.node.try_get_context('s3_logging_bucket') or None
+        s3_logging_bucket_name = scope.node.try_get_context("s3_logging_bucket") or None
 
         if s3_logging_bucket_name:
-            environment['DA_VINCI_S3_LOGGING_BUCKET'] = s3_logging_bucket_name
+            environment["DA_VINCI_S3_LOGGING_BUCKET"] = s3_logging_bucket_name
 
-        fn_index = index.replace('.py', '')
+        fn_index = index.replace(".py", "")
 
-        cmd = [f'{fn_index}.{handler}']
+        cmd = [f"{fn_index}.{handler}"]
 
-        build_args = {
-            'FUNCTION_HANDLER': handler,
-            'FUNCTION_INDEX': fn_index,
-            'IMAGE': base_image
-        }
+        if timeout is None:
+            timeout = Duration.seconds(30)
+
+        build_args = {"FUNCTION_HANDLER": handler, "FUNCTION_INDEX": fn_index, "IMAGE": base_image}
 
         code = cdk_lambda.DockerImageCode.from_image_asset(
             cache_disabled=disable_image_cache,
@@ -138,7 +138,7 @@ class LambdaFunction(Construct):
 
         self.function = cdk_lambda.DockerImageFunction(
             self,
-            f'{construct_id}-fn',
+            f"{construct_id}-fn",
             architecture=self.architecture,
             code=code,
             description=description,
@@ -147,13 +147,11 @@ class LambdaFunction(Construct):
             initial_policy=initial_access_statements,
             memory_size=memory_size,
             timeout=timeout,
-            **kwargs
+            **kwargs,
         )
 
         Tags.of(self.function).add(
-            key='DaVinciFramework::FunctionPurpose',
-            value='General',
-            priority=100
+            key="DaVinciFramework::FunctionPurpose", value="General", priority=100
         )
         apply_framework_tags(self.function, self)
 
@@ -165,44 +163,50 @@ class LambdaFunction(Construct):
         if s3_logging_bucket_name:
             resource_access_requests.append(
                 ResourceAccessRequest(
-                    policy_name='write',
+                    policy_name="write",
                     resource_type=ResourceType.BUCKET,
                     resource_name=s3_logging_bucket_name,
                 )
             )
 
-        global_settings_enabled = scope.node.get_context('global_settings_enabled')
+        global_settings_enabled = scope.node.get_context("global_settings_enabled")
 
-        if global_settings_enabled and not disable_framework_access_requests:
+        if (
+            global_settings_enabled
+            and not disable_framework_access_requests
+            and not ignore_settings_table_access
+        ):
             # Check if settings table requests are already present
-            if not ignore_settings_table_access:
-                resource_access_requests.append(
-                    ResourceAccessRequest(
-                        policy_name='read',
-                        resource_type=ResourceType.TABLE,
-                        resource_name=GlobalSetting.table_name,
-                    )
+            resource_access_requests.append(
+                ResourceAccessRequest(
+                    policy_name="read",
+                    resource_type=ResourceType.TABLE,
+                    resource_name=GlobalSetting.table_name,
                 )
+            )
 
         Tags.of(self.function).add(
-            key='DaVinciFramework::GlobalSettingsEnabled',
+            key="DaVinciFramework::GlobalSettingsEnabled",
             value=str(global_settings_enabled),
-            priority=100
+            priority=100,
         )
 
-        if exception_trap_enabled and not disable_framework_access_requests:
-            if not ignore_exceptions_access:
-                resource_access_requests.append(
-                    ResourceAccessRequest(
-                        resource_type=ResourceType.REST_SERVICE,
-                        resource_name='exceptions_trap',
-                    )
+        if (
+            exception_trap_enabled
+            and not disable_framework_access_requests
+            and not ignore_exceptions_access
+        ):
+            resource_access_requests.append(
+                ResourceAccessRequest(
+                    resource_type=ResourceType.REST_SERVICE,
+                    resource_name="exceptions_trap",
                 )
+            )
 
         Tags.of(self.function).add(
-            key='DaVinciFramework::ExceptionsTrapEnabled',
+            key="DaVinciFramework::ExceptionsTrapEnabled",
             value=str(exception_trap_enabled),
-            priority=100
+            priority=100,
         )
 
         if resource_access_requests:

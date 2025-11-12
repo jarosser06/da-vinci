@@ -1,7 +1,6 @@
 import json
 import logging
-from datetime import UTC as utc_tz
-from datetime import datetime
+from datetime import UTC, datetime
 from os import environ
 from typing import Any
 from uuid import uuid4
@@ -43,7 +42,7 @@ class S3LogHandler(logging.Handler):
         record -- The log record
         """
         log_entry = {
-            "timestamp": datetime.now(tz=utc_tz).isoformat(),
+            "timestamp": datetime.now(tz=UTC).isoformat(),
             "level": record.levelname,
             "message": record.getMessage(),
         }

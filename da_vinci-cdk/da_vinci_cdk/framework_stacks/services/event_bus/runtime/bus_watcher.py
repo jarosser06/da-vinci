@@ -1,16 +1,13 @@
-'''Lambda module for the event bus watcher'''
-import logging
+"""Lambda module for the event bus watcher"""
 
-from datetime import datetime, timedelta, UTC as utc_tz
-from typing import Dict, Optional
+import logging
+from datetime import UTC, datetime, timedelta
 
 from da_vinci.core.global_settings import setting_value
-
 from da_vinci.core.rest_service_base import (
     Route,
     SimpleRESTServiceBase,
 )
-
 from da_vinci.event_bus.tables.event_bus_responses import (
     EventBusResponse,
     EventBusResponses,
@@ -28,14 +25,20 @@ class EventBusWatcher(SimpleRESTServiceBase):
             routes=[
                 Route(
                     handler=self.trap_response,
-                    method='POST',
-                    path='/',
+                    method="POST",
+                    path="/",
                 )
             ]
         )
 
-    def trap_response(self, event: Dict, status: str, failure_reason: Optional[str] = None,
-                      failure_traceback: Optional[str] = None, response_id: Optional[str] = None):
+    def trap_response(
+        self,
+        event: dict,
+        status: str,
+        failure_reason: str | None = None,
+        failure_traceback: str | None = None,
+        response_id: str | None = None,
+    ):
         """
         Trap an event response to store it in the database
 
@@ -45,10 +48,14 @@ class EventBusWatcher(SimpleRESTServiceBase):
             failure_reason: The reason for the failure
             failure_traceback: The traceback of the failure
         """
-        response_retention = setting_value('da_vinci_framework::event_bus', 'response_retention_hours')
+        response_retention = setting_value(
+            "da_vinci_framework::event_bus", "response_retention_hours"
+        )
 
         if response_id:
-            response = self.event_responses.get(event_type=event['event_type'], response_id=response_id)
+            response = self.event_responses.get(
+                event_type=event["event_type"], response_id=response_id
+            )
 
             if response:
                 response.response_status = status
@@ -60,30 +67,30 @@ class EventBusWatcher(SimpleRESTServiceBase):
                 self.event_responses.put(response)
 
                 return self.respond(
-                    body={'message': 'response updated'},
+                    body={"message": "response updated"},
                     status_code=200,
                 )
 
         response = EventBusResponse(
-            event_type=event['event_type'],
+            event_type=event["event_type"],
             failure_reason=failure_reason,
             failure_traceback=failure_traceback,
             original_event_body=event,
-            originating_event_id=event['event_id'],
-            response_id=event.get('response_id'),
+            originating_event_id=event["event_id"],
+            response_id=event.get("response_id"),
             response_status=status,
-            time_to_live=datetime.now(tz=utc_tz) + timedelta(hours=response_retention),
+            time_to_live=datetime.now(tz=UTC) + timedelta(hours=response_retention),
         )
 
         self.event_responses.put(response)
 
         return self.respond(
-            body={'message': 'response saved'},
+            body={"message": "response saved"},
             status_code=201,
         )
 
 
-def api(event: Dict, context: Dict):
+def api(event: dict, context: dict):
     """
     API handler for the event bus watcher
 
@@ -91,7 +98,7 @@ def api(event: Dict, context: Dict):
         event: The event
         context: The context
     """
-    logging.debug(f'Event: {event}')
+    logging.debug(f"Event: {event}")
 
     watcher = EventBusWatcher()
 

@@ -5,7 +5,6 @@ from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from functools import wraps
 from os import getenv
-from typing import Optional
 
 from da_vinci.core.client_base import RESTClientBase
 from da_vinci.core.immutable_object import ObjectBody
@@ -114,7 +113,7 @@ class ExceptionReporter(RESTClientBase):
 def fn_exception_reporter(
     func: Callable | None = None,
     *,
-    function_name: str = Optional[None],
+    function_name: str | None = None,
     metadata: dict | None = None,
     logger: Logger | None = None,
     re_raise: bool = False,

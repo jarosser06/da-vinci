@@ -1,7 +1,6 @@
 """Event Bus  Responses Table"""
 
-from datetime import UTC as utc_tz
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from da_vinci.core.orm.client import (
@@ -11,7 +10,6 @@ from da_vinci.core.orm.client import (
     TableObjectAttributeType,
     TableScanDefinition,
 )
-from da_vinci.core.orm.table_object import TableObject
 
 
 class EventBusResponse(TableObject):
@@ -35,7 +33,7 @@ class EventBusResponse(TableObject):
     ttl_attribute = TableObjectAttribute(
         "time_to_live",
         TableObjectAttributeType.DATETIME,
-        default=lambda: datetime.now(tz=utc_tz) + timedelta(hours=8),
+        default=lambda: datetime.now(tz=UTC) + timedelta(hours=8),
         description="The time to live for the table object",
     )
 
@@ -43,7 +41,7 @@ class EventBusResponse(TableObject):
         TableObjectAttribute(
             "created",
             TableObjectAttributeType.DATETIME,
-            default=lambda: datetime.now(tz=utc_tz),
+            default=lambda: datetime.now(tz=UTC),
             description="The datetime the response was created",
         ),
         TableObjectAttribute(
@@ -129,14 +127,14 @@ class EventBusResponses(TableClient):
             default_object_class=EventBusResponse,
         )
 
-    def delete(self, EventResponse: EventBusResponse):
+    def delete(self, event_response: EventBusResponse):
         """
         Delete an event bus subscription response
 
         Keyword Arguments:
-            EventResponse: The event bus subscription response to delete
+            event_response: The event bus subscription response to delete
         """
-        self.delete_object(EventResponse)
+        self.delete_object(event_response)
 
     def get(self, event_type: str, response_id: str) -> EventBusResponse:
         """

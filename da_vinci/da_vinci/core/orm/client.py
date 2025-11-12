@@ -7,7 +7,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 from da_vinci.core.exceptions import ResourceNotFoundError
-from da_vinci.core.orm.exceptions import (
+from da_vinci.core.orm.orm_exceptions import (
     TableScanInvalidAttributeException,
     TableScanInvalidComparisonException,
 )

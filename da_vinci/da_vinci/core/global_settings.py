@@ -3,7 +3,7 @@ from typing import Any
 
 from da_vinci.core.exceptions import GlobalSettingNotFoundError, GlobalSettingsNotEnabledError
 from da_vinci.core.orm.client import TableClient
-from da_vinci.core.tables.global_settings import GlobalSetting, GlobalSettings
+from da_vinci.core.tables.global_settings_table import GlobalSetting, GlobalSettings
 
 SETTINGS_ENABLED_VAR_NAME = "DaVinciFramework_GlobalSettingsEnabled"
 
