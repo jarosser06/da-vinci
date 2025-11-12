@@ -1,7 +1,6 @@
 """Resource Registry Table Definition"""
 
-from datetime import UTC as utc_tz
-from datetime import datetime
+from datetime import UTC, datetime
 
 from da_vinci.core.orm.table_object import (
     TableObject,
@@ -32,7 +31,7 @@ class ResourceRegistration(TableObject):
             name="created_on",
             attribute_type=TableObjectAttributeType.DATETIME,
             description="The date and time the resource was registered",
-            default=lambda: datetime.now(tz=utc_tz),
+            default=lambda: datetime.now(tz=UTC),
         ),
         TableObjectAttribute(
             name="endpoint",

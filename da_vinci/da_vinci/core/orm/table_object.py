@@ -2,12 +2,11 @@ import json
 import logging
 from collections.abc import Callable
 from copy import deepcopy
-from datetime import UTC as utc_tz
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum, auto
 from typing import Any
 
-from da_vinci.core.orm.exceptions import MissingTableObjectAttributeException
+from da_vinci.core.orm.orm_exceptions import MissingTableObjectAttributeException
 
 
 class TableObjectAttributeType(StrEnum):
@@ -946,7 +945,7 @@ class TableObject:
         """
 
         if not to_datetime:
-            to_datetime = datetime.now(tz=utc_tz)
+            to_datetime = datetime.now(tz=UTC)
 
         for attr_name in date_attribute_names:
             setattr(obj, attr_name, to_datetime)

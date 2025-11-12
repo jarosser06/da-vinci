@@ -4,21 +4,17 @@ Event Bus Router
 # Last version this file was updated for:
 version: 2025.3.16
 """
+
 import json
 import logging
-
-from typing import Dict
 from uuid import uuid4
 
 import boto3
 
 from da_vinci.core.json import DaVinciObjectEncoder
-
-from da_vinci.event_bus.client import EventResponder, EventResponseStatus
 from da_vinci.event_bus.event import Event
-
+from da_vinci.event_bus.event_bus_client import EventResponder, EventResponseStatus
 from da_vinci.event_bus.tables.event_bus_subscriptions import EventBusSubscriptions
-
 
 
 class EventBus:
@@ -26,7 +22,7 @@ class EventBus:
         """
         Initialize the EventBus object
         """
-        self.aws_lambda = boto3.client('lambda')
+        self.aws_lambda = boto3.client("lambda")
 
         self.event_responder = EventResponder()
 
@@ -41,9 +37,7 @@ class EventBus:
 
         subscriptions = EventBusSubscriptions()
 
-        all_subs = subscriptions.all_active_subscriptions(
-            event_type=event.event_type
-        )
+        all_subs = subscriptions.all_active_subscriptions(event_type=event.event_type)
 
         if not all_subs:
             logging.debug(f"No subscriptions found for {event.event_type}")
@@ -83,7 +77,7 @@ class EventBus:
             logging.debug(f"Lambda invocation response: {response}")
 
 
-def handler(event: Dict, context: Dict):
+def handler(event: dict, context: dict):
     """
     Picks up events from the SQS queue and invokes subscribed functions
 

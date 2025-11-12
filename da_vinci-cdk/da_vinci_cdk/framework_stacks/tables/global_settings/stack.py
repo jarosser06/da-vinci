@@ -1,17 +1,17 @@
 from constructs import Construct
 
-from da_vinci.core.tables.global_settings import (
+from da_vinci.core.tables.global_settings_table import (
     GlobalSetting,
 )
-
-from da_vinci_cdk.stack import Stack
 from da_vinci_cdk.constructs.dynamodb import DynamoDBTable
+from da_vinci_cdk.stack import Stack
 
 
 class GlobalSettingsTableStack(Stack):
     """
     CDK Stack that provisions a Global Settings DynamoDB Table
     """
+
     def __init__(self, app_name: str, deployment_id: str, scope: Construct, stack_name: str):
         super().__init__(
             app_name=app_name,

@@ -1,20 +1,16 @@
-from typing import Optional, Union
-
-from constructs import Construct
-
 from aws_cdk.custom_resources import (
     AwsCustomResource,
     AwsCustomResourcePolicy,
     AwsSdkCall,
     PhysicalResourceId,
 )
+from constructs import Construct
 
 from da_vinci.core.exceptions import GlobalSettingsNotEnabledError
-from da_vinci.core.tables.global_settings import (
-    GlobalSetting as GlobalSettingTblObj,
+from da_vinci.core.tables.global_settings_table import GlobalSetting as GlobalSettingTblObj
+from da_vinci.core.tables.global_settings_table import (
     GlobalSettingType,
 )
-
 from da_vinci_cdk.constructs.base import custom_type_name, resource_namer
 from da_vinci_cdk.constructs.dynamodb import DynamoDBItem
 
@@ -22,9 +18,15 @@ from da_vinci_cdk.constructs.dynamodb import DynamoDBItem
 class GlobalSetting(DynamoDBItem):
     """Global setting item."""
 
-    def __init__(self, namespace: str, scope: Construct, setting_key: str, description: Optional[str] = None,
-                 setting_type: Optional[Union[str, GlobalSettingType]] = GlobalSettingType.STRING,
-                 setting_value: Optional[str] = 'PLACEHOLDER'):
+    def __init__(
+        self,
+        namespace: str,
+        scope: Construct,
+        setting_key: str,
+        description: str | None = None,
+        setting_type: str | GlobalSettingType | None = GlobalSettingType.STRING,
+        setting_value: str | None = "PLACEHOLDER",
+    ):
         """
         Initialize the global setting item.
 
@@ -36,14 +38,14 @@ class GlobalSetting(DynamoDBItem):
             setting_value: The value of the setting, defaults to 'PLACEHOLDER'.
             scope: The CDK scope.
         """
-        base_construct_id = f'global_setting-{namespace}-{setting_key}'
+        base_construct_id = f"global_setting-{namespace}-{setting_key}"
 
-        if not scope.node.get_context('global_settings_enabled'):
+        if not scope.node.get_context("global_settings_enabled"):
             raise GlobalSettingsNotEnabledError()
 
         super().__init__(
             construct_id=base_construct_id,
-            custom_type_name=custom_type_name('GlobalSetting'),
+            custom_type_name=custom_type_name("GlobalSetting"),
             scope=scope,
             table_object=GlobalSettingTblObj(
                 namespace=namespace,
@@ -77,6 +79,7 @@ class GlobalSettingLookup(Construct):
     """
     Lookup construct for a global setting item.
     """
+
     def __init__(self, scope: Construct, construct_id: str, namespace: str, setting_key: str):
         """
         Initialize the global setting lookup construct.
@@ -104,42 +107,42 @@ class GlobalSettingLookup(Construct):
         # Create a custom resource to look up the value
         self.lookup_resource = AwsCustomResource(
             scope=self,
-            id=f'{construct_id}-lookup',
+            id=f"{construct_id}-lookup",
             policy=AwsCustomResourcePolicy.from_sdk_calls(
                 resources=[
-                    f'arn:aws:dynamodb:*:*:table/{self.full_table_name}',
-                    f'arn:aws:dynamodb:*:*:table/{self.full_table_name}/*',
+                    f"arn:aws:dynamodb:*:*:table/{self.full_table_name}",
+                    f"arn:aws:dynamodb:*:*:table/{self.full_table_name}/*",
                 ]
             ),
             on_create=self._get_item_call(),
             on_update=self._get_item_call(),
-            resource_type='Custom::DynamoDBLookup',
+            resource_type="Custom::DynamoDBLookup",
         )
 
     def _get_item_call(self) -> AwsSdkCall:
         """
         Create a GetItem AWS SDK call for the resource lookup
-        
+
         Returns:
             AwsSdkCall: The GetItem call configuration
         """
         return AwsSdkCall(
-            action='getItem',
-            service='DynamoDB',
+            action="getItem",
+            service="DynamoDB",
             parameters={
-                'Key': self.item_key,
-                'TableName': self.full_table_name,
+                "Key": self.item_key,
+                "TableName": self.full_table_name,
             },
             physical_resource_id=PhysicalResourceId.of(
-                f'{self.namespace}-{self.setting_key}-lookup'
-            )
+                f"{self.namespace}-{self.setting_key}-lookup"
+            ),
         )
-    
+
     def get_value(self) -> str:
         """
         Get the endpoint from the lookup result
-        
+
         Returns:
             str: The endpoint of the discovered resource
         """
-        return self.lookup_resource.get_response_field(f'Item.SettingValue.S')
+        return self.lookup_resource.get_response_field("Item.SettingValue.S")

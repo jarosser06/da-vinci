@@ -1,5 +1,4 @@
-from datetime import UTC as utc_tz
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from da_vinci.core.orm.client import (
@@ -33,7 +32,7 @@ class TrappedException(TableObject):
         "time_to_live",
         TableObjectAttributeType.DATETIME,
         description="The TTL for the record",
-        default=lambda: datetime.now(tz=utc_tz) + timedelta(days=2),
+        default=lambda: datetime.now(tz=UTC) + timedelta(days=2),
     )
 
     attributes = [
@@ -79,7 +78,7 @@ class TrappedException(TableObject):
         TableObjectAttribute(
             "trapped_on",
             TableObjectAttributeType.DATETIME,
-            default=lambda: datetime.now(tz=utc_tz),
+            default=lambda: datetime.now(tz=UTC),
             description="The datetime the exception was trapped",
         ),
     ]

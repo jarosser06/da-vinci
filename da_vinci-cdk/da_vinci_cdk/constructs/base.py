@@ -1,21 +1,18 @@
-'''
+"""
 Common CDK constructs used across the framework
-'''
-from typing import Optional
+"""
 
 from aws_cdk import (
-    aws_iam as cdk_iam,
-    aws_ssm as cdk_ssm,
     Tags,
 )
-
+from aws_cdk import aws_iam as cdk_iam
+from aws_cdk import aws_ssm as cdk_ssm
 from constructs import Construct
 
 from da_vinci.core.base import standard_aws_resource_name
 
 
-def custom_type_name(name: str, prefix: Optional[str] = 'DaVinci',
-                     separator: Optional[str] = '@') -> str:
+def custom_type_name(name: str, prefix: str | None = "DaVinci", separator: str | None = "@") -> str:
     """
     Create a custom type name for a construct
 
@@ -25,11 +22,12 @@ def custom_type_name(name: str, prefix: Optional[str] = 'DaVinci',
         separator: The separator to use between the prefix and name (defaults to '::')
     """
 
-    return f'Custom::{prefix}{separator}{name}'
+    return f"Custom::{prefix}{separator}{name}"
 
 
-def resource_namer(name: str, scope: Construct, app_name: Optional[str] = None,
-                   deployment_id: Optional[str] = None) -> str:
+def resource_namer(
+    name: str, scope: Construct, app_name: str | None = None, deployment_id: str | None = None
+) -> str:
     """
     Generate a name for a resource by adding a prefix of app_name-deployment_id
 
@@ -40,28 +38,27 @@ def resource_namer(name: str, scope: Construct, app_name: Optional[str] = None,
     deployment_id -- The deployment ID (optional, defaults to context value)
     """
     if not app_name:
-        app_name = scope.node.get_context('app_name')
+        app_name = scope.node.get_context("app_name")
 
     if not deployment_id:
-        deployment_id = scope.node.get_context('deployment_id')
-    
+        deployment_id = scope.node.get_context("deployment_id")
+
     return standard_aws_resource_name(app_name, deployment_id, name)
 
 
 def apply_framework_tags(resource: Construct, scope: Construct):
     """Apply framework tags to a resource"""
-    app_name = scope.node.get_context('app_name')
-    Tags.of(resource).add('DaVinciFramework::ApplicationName', app_name)
+    app_name = scope.node.get_context("app_name")
+    Tags.of(resource).add("DaVinciFramework::ApplicationName", app_name)
 
-    deployment_id = scope.node.get_context('deployment_id')
-    Tags.of(resource).add('DaVinciFramework::DeploymentId', deployment_id)
+    deployment_id = scope.node.get_context("deployment_id")
+    Tags.of(resource).add("DaVinciFramework::DeploymentId", deployment_id)
 
-    Tags.of(resource).add('DaVinciFrameworkManaged', 'True')
+    Tags.of(resource).add("DaVinciFrameworkManaged", "True")
 
 
 class GlobalVariable(Construct):
-    def __init__(self, construct_id: str, scope: Construct, ssm_key: str,
-                 ssm_value: str):
+    def __init__(self, construct_id: str, scope: Construct, ssm_key: str, ssm_value: str):
         """
         Initialize a GlobalVariable object
 
@@ -94,7 +91,7 @@ class GlobalVariable(Construct):
 
         self.ssm_parameter = cdk_ssm.StringParameter(
             scope=self,
-            id=f'global-var-{self.ssm_key}',
+            id=f"global-var-{self.ssm_key}",
             parameter_name=self.ssm_key,
             simple_name=False,
             string_value=self.ssm_value,
@@ -125,14 +122,12 @@ class GlobalVariable(Construct):
 
         return cdk_iam.PolicyStatement(
             actions=[
-                'ssm:DescribeParameters',
-                'ssm:GetParameters',
-                'ssm:GetParameter',
-                'ssm:GetParameterHistory'
+                "ssm:DescribeParameters",
+                "ssm:GetParameters",
+                "ssm:GetParameter",
+                "ssm:GetParameterHistory",
             ],
-            resources=[
-                self.ssm_parameter.parameter_arn
-            ]
+            resources=[self.ssm_parameter.parameter_arn],
         )
 
     def grant_read(self, resource: Construct):

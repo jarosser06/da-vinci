@@ -1,7 +1,6 @@
 """Event Bus Subscriptions Table"""
 
-from datetime import UTC as utc_tz
-from datetime import datetime
+from datetime import UTC, datetime
 
 from da_vinci.core.orm.client import (
     TableClient,
@@ -45,13 +44,13 @@ class EventBusSubscription(TableObject):
         TableObjectAttribute(
             "record_created",
             TableObjectAttributeType.DATETIME,
-            default=lambda: datetime.now(tz=utc_tz),
+            default=lambda: datetime.now(tz=UTC),
             description="The date EventSubscription record was created",
         ),
         TableObjectAttribute(
             "record_last_updated",
             TableObjectAttributeType.DATETIME,
-            default=lambda: datetime.now(tz=utc_tz),
+            default=lambda: datetime.now(tz=UTC),
             description="The date EventSubscription record was last updated",
         ),
     ]

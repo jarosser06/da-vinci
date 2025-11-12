@@ -1,7 +1,6 @@
 """Global Settings Table Definitions"""
 
-from datetime import UTC as utc_tz
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum, auto
 from typing import Any
 
@@ -49,7 +48,7 @@ class GlobalSetting(TableObject):
         TableObjectAttribute(
             name="last_updated",
             attribute_type=TableObjectAttributeType.DATETIME,
-            default=lambda: datetime.now(tz=utc_tz),
+            default=lambda: datetime.now(tz=UTC),
             description="The last time the setting was updated",
         ),
         TableObjectAttribute(

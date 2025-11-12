@@ -3,7 +3,6 @@ from constructs import Construct
 from da_vinci.exception_trap.tables.trapped_exceptions import (
     TrappedException,
 )
-
 from da_vinci_cdk.constructs.dynamodb import DynamoDBTable
 from da_vinci_cdk.stack import Stack
 

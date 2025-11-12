@@ -1,51 +1,58 @@
-'''
+"""
 Application class and Core Stack for DaVinci CDK
-'''
+"""
 
 from os import getenv
+from os.path import join as path_join
 from os.path import (
-    join as path_join,
     realpath,
 )
 
-from typing import Dict, Optional, Union
-
 from aws_cdk import App as CDKApp
 from aws_cdk import (
-    aws_lambda as cdk_lambda,
     DockerImage,
 )
-
+from aws_cdk import aws_lambda as cdk_lambda
 from constructs import Construct
 
-from da_vinci.core.global_settings import GlobalSettings, GlobalSetting as GlobalSettingTblObj
+from da_vinci.core.global_settings import GlobalSetting as GlobalSettingTblObj
+from da_vinci.core.global_settings import GlobalSettings
 from da_vinci.core.resource_discovery import ResourceDiscoveryStorageSolution
-
 from da_vinci_cdk.constructs.base import resource_namer
 from da_vinci_cdk.constructs.dns import PublicDomain
 from da_vinci_cdk.constructs.global_setting import GlobalSetting
 from da_vinci_cdk.constructs.s3 import Bucket
-
 from da_vinci_cdk.framework_stacks.services.event_bus.stack import EventBusStack
 from da_vinci_cdk.framework_stacks.services.exceptions_trap.stack import ExceptionsTrapStack
 from da_vinci_cdk.framework_stacks.tables.global_settings.stack import GlobalSettingsTableStack
 from da_vinci_cdk.framework_stacks.tables.resource_registry.stack import (
     ResourceRegistration as ResourceRegistrationTblObject,
+)
+from da_vinci_cdk.framework_stacks.tables.resource_registry.stack import (
     ResourceRegistrationTableStack,
 )
-
 from da_vinci_cdk.stack import Stack
 
-
-DA_VINCI_DISABLE_DOCKER_CACHE = getenv('DA_VINCI_DISABLE_DOCKER_CACHE', False)
+DA_VINCI_DISABLE_DOCKER_CACHE = getenv("DA_VINCI_DISABLE_DOCKER_CACHE", False)
 
 
 class CoreStack(Stack):
-    def __init__(self, app_name: str, deployment_id: str, scope: Construct, stack_name: str,
-                 create_hosted_zone: bool = False, event_bus_enabled: bool = False, exception_trap_enabled: bool = False,
-                 resource_discovery_table_name: Optional[str] = None, resource_discovery_storage_solution: str = ResourceDiscoveryStorageSolution.SSM,
-                 root_domain_name: Optional[str] = None, s3_logging_bucket_name: str = None,
-                 s3_logging_bucket_object_retention_days: Optional[int] = None, using_external_logging_bucket: bool = False):
+    def __init__(
+        self,
+        app_name: str,
+        deployment_id: str,
+        scope: Construct,
+        stack_name: str,
+        create_hosted_zone: bool = False,
+        event_bus_enabled: bool = False,
+        exception_trap_enabled: bool = False,
+        resource_discovery_table_name: str | None = None,
+        resource_discovery_storage_solution: str = ResourceDiscoveryStorageSolution.SSM,
+        root_domain_name: str | None = None,
+        s3_logging_bucket_name: str = None,
+        s3_logging_bucket_object_retention_days: int | None = None,
+        using_external_logging_bucket: bool = False,
+    ):
         """
         Bootstrap the initial infrastructure required to stand up a DaVinci
 
@@ -62,63 +69,60 @@ class CoreStack(Stack):
         """
 
         super().__init__(
-            app_name=app_name,
-            deployment_id=deployment_id,
-            scope=scope,
-            stack_name=stack_name
+            app_name=app_name, deployment_id=deployment_id, scope=scope, stack_name=stack_name
         )
 
         GlobalSetting(
-            description='Whether Global settings are enabled. Managed by framework deployment, do not modify!',
-            namespace='da_vinci_framework::core',
-            setting_key='global_settings_enabled',
+            description="Whether Global settings are enabled. Managed by framework deployment, do not modify!",
+            namespace="da_vinci_framework::core",
+            setting_key="global_settings_enabled",
             setting_value=True,
             scope=self,
         )
 
         GlobalSetting(
-            description='Whether the event bus is enabled. Managed by framework deployment, do not modify!',
-            namespace='da_vinci_framework::core',
-            setting_key='event_bus_enabled',
+            description="Whether the event bus is enabled. Managed by framework deployment, do not modify!",
+            namespace="da_vinci_framework::core",
+            setting_key="event_bus_enabled",
             setting_value=event_bus_enabled,
             scope=self,
         )
 
         GlobalSetting(
-            description='Whether the exception trap is enabled. Managed by framework deployment, do not modify!',
-            namespace='da_vinci_framework::core',
-            setting_key='exception_trap_enabled',
+            description="Whether the exception trap is enabled. Managed by framework deployment, do not modify!",
+            namespace="da_vinci_framework::core",
+            setting_key="exception_trap_enabled",
             setting_value=exception_trap_enabled,
             scope=self,
         )
 
         GlobalSetting(
-            description='The name of the S3 Logging Bucket, null if not used. Managed by framework deployment, modify at your own risk!',
-            namespace='da_vinci_framework::core',
-            setting_key='s3_logging_bucket',
+            description="The name of the S3 Logging Bucket, null if not used. Managed by framework deployment, modify at your own risk!",
+            namespace="da_vinci_framework::core",
+            setting_key="s3_logging_bucket",
             setting_value=s3_logging_bucket_name,
             scope=self,
         )
 
         core_str_setting_keys = [
-            'app_name',
-            'deployment_id',
-            'log_level',
+            "app_name",
+            "deployment_id",
+            "log_level",
         ]
 
         for setting_key in core_str_setting_keys:
             GlobalSetting(
-                description=f'The {setting_key} available to all components of the application.',
-                namespace='da_vinci_framework::core',
+                description=f"The {setting_key} available to all components of the application.",
+                namespace="da_vinci_framework::core",
                 setting_key=setting_key,
                 setting_value=self.node.get_context(setting_key),
                 scope=self,
             )
 
         GlobalSetting(
-            description='The storage solution for the Resource Discovery service. Managed by deployment process only!',
-            namespace='da_vinci_framework::core',
-            setting_key='resource_discovery_storage_solution',
+            description="The storage solution for the Resource Discovery service. Managed by deployment process only!",
+            namespace="da_vinci_framework::core",
+            setting_key="resource_discovery_storage_solution",
             setting_value=resource_discovery_storage_solution,
             scope=self,
         )
@@ -130,22 +134,25 @@ class CoreStack(Stack):
             )
 
             GlobalSetting(
-                description='The DynamoDB table name for the Resource Discovery service. Managed by deployment process only!',
-                namespace='da_vinci_framework::core',
-                setting_key='resource_discovery_table_name',
+                description="The DynamoDB table name for the Resource Discovery service. Managed by deployment process only!",
+                namespace="da_vinci_framework::core",
+                setting_key="resource_discovery_table_name",
                 setting_value=resource_discovery_full_table_name,
                 scope=self,
             )
 
         if s3_logging_bucket_name:
             if using_external_logging_bucket:
-                Bucket.deploy_access(construct_id='app-logging-bucket', scope=self,
-                                     bucket_name=s3_logging_bucket_name)
+                Bucket.deploy_access(
+                    construct_id="app-logging-bucket",
+                    scope=self,
+                    bucket_name=s3_logging_bucket_name,
+                )
 
             else:
                 self.logging_bucket = Bucket(
                     bucket_name=s3_logging_bucket_name,
-                    construct_id='app-logging-bucket',
+                    construct_id="app-logging-bucket",
                     object_expiration_days=s3_logging_bucket_object_retention_days,
                     scope=self,
                     use_specified_bucket_name=True,
@@ -153,9 +160,9 @@ class CoreStack(Stack):
 
         if root_domain_name:
             GlobalSetting(
-                description='The root domain for the application. Managed for deployment process only!',
-                namespace='da_vinci_framework::core',
-                setting_key='root_domain_name',
+                description="The root domain for the application. Managed for deployment process only!",
+                namespace="da_vinci_framework::core",
+                setting_key="root_domain_name",
                 setting_value=root_domain_name,
                 scope=self,
             )
@@ -170,16 +177,29 @@ class CoreStack(Stack):
 
 
 class Application:
-    def __init__(self, app_name: str, deployment_id: str,
-                 app_entry: Optional[str] = None, app_image_use_lib_base: Optional[bool] = True,
-                 architecture: Optional[str] = cdk_lambda.Architecture.ARM_64,
-                 custom_context: Optional[Dict] = None,
-                 create_hosted_zone: Optional[bool] = False, disable_docker_image_cache: Optional[bool] = DA_VINCI_DISABLE_DOCKER_CACHE,
-                 enable_exception_trap: Optional[bool] = True, enable_logging_bucket: Optional[bool] = False,
-                 enable_event_bus: Optional[bool] = False, existing_s3_logging_bucket_name: Optional[str] = None,
-                 log_level: Optional[str] = 'INFO', resource_discovery_storage_solution: Union[str, ResourceDiscoveryStorageSolution] = ResourceDiscoveryStorageSolution.SSM,
-                 root_domain_name: Optional[str] = None, s3_logging_bucket_name_postfix: Optional[str] = None,
-                 s3_logging_bucket_name_prefix: Optional[str] = None, s3_logging_bucket_object_retention_days: Optional[int] = None):
+    def __init__(
+        self,
+        app_name: str,
+        deployment_id: str,
+        app_entry: str | None = None,
+        app_image_use_lib_base: bool | None = True,
+        architecture: str | None = cdk_lambda.Architecture.ARM_64,
+        custom_context: dict | None = None,
+        create_hosted_zone: bool | None = False,
+        disable_docker_image_cache: bool | None = DA_VINCI_DISABLE_DOCKER_CACHE,
+        enable_exception_trap: bool | None = True,
+        enable_logging_bucket: bool | None = False,
+        enable_event_bus: bool | None = False,
+        existing_s3_logging_bucket_name: str | None = None,
+        log_level: str | None = "INFO",
+        resource_discovery_storage_solution: (
+            str | ResourceDiscoveryStorageSolution
+        ) = ResourceDiscoveryStorageSolution.SSM,
+        root_domain_name: str | None = None,
+        s3_logging_bucket_name_postfix: str | None = None,
+        s3_logging_bucket_name_prefix: str | None = None,
+        s3_logging_bucket_object_retention_days: int | None = None,
+    ):
         """
         Initialize a new Application object
 
@@ -238,7 +258,7 @@ class Application:
         if app_entry:
             if app_image_use_lib_base:
                 app_entry_build_args = {
-                    'IMAGE': self.lib_docker_image.image,
+                    "IMAGE": self.lib_docker_image.image,
                 }
             else:
                 app_entry_build_args = {}
@@ -260,41 +280,45 @@ class Application:
                 external_logging_bucket = True
 
                 if s3_logging_bucket_name_prefix:
-                    raise ValueError('Both existing_s3_logging_bucket_name and s3_logging_bucket_name_prefix cannot be set')
+                    raise ValueError(
+                        "Both existing_s3_logging_bucket_name and s3_logging_bucket_name_prefix cannot be set"
+                    )
 
                 s3_logging_bucket_name = existing_s3_logging_bucket_name
 
             else:
-                prefix = s3_logging_bucket_name_prefix or ''
+                prefix = s3_logging_bucket_name_prefix or ""
 
-                postfix = s3_logging_bucket_name_postfix or ''
+                postfix = s3_logging_bucket_name_postfix or ""
 
-            s3_logging_bucket_name = f'{prefix}{app_name}-{deployment_id}{postfix}'
+            s3_logging_bucket_name = f"{prefix}{app_name}-{deployment_id}{postfix}"
 
         else:
             s3_logging_bucket_name = None
 
         resource_discovery_table_name = None
 
-        if resource_discovery_storage_solution not in [val for val in ResourceDiscoveryStorageSolution]:
-            raise ValueError(f'Invalid resource discovery storage solution "{resource_discovery_storage_solution}"')
+        if resource_discovery_storage_solution not in list(ResourceDiscoveryStorageSolution):
+            raise ValueError(
+                f'Invalid resource discovery storage solution "{resource_discovery_storage_solution}"'
+            )
 
         if resource_discovery_storage_solution == ResourceDiscoveryStorageSolution.DYNAMODB:
             resource_discovery_table_name = ResourceRegistrationTblObject.table_name
 
         context = {
-            'app_name': self.app_name,
-            'architecture': self.architecture,
-            'custom_context': custom_context or {},
-            'deployment_id': self.deployment_id,
-            'global_settings_enabled': True,
-            's3_logging_bucket': s3_logging_bucket_name,
-            'event_bus_enabled': enable_event_bus,
-            'exception_trap_enabled': enable_exception_trap,
-            'log_level': self.log_level,
-            'root_domain_name': self.root_domain_name,
-            'resource_discovery_storage_solution': resource_discovery_storage_solution,
-            'resource_discovery_table_name': resource_discovery_table_name,
+            "app_name": self.app_name,
+            "architecture": self.architecture,
+            "custom_context": custom_context or {},
+            "deployment_id": self.deployment_id,
+            "global_settings_enabled": True,
+            "s3_logging_bucket": s3_logging_bucket_name,
+            "event_bus_enabled": enable_event_bus,
+            "exception_trap_enabled": enable_exception_trap,
+            "log_level": self.log_level,
+            "root_domain_name": self.root_domain_name,
+            "resource_discovery_storage_solution": resource_discovery_storage_solution,
+            "resource_discovery_table_name": resource_discovery_table_name,
         }
 
         self.cdk_app = CDKApp(context=context)
@@ -355,9 +379,9 @@ class Application:
 
     @property
     def lib_container_entry(self) -> str:
-        '''
+        """
         Return the entry point for this library's container image
-        '''
+        """
 
         # DaVinci library should be installed by poetry as a dev dependency
         # this allows for the ability to build the container image located
@@ -368,10 +392,11 @@ class Application:
 
         da_vinci_lib_path = da_vinci_spec.submodule_search_locations[0]
 
-        return realpath(path_join(da_vinci_lib_path, '../'))
+        return realpath(path_join(da_vinci_lib_path, "../"))
 
-    def add_uninitialized_stack(self, stack: Stack,
-                                include_core_dependencies: Optional[bool] = True) -> Stack:
+    def add_uninitialized_stack(
+        self, stack: Stack, include_core_dependencies: bool | None = True
+    ) -> Stack:
         """
         Add a new unintialized stack to the application. This is useful for
         adding stacks that take standard parameters.
@@ -385,18 +410,18 @@ class Application:
             return self._stacks[stack_name]
 
         init_args = {
-            'architecture': self.architecture,
-            'app_name': self.app_name,
-            'library_base_image': self.lib_docker_image.image,
-            'deployment_id': self.deployment_id,
-            'scope': self.cdk_app,
-            'stack_name': stack_name,
+            "architecture": self.architecture,
+            "app_name": self.app_name,
+            "library_base_image": self.lib_docker_image.image,
+            "deployment_id": self.deployment_id,
+            "scope": self.cdk_app,
+            "stack_name": stack_name,
         }
 
         if self.app_docker_image:
-            init_args['app_base_image'] = self.app_docker_image.image
+            init_args["app_base_image"] = self.app_docker_image.image
         else:
-            init_args['app_base_image'] = None
+            init_args["app_base_image"] = None
 
         req_init_vars = stack.__init__.__code__.co_varnames
 
@@ -419,13 +444,17 @@ class Application:
 
         if initialized_stack.requires_event_bus:
             if not self._event_bus_stack:
-                raise ValueError(f'Cannot require the event bus for stack "{stack_name}" when the disabled for the application')
+                raise ValueError(
+                    f'Cannot require the event bus for stack "{stack_name}" when the disabled for the application'
+                )
 
             self._stacks[stack_name].add_dependency(self._event_bus_stack)
 
         if initialized_stack.requires_exceptions_trap:
             if not self._exceptions_trap_stack:
-                raise ValueError(f'Cannot require the exceptions trap for stack "{stack_name}" when the disabled for the application')
+                raise ValueError(
+                    f'Cannot require the exceptions trap for stack "{stack_name}" when the disabled for the application'
+                )
 
             self._stacks[stack_name].add_dependency(self._exceptions_trap_stack)
 
@@ -436,9 +465,7 @@ class Application:
             if dependency_stack_name not in self._stacks:
                 self.add_uninitialized_stack(dependency)
 
-            self._stacks[stack_name].add_dependency(
-                self._stacks[dependency_stack_name]
-            )
+            self._stacks[stack_name].add_dependency(self._stacks[dependency_stack_name])
 
         return self._stacks[stack_name]
 
@@ -451,10 +478,17 @@ class Application:
 
 
 class SideCarApplication:
-    def __init__(self, app_name: str, deployment_id: str, sidecar_app_name: str,
-                 app_entry: Optional[str] = None, app_image_use_lib_base: Optional[bool] = True,
-                 architecture: Optional[str] = cdk_lambda.Architecture.ARM_64, log_level: Optional[str] = 'INFO',
-                 disable_docker_image_cache: Optional[bool] = DA_VINCI_DISABLE_DOCKER_CACHE):
+    def __init__(
+        self,
+        app_name: str,
+        deployment_id: str,
+        sidecar_app_name: str,
+        app_entry: str | None = None,
+        app_image_use_lib_base: bool | None = True,
+        architecture: str | None = cdk_lambda.Architecture.ARM_64,
+        log_level: str | None = "INFO",
+        disable_docker_image_cache: bool | None = DA_VINCI_DISABLE_DOCKER_CACHE,
+    ):
         """
         Initialize a new SideCarApplication object
 
@@ -515,8 +549,13 @@ class SideCarApplication:
             if key not in side_car_context:
                 side_car_context[key] = value
 
-        if side_car_context["resource_discovery_storage_solution"] == ResourceDiscoveryStorageSolution.DYNAMODB:
-            side_car_context["resource_discovery_table_name"] = ResourceRegistrationTblObject.table_name
+        if (
+            side_car_context["resource_discovery_storage_solution"]
+            == ResourceDiscoveryStorageSolution.DYNAMODB
+        ):
+            side_car_context["resource_discovery_table_name"] = (
+                ResourceRegistrationTblObject.table_name
+            )
 
         self.cdk_app = CDKApp(
             context=side_car_context,
@@ -524,7 +563,7 @@ class SideCarApplication:
 
         self.dependency_stacks = []
 
-    def _get_parent_context_values(self) -> Dict:
+    def _get_parent_context_values(self) -> dict:
         """
         Set the context values using values from the parent application
         """
@@ -535,8 +574,8 @@ class SideCarApplication:
                 app_name=self.app_name,
                 deployment_id=self.deployment_id,
                 name=GlobalSettingTblObj.table_name,
-                scope=self
-            )
+                scope=self,
+            ),
         )
 
         required_context_keys = [
@@ -551,7 +590,7 @@ class SideCarApplication:
 
         for key in required_context_keys:
             setting_result = global_settings_tbl.get(
-                namespace='da_vinci_framework::core',
+                namespace="da_vinci_framework::core",
                 setting_key=key,
             )
 
@@ -576,9 +615,9 @@ class SideCarApplication:
 
     @property
     def lib_container_entry(self) -> str:
-        '''
+        """
         Return the entry point for this library's container image
-        '''
+        """
 
         # DaVinci library should be installed by poetry as a dev dependency
         # this allows for the ability to build the container image located
@@ -589,7 +628,7 @@ class SideCarApplication:
 
         da_vinci_lib_path = da_vinci_spec.submodule_search_locations[0]
 
-        return realpath(path_join(da_vinci_lib_path, '../'))
+        return realpath(path_join(da_vinci_lib_path, "../"))
 
     def add_uninitialized_stack(self, stack: Stack) -> Stack:
         """
@@ -605,19 +644,19 @@ class SideCarApplication:
             return self._stacks[stack_name]
 
         init_args = {
-            'architecture': self.architecture,
-            'app_name': self.app_name,
-            'library_base_image': self.lib_docker_image.image,
-            'deployment_id': self.deployment_id,
-            'scope': self.cdk_app,
-            'stack_name': stack_name,
+            "architecture": self.architecture,
+            "app_name": self.app_name,
+            "library_base_image": self.lib_docker_image.image,
+            "deployment_id": self.deployment_id,
+            "scope": self.cdk_app,
+            "stack_name": stack_name,
         }
 
         if self.app_docker_image:
-            init_args['app_base_image'] = self.app_docker_image.image
+            init_args["app_base_image"] = self.app_docker_image.image
 
         else:
-            init_args['app_base_image'] = None
+            init_args["app_base_image"] = None
 
         req_init_vars = stack.__init__.__code__.co_varnames
 
@@ -639,9 +678,7 @@ class SideCarApplication:
             if dependency_stack_name not in self._stacks:
                 self.add_uninitialized_stack(dependency)
 
-            self._stacks[stack_name].add_dependency(
-                self._stacks[dependency_stack_name]
-            )
+            self._stacks[stack_name].add_dependency(self._stacks[dependency_stack_name])
 
         return self._stacks[stack_name]
 

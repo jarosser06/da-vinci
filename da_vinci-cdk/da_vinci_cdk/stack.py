@@ -1,20 +1,26 @@
-from typing import Optional
-
 from os import path as pathlib
 
 from aws_cdk import (
     DockerImage,
-    Stack as CDKStack,
 )
-
+from aws_cdk import Stack as CDKStack
 from constructs import Construct
 
 
 class Stack(CDKStack):
-    def __init__(self, app_name: str, deployment_id: str, scope: Construct, stack_name: str,
-                 app_base_image: Optional[DockerImage] = None, architecture: Optional[str] = None,
-                 library_base_image: Optional[DockerImage] = None, required_stacks: Optional[list] = None,
-                 requires_event_bus: Optional[bool] = False, requires_exceptions_trap: Optional[bool] = False):
+    def __init__(
+        self,
+        app_name: str,
+        deployment_id: str,
+        scope: Construct,
+        stack_name: str,
+        app_base_image: DockerImage | None = None,
+        architecture: str | None = None,
+        library_base_image: DockerImage | None = None,
+        required_stacks: list | None = None,
+        requires_event_bus: bool | None = False,
+        requires_exceptions_trap: bool | None = False,
+    ):
         """
         Initialize a new Stack object
 
@@ -58,7 +64,7 @@ class Stack(CDKStack):
             app.synth()
             ```
         """
-        self.da_vinci_stack_name = f'{app_name}-{deployment_id}-{stack_name}'
+        self.da_vinci_stack_name = f"{app_name}-{deployment_id}-{stack_name}"
 
         construct_id = self.da_vinci_stack_name
 
@@ -80,21 +86,21 @@ class Stack(CDKStack):
 
         self.requires_exceptions_trap = requires_exceptions_trap
 
-    def add_required_stack(self, stack: 'Stack'):
-        '''
+    def add_required_stack(self, stack: "Stack"):
+        """
         Add a required dependency stack to the stack instance
 
         Keyword Arguments:
             stack: Stack to add as a required stack
-        '''
+        """
         self.required_stacks.append(stack)
 
     @staticmethod
     def absolute_dir(from_file: str) -> str:
-        '''
+        """
         Static method to return the absolute path of a file
 
         Keyword Arguments:
             from_file: File to return the absolute path of
-        '''
+        """
         return pathlib.dirname(pathlib.realpath(from_file))

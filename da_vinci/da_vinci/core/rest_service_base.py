@@ -10,7 +10,7 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 from da_vinci.core.exceptions import DuplicateRouteDefinitionError
-from da_vinci.exception_trap.client import ExceptionReporter
+from da_vinci.exception_trap.exception_trap_client import ExceptionReporter
 
 
 @dataclass
