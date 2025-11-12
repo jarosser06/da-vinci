@@ -83,7 +83,7 @@ from dataclasses import asdict, dataclass
 from enum import StrEnum, auto
 from typing import Any, Union
 
-from da_vinci.core.orm.client import (
+from da_vinci.core.orm.table_object import (
     TableObject,
     TableObjectAttribute,
     TableObjectAttributeType,
