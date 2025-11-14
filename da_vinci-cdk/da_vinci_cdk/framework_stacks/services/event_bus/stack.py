@@ -3,8 +3,8 @@ import os
 from aws_cdk import DockerImage, Duration
 from aws_cdk import aws_iam as cdk_iam
 from aws_cdk.aws_lambda import RecursiveLoop
-from constructs import Construct
 
+from constructs import Construct
 from da_vinci_cdk.constructs.access_management import (
     ResourceAccessRequest,
 )
@@ -29,7 +29,7 @@ class EventBusStack(Stack):
         scope: Construct,
         stack_name: str,
         library_base_image: DockerImage,
-    ):
+    ) -> None:
         """
         Initialize a new EventBusStack object
 
@@ -61,7 +61,7 @@ class EventBusStack(Stack):
         )
 
         self.bus_service = AsyncService(
-            base_image=self.library_base_image,
+            base_image=self.library_base_image,  # type: ignore[arg-type]
             description="Invokes functions with event bodies from the event bus",
             entry=self.runtime_path,
             handler="handler",
@@ -92,7 +92,7 @@ class EventBusStack(Stack):
         )
 
         self.bus_watcher = SimpleRESTService(
-            base_image=self.library_base_image,
+            base_image=self.library_base_image,  # type: ignore[arg-type]
             description="Handles responses from functions executed from the event bus",
             entry=self.runtime_path,
             handler="api",
@@ -123,6 +123,6 @@ class EventBusStack(Stack):
             namespace="da_vinci_framework::event_bus",
             setting_key="response_retention_hours",
             setting_type=GlobalSettingType.INTEGER,
-            setting_value=8,
+            setting_value="8",
             scope=self,
         )

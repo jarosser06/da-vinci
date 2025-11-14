@@ -92,7 +92,7 @@ fi
 # Run mypy
 echo ""
 echo "→ Running mypy..."
-uv run mypy $PATHS || OVERALL_EXIT_CODE=$?
+uv run mypy --explicit-package-bases $PATHS || OVERALL_EXIT_CODE=$?
 
 # Summary
 if [ $OVERALL_EXIT_CODE -eq 0 ]; then

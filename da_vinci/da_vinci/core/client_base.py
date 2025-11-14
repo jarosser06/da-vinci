@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from urllib.parse import urljoin
 
 import boto3
-import requests
+import requests  # type: ignore[import-untyped]
 from requests_auth_aws_sigv4 import AWSSigV4
 
 from da_vinci.core.json import DaVinciObjectEncoder
@@ -19,21 +19,27 @@ from da_vinci.core.resource_discovery import (
 class BaseClient:
     resource_name: str
     resource_type: str
-    endpoint: str = None
-    app_name: str = None
-    deployment_id: str = None
-    resource_discovery_storage: str = None
+    endpoint: str | None = None
+    app_name: str | None = None
+    deployment_id: str | None = None
+    resource_discovery_storage: str | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.endpoint:
             return
+
+        from da_vinci.core.resource_discovery import ResourceDiscoveryStorageSolution
+
+        storage_solution = None
+        if self.resource_discovery_storage:
+            storage_solution = ResourceDiscoveryStorageSolution(self.resource_discovery_storage)
 
         resource_discovery = ResourceDiscovery(
             resource_type=self.resource_type,
             resource_name=self.resource_name,
             app_name=self.app_name,
             deployment_id=self.deployment_id,
-            storage_solution=self.resource_discovery_storage,
+            storage_solution=storage_solution,
         )
 
         self.endpoint = resource_discovery.endpoint_lookup()
@@ -46,21 +52,25 @@ class AsyncClientBase(BaseClient):
     """
 
     resource_name: str
-    endpoint: str = None
-    app_name: str = None
-    deployment_id: str = None
+    endpoint: str | None = None
+    app_name: str | None = None
+    deployment_id: str | None = None
     resource_type: str = ResourceType.ASYNC_SERVICE
-    resource_discovery_storage: str = None
+    resource_discovery_storage: str | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         self.boto_client = boto3.client("sqs")
 
-    def publish(self, body: dict | str, delay: int = 0):
-        formatted_body = body
-
+    def publish(self, body: dict | str, delay: int = 0) -> None:
+        formatted_body: str
         if isinstance(body, dict):
             formatted_body = json.dumps(body, cls=DaVinciObjectEncoder)
+        else:
+            formatted_body = body
+
+        if self.endpoint is None:
+            raise ValueError("Endpoint is not set")
 
         self.boto_client.send_message(
             QueueUrl=self.endpoint,
@@ -78,7 +88,7 @@ class RESTClientResponse:
 
     response: requests.Response
     status_code: int
-    response_body: dict | str = None
+    response_body: dict | str | None = None
 
 
 @dataclass
@@ -89,15 +99,15 @@ class RESTClientBase(BaseClient):
     """
 
     resource_name: str
-    endpoint: str = None
-    app_name: str = None
-    deployment_id: str = None
+    endpoint: str | None = None
+    app_name: str | None = None
+    deployment_id: str | None = None
     disable_auth: bool = False
     raise_on_failure: bool = True
     resource_type: str = ResourceType.REST_SERVICE
-    resource_discovery_storage: str = None
+    resource_discovery_storage: str | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
 
         if self.disable_auth:
@@ -106,7 +116,7 @@ class RESTClientBase(BaseClient):
         else:
             self.aws_auth = AWSSigV4("lambda")
 
-    def _full_url(self, path: str = None) -> str:
+    def _full_url(self, path: str | None = None) -> str:
         """
         Given a path, return the full URL for the API
         """

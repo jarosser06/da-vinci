@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 
 from aws_cdk import aws_iam as cdk_iam
-from constructs import Construct
 
+from constructs import Construct
 from da_vinci_cdk.constructs.base import GlobalVariable
+
 
 _ACCESS_MANAGEMENT_PREFIX = "/da_vinci_framework/access_management"
 _DEFAULT_POLICY_NAME = "default"
@@ -48,7 +49,7 @@ class ResourceAccessPolicy(Construct):
         app_name: str | None = None,
         deployment_id: str | None = None,
         policy_name: str | None = _DEFAULT_POLICY_NAME,
-    ):
+    ) -> None:
         """
         ResourceAccessPolicy is a wrapper around an IAM policy that is used to
         grant access to a resource.
@@ -193,7 +194,7 @@ class ResourceAccessPolicy(Construct):
             managed_policy_arn=policy_arn,
         )
 
-        return policy
+        return policy  # type: ignore[return-value]
 
     @classmethod
     def multi_policy_import(
@@ -240,7 +241,7 @@ class ResourceAccessPolicy(Construct):
             ```
         """
 
-        policies = []
+        policies: list = []
 
         for resource_access_request in resource_access_requests:
             policy = cls.policy_from_resource_name(

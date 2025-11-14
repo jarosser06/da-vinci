@@ -7,8 +7,8 @@ from aws_cdk.custom_resources import (
     AwsSdkCall,
     PhysicalResourceId,
 )
-from constructs import Construct
 
+from constructs import Construct
 from da_vinci.core.resource_discovery import ResourceType
 from da_vinci.event_bus.tables.event_bus_subscriptions import (
     EventBusSubscription as EventBusSubscriptionTblObj,
@@ -31,7 +31,7 @@ class EventBusSubscription(Construct):
         active: bool | None = False,
         generates_events: list[str] | None = None,
         table_name: str | None = None,
-    ):
+    ) -> None:
         """
         Creates a subscription to an event bus event in DynamoDB. This construct will create
         the necessary DynamoDB table if it does not exist and will create the subscription
@@ -134,7 +134,7 @@ class EventBusSubscriptionFunction(Construct):
         managed_policies: list | None = None,
         resource_access_requests: list[ResourceAccessRequest] | None = None,
         **function_config,
-    ):
+    ) -> None:
         """
         Creates a Lambda function that subscribes to an event bus event. Handles the creation
         of the subscription in DynamoDB as well as the Lambda Function itself. This construct

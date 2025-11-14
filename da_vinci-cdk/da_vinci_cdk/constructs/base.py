@@ -7,8 +7,9 @@ from aws_cdk import (
 )
 from aws_cdk import aws_iam as cdk_iam
 from aws_cdk import aws_ssm as cdk_ssm
-from constructs import Construct
+from aws_cdk.aws_iam import IGrantable
 
+from constructs import Construct
 from da_vinci.core.base import standard_aws_resource_name
 
 
@@ -26,21 +27,25 @@ def custom_type_name(name: str, prefix: str | None = "DaVinci", separator: str |
 
 
 def resource_namer(
-    name: str, scope: Construct, app_name: str | None = None, deployment_id: str | None = None
+    name: str, scope: Construct | None = None, app_name: str | None = None, deployment_id: str | None = None
 ) -> str:
     """
     Generate a name for a resource by adding a prefix of app_name-deployment_id
 
     Keyword Arguments:
     name -- The name of the resource
-    scope -- The scope of the construct
-    app_name -- The name of the application (optional, defaults to context value)
-    deployment_id -- The deployment ID (optional, defaults to context value)
+    scope -- The scope of the construct (optional if app_name and deployment_id are provided)
+    app_name -- The name of the application (optional, defaults to context value from scope)
+    deployment_id -- The deployment ID (optional, defaults to context value from scope)
     """
     if not app_name:
+        if scope is None:
+            raise ValueError("Either scope or app_name must be provided")
         app_name = scope.node.get_context("app_name")
 
     if not deployment_id:
+        if scope is None:
+            raise ValueError("Either scope or deployment_id must be provided")
         deployment_id = scope.node.get_context("deployment_id")
 
     return standard_aws_resource_name(app_name, deployment_id, name)
@@ -58,7 +63,7 @@ def apply_framework_tags(resource: Construct, scope: Construct):
 
 
 class GlobalVariable(Construct):
-    def __init__(self, construct_id: str, scope: Construct, ssm_key: str, ssm_value: str):
+    def __init__(self, construct_id: str, scope: Construct, ssm_key: str, ssm_value: str) -> None:
         """
         Initialize a GlobalVariable object
 
@@ -130,7 +135,7 @@ class GlobalVariable(Construct):
             resources=[self.ssm_parameter.parameter_arn],
         )
 
-    def grant_read(self, resource: Construct):
+    def grant_read(self, resource: IGrantable):
         """
         Grant read access to the GlobalVariable
 

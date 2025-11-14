@@ -3,22 +3,24 @@
 import json
 import uuid
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
-from da_vinci.event_bus.object import ObjectBody
+if TYPE_CHECKING:
+    from da_vinci.core.immutable_object import ObjectBody
 
 
 class Event:
     def __init__(
         self,
-        body: ObjectBody | dict | str,
+        body: "ObjectBody | dict | str",
         event_type: str,
         callback_event_type: str | None = None,
         callback_event_type_on_failure: str | None = None,
         created: datetime | None = None,
-        event_id: str = None,
+        event_id: str | None = None,
         previous_event_id: str | None = None,
         response_id: str | None = None,
-    ):
+    ) -> None:
         """
         Event is a class that represents an event that is published to
         the event bus.

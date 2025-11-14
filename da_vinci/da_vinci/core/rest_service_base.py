@@ -44,7 +44,7 @@ class ErrorResponse(SimpleRESTServiceResponse):
     Return a 400 response for an error
     """
 
-    def __init__(self, response_message: str, status_code: int = 400):
+    def __init__(self, response_message: str, status_code: int = 400) -> None:
         super().__init__(
             body={"message": response_message, "ok": False},
             status_code=status_code,
@@ -56,7 +56,7 @@ class NotFoundResponse(ErrorResponse):
     Return a 404 response
     """
 
-    def __init__(self, resource: str):
+    def __init__(self, resource: str) -> None:
         super().__init__(
             response_message=f"Resource {resource} not found",
             status_code=404,
@@ -68,7 +68,7 @@ class InvalidRequestResponse(ErrorResponse):
     Return a 400 response for an invalid request
     """
 
-    def __init__(self, response_message: str):
+    def __init__(self, response_message: str) -> None:
         super().__init__(
             response_message=response_message,
             status_code=400,
@@ -82,7 +82,7 @@ class Route:
     path: str
     required_arguments: list[str] = None
 
-    def validate_request(self, parameters: dict = None) -> SimpleRESTServiceResponse:
+    def validate_request(self, parameters: dict | None = None) -> SimpleRESTServiceResponse:
         """
         Validate that the request contains all required parameters
 
@@ -90,7 +90,7 @@ class Route:
             parameters: Parameters to validate
         """
         if not self.required_arguments:
-            return
+            return  # type: ignore[return-value]
 
         missing_arguments = list(set(self.required_arguments).difference(set(parameters.keys())))
 
@@ -110,7 +110,7 @@ class SimpleRESTServiceBase:
         routes: list[Route],
         exception_function_name: str | None = None,
         exception_reporter: ExceptionReporter | None = None,
-    ):
+    ) -> None:
         """
         Enabling the creation of a simple REST service using the DaVinci framework
 
@@ -137,7 +137,7 @@ class SimpleRESTServiceBase:
         """
         Build a map of routes
         """
-        route_map = {}
+        route_map: dict = {}
 
         for route in self.routes:
             if route.method not in route_map:
@@ -169,10 +169,10 @@ class SimpleRESTServiceBase:
 
         path = req_info["path"]
 
-        if method not in self._route_map or path not in self._route_map[method]:
+        if method not in self._route_map or path not in self._route_map[method]:  # type: ignore[operator]
             return NotFoundResponse(f"{path} - {method}")
 
-        params = {}
+        params: dict = {}
 
         if "queryStringParameters" in event:
             params = event["queryStringParameters"]
@@ -180,7 +180,7 @@ class SimpleRESTServiceBase:
         elif "body" in event:
             params = json.loads(event["body"])
 
-        route = self._route_map[method][path]
+        route = self._route_map[method][path]  # type: ignore[index]
 
         validation_response = route.validate_request(parameters=params)
 
@@ -208,7 +208,7 @@ class SimpleRESTServiceBase:
                 status_code=500,
             )
 
-    def respond(self, body: dict | str, status_code: int, headers: dict = None) -> dict:
+    def respond(self, body: dict | str, status_code: int, headers: dict | None = None) -> dict:
         """
         Respond to a request
 

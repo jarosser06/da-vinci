@@ -1,3 +1,4 @@
+from typing import Any
 import json
 import logging
 import traceback
@@ -10,6 +11,7 @@ from da_vinci.core.client_base import RESTClientBase
 from da_vinci.core.immutable_object import ObjectBody
 from da_vinci.core.json import DaVinciObjectEncoder
 from da_vinci.core.logging import Logger
+
 
 EXCEPTION_TRAP_ENV_VAR = "DaVinciFramework_ExceptionTrapEnabled"
 
@@ -62,7 +64,7 @@ class ReportedException:
 
 
 class ExceptionReporter(RESTClientBase):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(resource_name="exceptions_trap")
 
     def report(

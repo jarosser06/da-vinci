@@ -17,7 +17,7 @@ from da_vinci.exception_trap.exception_trap_client import ExceptionReporter
 
 
 class EventPublisher(AsyncClientBase):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(resource_name="event_bus")
 
     def submit(self, event: Event, delay: int | None = None):
@@ -76,7 +76,7 @@ class EventResponse:
 
 
 class EventResponder(RESTClientBase):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(resource_name="event_bus_responses")
 
     def response(
@@ -102,8 +102,8 @@ class EventResponder(RESTClientBase):
             event = event.to_dict()
 
         response_body = EventResponse(
-            event=event,
-            status=status,
+            event=event,  # type: ignore[arg-type]
+            status=status,  # type: ignore[arg-type]
             failure_reason=failure_reason,
             failure_traceback=failure_traceback,
             response_id=response_id,

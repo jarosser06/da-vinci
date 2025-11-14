@@ -2,7 +2,7 @@
 
 
 class DuplicateRouteDefinitionError(Exception):
-    def __init__(self, route_name: str):
+    def __init__(self, route_name: str) -> None:
         """
         Base error for the Da Vinci framework REST Service Base class
 
@@ -15,7 +15,7 @@ class DuplicateRouteDefinitionError(Exception):
 
 
 class GlobalSettingsNotEnabledError(Exception):
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Indicates that global settings are not enabled
         """
@@ -23,7 +23,7 @@ class GlobalSettingsNotEnabledError(Exception):
 
 
 class GlobalSettingNotFoundError(Exception):
-    def __init__(self, setting_key: str, namespace: str):
+    def __init__(self, setting_key: str, namespace: str) -> None:
         """
         Indicates that a global setting was not found
 
@@ -35,7 +35,7 @@ class GlobalSettingNotFoundError(Exception):
 
 
 class MissingRequiredRuntimeVariableError(RuntimeError):
-    def __init__(self, variable_name: str):
+    def __init__(self, variable_name: str) -> None:
         """
         Indicates that a required runtime variable used by the Da Vinci framework was not found
 
@@ -46,7 +46,7 @@ class MissingRequiredRuntimeVariableError(RuntimeError):
 
 
 class ResourceNotFoundError(Exception):
-    def __init__(self, resource_name: str, resource_type: str):
+    def __init__(self, resource_name: str, resource_type: str) -> None:
         """
         Resource was not able to be located using Da Vinci resource discovery
 

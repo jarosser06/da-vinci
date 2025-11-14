@@ -1,6 +1,6 @@
 from aws_cdk import aws_route53 as cdk_route53
-from constructs import Construct
 
+from constructs import Construct
 from da_vinci.core.resource_discovery import ResourceType
 from da_vinci_cdk.constructs.resource_discovery import (
     DiscoverableResource,
@@ -93,7 +93,7 @@ class PublicDomain(Construct):
                 self,
                 id=f"{construct_id}-ns-record",
                 record_name=domain_name,
-                values=self.sub_domain.hosted_zone_name_servers,
+                values=self.hosted_zone.hosted_zone_name_servers,
                 zone=root_hosted_zone,
             )
 

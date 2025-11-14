@@ -2,12 +2,11 @@
 
 from datetime import UTC, datetime
 
-from da_vinci.core.orm.client import (
-    TableClient,
+from da_vinci.core.orm.client import TableClient, TableScanDefinition
+from da_vinci.core.orm.table_object import (
     TableObject,
     TableObjectAttribute,
     TableObjectAttributeType,
-    TableScanDefinition,
 )
 
 
@@ -57,12 +56,12 @@ class EventBusSubscription(TableObject):
 
 
 class EventBusSubscriptionsScanDefinition(TableScanDefinition):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(table_object_class=EventBusSubscription)
 
 
 class EventBusSubscriptions(TableClient):
-    def __init__(self, app_name: str | None = None, deployment_id: str | None = None):
+    def __init__(self, app_name: str | None = None, deployment_id: str | None = None) -> None:
         super().__init__(
             app_name=app_name,
             default_object_class=EventBusSubscription,
@@ -86,7 +85,7 @@ class EventBusSubscriptions(TableClient):
             "KeyConditionExpression": "#ck = :cv",
         }
 
-        all_items = []
+        all_items: list = []
 
         for page in self.paginated(call="query", parameters=params):
             all_items.extend(page)
@@ -112,7 +111,7 @@ class EventBusSubscriptions(TableClient):
             function_name: The function name.
         """
 
-        return self.get_object(
+        return self.get_object(  # type: ignore[return-value]
             partition_key_value=event_type,
             sort_key_value=function_name,
         )
@@ -137,4 +136,4 @@ class EventBusSubscriptions(TableClient):
             scan_definition: The scan definition.
         """
 
-        return self.scan_objects(scan_definition=scan_definition)
+        return self.full_scan(scan_definition=scan_definition)  # type: ignore[return-value]

@@ -1,8 +1,8 @@
 """Exceptions for the event bus."""
 
 
-class CircularDependencyException(ValueError):
-    def __init__(self, subscription_event_type: str, function_name: str):
+class CircularDependencyError(ValueError):
+    def __init__(self, subscription_event_type: str, function_name: str) -> None:
         """
         Raised when a circular dependency is detected.
 

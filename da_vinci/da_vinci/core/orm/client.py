@@ -8,8 +8,8 @@ from botocore.exceptions import ClientError
 
 from da_vinci.core.exceptions import ResourceNotFoundError
 from da_vinci.core.orm.orm_exceptions import (
-    TableScanInvalidAttributeException,
-    TableScanInvalidComparisonException,
+    TableScanInvalidAttributeError,
+    TableScanInvalidComparisonError,
 )
 from da_vinci.core.orm.table_object import (
     TableObject,
@@ -29,14 +29,14 @@ class PaginatorCall:
 
 
 class PaginatedResults:
-    def __init__(self, items: list[TableObject], last_evaluated_key: dict | None = None):
+    def __init__(self, items: list[TableObject], last_evaluated_key: dict | None = None) -> None:
         self.items = items
 
         self.last_evaluated_key = last_evaluated_key
 
         self.has_more = last_evaluated_key is not None
 
-    def __iter__(self):
+    def __iter__(self) -> Any:
         return iter(self.items)
 
 
@@ -51,7 +51,7 @@ class TableScanDefinition:
         "not_equal": "!=",
     }
 
-    def __init__(self, table_object_class: TableObject, attribute_prefix: str | None = None):
+    def __init__(self, table_object_class: type[TableObject], attribute_prefix: str | None = None) -> None:
         """
         Create a new scan definition for a DynamoDB table
 
@@ -59,11 +59,11 @@ class TableScanDefinition:
             table_object_class: Table object class to scan
             attribute_prefix: Prefix to use for attribute names (default: None)
         """
-        self._attribute_filters = []
+        self._attribute_filters: list[tuple[str, str, Any]] = []
         self.attribute_prefix = attribute_prefix
         self.table_object_class = table_object_class
 
-    def add(self, attribute_name: str, comparison: str, value: Any):
+    def add(self, attribute_name: str, comparison: str, value: Any) -> None:
         """
         Add an attribute filter to the scan definition
 
@@ -73,7 +73,7 @@ class TableScanDefinition:
             value: Value to compare against
         """
         if comparison not in self._comparison_operators:
-            raise TableScanInvalidComparisonException(comparison)
+            raise TableScanInvalidComparisonError(comparison)
 
         attr_name = attribute_name
         if self.attribute_prefix:
@@ -84,13 +84,13 @@ class TableScanDefinition:
         )
 
         if not attribute_definition:
-            raise TableScanInvalidAttributeException(attr_name)
+            raise TableScanInvalidAttributeError(attr_name)
 
         comparison = self._comparison_operators[comparison]
 
         self._attribute_filters.append((attr_name, comparison, value))
 
-    def to_expression(self) -> str:
+    def to_expression(self) -> tuple[str, dict[str, Any]] | tuple[None, None]:
         """
         Convert the scan definition to a DynamoDB expression
 
@@ -101,10 +101,10 @@ class TableScanDefinition:
 
         # Caching loaded attributes to avoid multiple calls to reduce the
         # excess looping that would occur with constant attribute_definition lookups
-        loaded_attrs = {}
+        loaded_attrs: dict[str, Any] = {}
 
-        expression = []
-        expression_attributes = {}
+        expression: list[str] = []
+        expression_attributes: dict[str, Any] = {}
 
         if not self._attribute_filters:
             return None, None
@@ -119,7 +119,7 @@ class TableScanDefinition:
                 attr = self.table_object_class.attribute_definition(name)
 
                 if not attr:
-                    raise TableScanInvalidAttributeException(name)
+                    raise TableScanInvalidAttributeError(name)
 
                 loaded_attrs[name] = attr
 
@@ -157,7 +157,7 @@ class TableScanDefinition:
         Returns:
             List of DynamoDB scan instructions
         """
-        instructions = []
+        instructions: list[str] = []
 
         for fltr in self._attribute_filters:
             name, comparison, value = fltr
@@ -166,7 +166,7 @@ class TableScanDefinition:
 
         return instructions
 
-    def __getattr__(self, attr: str):
+    def __getattr__(self, attr: str) -> Any:
         """
         Override to dynamically add attribute filters to the scan definition
         using comparison names as method names.
@@ -179,7 +179,7 @@ class TableScanDefinition:
         """
         if attr in self._comparison_operators:
 
-            def add_filter(attribute_name: str, value: Any):
+            def add_filter(attribute_name: str, value: Any) -> None:
                 self.add(
                     attribute_name=attribute_name,
                     comparison=attr,
@@ -194,12 +194,12 @@ class TableScanDefinition:
 class TableClient:
     def __init__(
         self,
-        default_object_class: TableObject,
+        default_object_class: type[TableObject],
         app_name: str | None = None,
         deployment_id: str | None = None,
         table_endpoint_name: str | None = None,
         resource_discovery_storage_solution: str | None = None,
-    ):
+    ) -> None:
         self.default_object_class = default_object_class
 
         self.table_name = self.default_object_class.table_name
@@ -207,12 +207,18 @@ class TableClient:
         self.table_endpoint_name = table_endpoint_name
 
         if not self.table_endpoint_name:
+            from da_vinci.core.resource_discovery import ResourceDiscoveryStorageSolution
+
+            storage_solution = None
+            if resource_discovery_storage_solution:
+                storage_solution = ResourceDiscoveryStorageSolution(resource_discovery_storage_solution)
+
             resource_discovery = ResourceDiscovery(
                 resource_name=self.table_name,
                 resource_type="table",
                 app_name=app_name,
                 deployment_id=deployment_id,
-                storage_solution=resource_discovery_storage_solution,
+                storage_solution=storage_solution,
             )
 
             self.table_endpoint_name = resource_discovery.endpoint_lookup()
@@ -222,7 +228,7 @@ class TableClient:
     @classmethod
     def table_resource_exists(
         cls,
-        table_object_class: TableObject,
+        table_object_class: type[TableObject],
         app_name: str | None = None,
         deployment_id: str | None = None,
     ) -> bool:
@@ -246,6 +252,8 @@ class TableClient:
 
         except ResourceNotFoundError:
             return False
+
+        return True
 
     def paginated(
         self,
@@ -282,7 +290,7 @@ class TableClient:
         if limit and "Limit" not in params:
             params["Limit"] = limit
 
-        mthd = getattr(self.client, call)
+        mthd = getattr(self.client, str(call))
 
         if call == "query" and sort_order:
             if not self.default_object_class.sort_key_attribute:
@@ -322,7 +330,7 @@ class TableClient:
         # Iterate through each page of results, yielding the results as
         # a list of TableObjects
         while more_results:
-            items = []
+            items: list = []
 
             response = mthd(**params)
 
@@ -355,7 +363,7 @@ class TableClient:
         Loads all objects from a DynamoDB table into memory. Not recommended to use
         for large tables.
         """
-        all = []
+        all: list[TableObject] = []
 
         for page in self.paginated(call="scan"):
             all.extend(page)
@@ -381,10 +389,13 @@ class TableClient:
             sort_key_value=sort_key_value,
         )
 
+        if self.table_endpoint_name is None:
+            raise ValueError("Table endpoint name is not set")
+
         results = self.client.get_item(
             TableName=self.table_endpoint_name,
             Key=dynamodb_key,
-            ConsistentRead=consistent_read,
+            ConsistentRead=consistent_read if consistent_read is not None else False,
         )
 
         logging.debug(f"Get object results: {results}")
@@ -394,7 +405,7 @@ class TableClient:
 
         return self.default_object_class.from_dynamodb_item(results["Item"])
 
-    def put_object(self, table_object: TableObject):
+    def put_object(self, table_object: TableObject) -> None:
         """
         Save a single object to the table
 
@@ -403,6 +414,9 @@ class TableClient:
         """
 
         logging.debug(f"Saving object: {table_object.to_dynamodb_item()}")
+
+        if self.table_endpoint_name is None:
+            raise ValueError("Table endpoint name is not set")
 
         try:
             table_object.execute_on_update()
@@ -419,7 +433,7 @@ class TableClient:
                 if "Supplied AttributeValue is empty" in error_message:
                     raise Exception(
                         f"Empty attribute value detected, if using JSON type, attributes cannot be empty. Original Error: {error_message}"
-                    )
+                    ) from e
 
                 else:
                     raise
@@ -428,7 +442,7 @@ class TableClient:
                 # Re-raise the error if it's not a ValidationException
                 raise
 
-    def delete_object_by_key(self, partition_key_value: Any, sort_key_value: Any = None):
+    def delete_object_by_key(self, partition_key_value: Any, sort_key_value: Any = None) -> None:
         """
         Delete a single object from the table by partition and sort key
 
@@ -443,12 +457,15 @@ class TableClient:
         if sort_key_value:
             key_args["sort_key_value"] = sort_key_value
 
+        if self.table_endpoint_name is None:
+            raise ValueError("Table endpoint name is not set")
+
         self.client.delete_item(
             TableName=self.table_endpoint_name,
             Key=self.default_object_class.gen_dynamodb_key(**key_args),
         )
 
-    def delete_object(self, table_object: TableObject):
+    def delete_object(self, table_object: TableObject) -> None:
         """
         Delete a single object from the table
 
@@ -466,12 +483,15 @@ class TableClient:
                 table_object.sort_key_attribute.name
             )
 
+        if self.table_endpoint_name is None:
+            raise ValueError("Table endpoint name is not set")
+
         self.client.delete_item(
             TableName=self.table_endpoint_name,
             Key=table_object.gen_dynamodb_key(**key_args),
         )
 
-    def scanner(self, scan_definition: TableScanDefinition):
+    def scanner(self, scan_definition: TableScanDefinition) -> Generator[PaginatedResults, None, None]:
         """
         Perform a scan on the table, works similar to the paginator.
 
@@ -480,7 +500,7 @@ class TableClient:
         """
         filter_expression, attribute_values = scan_definition.to_expression()
 
-        params = {
+        params: dict[str, Any] = {
             "Select": "ALL_ATTRIBUTES",
             "TableName": self.table_endpoint_name,
         }
@@ -490,8 +510,7 @@ class TableClient:
 
             params["FilterExpression"] = filter_expression
 
-        for page in self.paginated(call="scan", parameters=params):
-            yield page
+        yield from self.paginated(call="scan", parameters=params)
 
     def full_scan(self, scan_definition: TableScanDefinition) -> list[TableObject]:
         """
@@ -500,7 +519,7 @@ class TableClient:
         Keyword Arguments:
             scan_definition: Scan definition to use (default: None)
         """
-        all = []
+        all: list[TableObject] = []
 
         for page in self.scanner(scan_definition=scan_definition):
             all.extend(page)
@@ -511,8 +530,8 @@ class TableClient:
         self,
         partition_key_value: Any,
         sort_key_value: Any,
-        updates: dict[str, Any] = None,
-        remove_keys: list[str] = None,
+        updates: dict[str, Any] | None = None,
+        remove_keys: list[str] | None = None,
     ) -> None:
         """
         Updates an item in the DynamoDB table by applying SET and REMOVE operations.
@@ -556,15 +575,15 @@ class TableClient:
         Returns:
             None
         """
-        update_expressions = []
+        update_expressions: list[str] = []
 
-        expression_attribute_values = {}
+        expression_attribute_values: dict[str, Any] = {}
 
-        expression_attribute_names = {}
+        expression_attribute_names: dict[str, str] = {}
 
         # Handle updates (SET operations)
         if updates:
-            update_instructions = []
+            update_instructions: list[str] = []
 
             for attribute_name, value in updates.items():
                 # Check for dot notation (e.g. 'json_map.sub_key')
@@ -585,9 +604,10 @@ class TableClient:
 
                     expression_attribute_names.update({f"#{part}": part for part in parts})
 
-                    expression_attribute_names[dynamo_key] = (
-                        self.default_object_class.attribute_definition(parts[0]).dynamodb_key_name
-                    )
+                    attr_def = self.default_object_class.attribute_definition(parts[0])
+                    if attr_def is None:
+                        raise ValueError(f"Attribute {parts[0]} not found in table definition")
+                    expression_attribute_names[dynamo_key] = attr_def.dynamodb_key_name
 
                 # Regular attribute (non-nested)
                 else:
@@ -596,6 +616,8 @@ class TableClient:
                     dynamo_value = f":val_{attribute_name}"
 
                     attr_definition = self.default_object_class.attribute_definition(attribute_name)
+                    if attr_definition is None:
+                        raise ValueError(f"Attribute {attribute_name} not found in table definition")
 
                     update_instructions.append(f"{dynamo_key} = {dynamo_value}")
 
@@ -604,16 +626,14 @@ class TableClient:
                         attr_definition.as_dynamodb_attribute(value).values()
                     )[0]
 
-                    attr_def = self.default_object_class.attribute_definition(attribute_name)
-
-                    expression_attribute_names[dynamo_key] = attr_def.dynamodb_key_name
+                    expression_attribute_names[dynamo_key] = attr_definition.dynamodb_key_name
 
             # Combine all SET expressions into a single string
             update_expressions.append("SET " + ", ".join(update_instructions))
 
         # Handle removals (REMOVE operations)
         if remove_keys:
-            removals = []
+            removals: list[str] = []
 
             for attribute_name in remove_keys:
                 if "." in attribute_name:
@@ -653,6 +673,9 @@ class TableClient:
         )
 
         logging.debug(f"DynamoDB key: {dynamodb_key}")
+
+        if self.table_endpoint_name is None:
+            raise ValueError("Table endpoint name is not set")
 
         # Execute the update in DynamoDB
         self.client.update_item(

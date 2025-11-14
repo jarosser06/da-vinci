@@ -5,14 +5,15 @@ from aws_cdk import (
 )
 from aws_cdk import aws_dynamodb as cdk_dynamodb
 from aws_cdk import aws_iam as cdk_iam
+from aws_cdk.aws_iam import IGrantable
 from aws_cdk.custom_resources import (
     AwsCustomResource,
     AwsCustomResourcePolicy,
     AwsSdkCall,
     PhysicalResourceId,
 )
-from constructs import Construct
 
+from constructs import Construct
 from da_vinci.core.orm.table_object import TableObject, TableObjectAttributeType
 from da_vinci.core.resource_discovery import ResourceType
 from da_vinci_cdk.constructs.access_management import ResourceAccessPolicy
@@ -36,7 +37,7 @@ class DynamoDBTable(Construct):
         tags: list[dict[str, Any]] = None,
         time_to_live_attribute: str | None = None,
         **kwargs,
-    ):
+    ) -> None:
         """
         Initialize a DynamoDBTable object
 
@@ -185,7 +186,7 @@ class DynamoDBTable(Construct):
             resource_type=ResourceType.TABLE,
         )
 
-    def grant_read_access(self, resource: Construct):
+    def grant_read_access(self, resource: IGrantable):
         """
         Grant read access to the DynamoDB table
 
@@ -196,7 +197,7 @@ class DynamoDBTable(Construct):
 
         self._discovery_resource.grant_read(resource=resource)
 
-    def grant_read_write_access(self, resource: Construct):
+    def grant_read_write_access(self, resource: IGrantable):
         """
         Grant read/write access to the DynamoDB table
 
@@ -210,7 +211,7 @@ class DynamoDBTable(Construct):
     @classmethod
     def from_orm_table_object(
         cls,
-        table_object: TableObject,
+        table_object: type[TableObject],
         scope: Construct,
         construct_id: str | None = None,
         exclude_from_discovery: bool = False,
@@ -289,7 +290,7 @@ class DynamoDBTable(Construct):
         if table_object.ttl_attribute:
             init_args["time_to_live_attribute"] = table_object.ttl_attribute.dynamodb_key_name
 
-        return cls(**init_args)
+        return cls(**init_args)  # type: ignore[arg-type]
 
     @staticmethod
     def attribute_type_from_orm_type(
@@ -352,7 +353,7 @@ class DynamoDBItem(Construct):
         table_object: TableObject,
         custom_type_name: str | None = DEFAULT_ITEM_TYPE_NAME,
         support_updates: bool = False,
-    ):
+    ) -> None:
         """
         Initialize a DynamoDBItem object
 
@@ -401,7 +402,7 @@ class DynamoDBItem(Construct):
         )
 
     @staticmethod
-    def is_attribute_changed(attr_name: str, new_value: Any, old_item_call: AwsSdkCall) -> bool:
+    def is_attribute_changed(attr_name: str, new_value: Any, old_item_call: Any) -> bool:
         """
         Compare attribute values between old and new state
 
@@ -501,9 +502,9 @@ class DynamoDBItem(Construct):
         )
 
         # Compare attributes and only update those that changed
-        update_expressions = []
+        update_expressions: list = []
 
-        expression_values = {}
+        expression_values: dict = {}
 
         expression_names = {}
 

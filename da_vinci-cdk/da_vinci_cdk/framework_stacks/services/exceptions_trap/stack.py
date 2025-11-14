@@ -1,8 +1,8 @@
 import os
 
 from aws_cdk import DockerImage, Duration
-from constructs import Construct
 
+from constructs import Construct
 from da_vinci.core.tables.global_settings_table import GlobalSetting as GlobalSettingTblObj
 from da_vinci.core.tables.global_settings_table import (
     GlobalSettingType,
@@ -27,7 +27,7 @@ class ExceptionsTrapStack(Stack):
         scope: Construct,
         stack_name: str,
         library_base_image: DockerImage,
-    ):
+    ) -> None:
         """
         Initialize a new ExceptionsTrapStack object
 
@@ -62,12 +62,12 @@ class ExceptionsTrapStack(Stack):
             namespace="da_vinci_framework::exceptions_trap",
             setting_key="exception_retention_hours",
             setting_type=GlobalSettingType.INTEGER,
-            setting_value=48,
+            setting_value="48",
             scope=self,
         )
 
         self.exceptions_trap = SimpleRESTService(
-            base_image=self.library_base_image,
+            base_image=self.library_base_image,  # type: ignore[arg-type]
             description="Catches exceptions and stores them in a DynamoDB table",
             disable_framework_access_requests=True,
             entry=self.runtime_path,

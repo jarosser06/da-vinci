@@ -4,8 +4,8 @@ from aws_cdk.custom_resources import (
     AwsSdkCall,
     PhysicalResourceId,
 )
-from constructs import Construct
 
+from constructs import Construct
 from da_vinci.core.exceptions import GlobalSettingsNotEnabledError
 from da_vinci.core.tables.global_settings_table import GlobalSetting as GlobalSettingTblObj
 from da_vinci.core.tables.global_settings_table import (
@@ -26,7 +26,7 @@ class GlobalSetting(DynamoDBItem):
         description: str | None = None,
         setting_type: str | GlobalSettingType | None = GlobalSettingType.STRING,
         setting_value: str | None = "PLACEHOLDER",
-    ):
+    ) -> None:
         """
         Initialize the global setting item.
 
@@ -80,7 +80,7 @@ class GlobalSettingLookup(Construct):
     Lookup construct for a global setting item.
     """
 
-    def __init__(self, scope: Construct, construct_id: str, namespace: str, setting_key: str):
+    def __init__(self, scope: Construct, construct_id: str, namespace: str, setting_key: str) -> None:
         """
         Initialize the global setting lookup construct.
 

@@ -1,4 +1,4 @@
-def standard_aws_resource_name(app_name: str, deployment_id: str, name: str):
+def standard_aws_resource_name(app_name: str, deployment_id: str, name: str) -> str:
     """
     Standardize the naming convention for AWS resources
 

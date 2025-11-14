@@ -16,14 +16,15 @@ from da_vinci.core.execution_environment import (
 )
 from da_vinci.core.tables.resource_registry import ResourceRegistration
 
+
 SSM_SERVICE_DISCOVERY_PREFIX = "/da_vinci_framework/service_discovery"
 
 # Cache setup
-cache = {}
+cache: dict[str, str] = {}
 
 CACHE_TTL = 300  # Cache Time-to-Live in seconds (5 minutes)
 
-cache_timestamps = {}
+cache_timestamps: dict[str, float] = {}
 
 
 class ResourceType(StrEnum):
@@ -50,8 +51,8 @@ class ResourceDiscovery:
         resource_name: str,
         app_name: str | None = None,
         deployment_id: str | None = None,
-        storage_solution: ResourceDiscoveryStorageSolution = None,
-    ):
+        storage_solution: ResourceDiscoveryStorageSolution | None = None,
+    ) -> None:
         """
         Initialize a ResourceDiscovery object
 
@@ -67,7 +68,7 @@ class ResourceDiscovery:
 
         self.storage_solution = storage_solution
 
-        lookup_values = []
+        lookup_values: list[str] = []
 
         if not self.app_name:
             lookup_values.append(APP_NAME_ENV_NAME)
@@ -79,7 +80,7 @@ class ResourceDiscovery:
             lookup_values.append(SERVICE_DISC_STOR_ENV_NAME)
 
         if lookup_values:
-            env_vars = load_runtime_environment_variables(variable_names=lookup_values)
+            env_vars = load_runtime_environment_variables(variable_names=tuple(lookup_values))  # type: ignore[arg-type]
 
             if not self.app_name:
                 self.app_name = env_vars["app_name"]
@@ -160,6 +161,9 @@ class ResourceDiscovery:
             f"Cache miss for resource: {self.resource_name} of type {self.resource_type} in DynamoDB"
         )
 
+        if self.app_name is None or self.deployment_id is None:
+            raise ValueError("app_name and deployment_id must be set for DynamoDB lookup")
+
         # Determine table name using the same convention as in the ORM
         table_name = standard_aws_resource_name(
             app_name=self.app_name,
@@ -224,14 +228,15 @@ class ResourceDiscovery:
             app_name: Name of the application (default: None)
             deployment_id: Unique identifier for the installation (default: None)
         """
-        param_args = {
-            "app_name": self.app_name,
-            "deployment_id": self.deployment_id,
-            "resource_type": self.resource_type,
-            "resource_name": self.resource_name,
-        }
+        if self.app_name is None or self.deployment_id is None:
+            raise ValueError("app_name and deployment_id must be set for SSM lookup")
 
-        param_name = self.ssm_parameter_name(**param_args)
+        param_name = self.ssm_parameter_name(
+            app_name=self.app_name,
+            deployment_id=self.deployment_id,
+            resource_type=self.resource_type,
+            resource_name=self.resource_name,
+        )
 
         # Check if the parameter is cached
         current_time = time.time()
@@ -259,7 +264,7 @@ class ResourceDiscovery:
                 f"Resource {self.resource_name} of type {self.resource_type} fetched from SSM and cached."
             )
 
-            return results["Parameter"]["Value"]
+            return str(results["Parameter"]["Value"])
 
         except ssm.exceptions.ParameterNotFound:
             logging.error(
@@ -268,7 +273,7 @@ class ResourceDiscovery:
 
             raise ResourceNotFoundError(
                 resource_name=self.resource_name, resource_type=self.resource_type
-            )
+            ) from None
 
         except Exception as e:
             logging.exception(
