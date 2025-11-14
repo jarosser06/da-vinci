@@ -15,7 +15,7 @@ from da_vinci.event_bus.tables.event_bus_responses import (
 
 
 class EventBusWatcher(SimpleRESTServiceBase):
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialize the EventBusWatcher
         """
@@ -58,11 +58,11 @@ class EventBusWatcher(SimpleRESTServiceBase):
             )
 
             if response:
-                response.response_status = status
+                response.response_status = status  # type: ignore[attr-defined]
 
-                response.failure_reason = failure_reason
+                response.failure_reason = failure_reason  # type: ignore[attr-defined]
 
-                response.failure_traceback = failure_traceback
+                response.failure_traceback = failure_traceback  # type: ignore[attr-defined]
 
                 self.event_responses.put(response)
 

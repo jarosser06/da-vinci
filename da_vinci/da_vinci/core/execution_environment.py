@@ -2,6 +2,7 @@ import os
 
 from da_vinci.core.exceptions import MissingRequiredRuntimeVariableError
 
+
 APP_NAME_ENV_NAME = "DA_VINCI_APP_NAME"
 DEPLOYMENT_ID_ENV_NAME = "DA_VINCI_DEPLOYMENT_ID"
 SERVICE_DISC_STOR_ENV_NAME = "DA_VINCI_RESOURCE_DISCOVERY_STORAGE"
@@ -20,7 +21,7 @@ __APP_USAGE_VAR_NAMES = {
 }
 
 
-def validate_expected_environment_variables():
+def validate_expected_environment_variables() -> None:
     """
     Validate that all expected runtime environment variables are present
     """
@@ -54,7 +55,7 @@ def runtime_environment_dict(
 
 
 def load_runtime_environment_variables(
-    variable_names: list[str] = REQUIRED_RUNTIME_VARIABLES,
+    variable_names: tuple[str, str, str] = REQUIRED_RUNTIME_VARIABLES,
 ) -> dict:
     """
     Load all requested runtime environment variables into a dictionary, the dictionary keys match
@@ -68,7 +69,7 @@ def load_runtime_environment_variables(
     if unsupported:
         raise ValueError(f"Unsupported runtime variables requested: {unsupported}")
 
-    results = {}
+    results: dict = {}
 
     for variable_name in variable_names:
         if variable_name not in os.environ:

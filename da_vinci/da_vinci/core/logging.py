@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import boto3
 
+
 DEFAULT_LOG_LEVEL_NAME = "INFO"
 
 S3_BUCKET_ENV_VAR = "DA_VINCI_S3_LOGGING_BUCKET"
@@ -15,7 +16,7 @@ S3_BUCKET_ENV_VAR = "DA_VINCI_S3_LOGGING_BUCKET"
 class S3LogHandler(logging.Handler):
     """Custom log handler to store logs in memory and offload them to S3."""
 
-    def __init__(self, execution_id: str, namespace: str, metadata: dict[str, Any] | None = None):
+    def __init__(self, execution_id: str, namespace: str, metadata: dict[str, Any] | None = None) -> None:
         """
         Set up the S3 log handler with the execution ID and namespace.
 
@@ -30,11 +31,11 @@ class S3LogHandler(logging.Handler):
 
         self.namespace = namespace
 
-        self.log_entries = []
+        self.log_entries: list[dict[str, Any]] = []
 
         self.metadata = metadata or {}
 
-    def emit(self, record) -> None:
+    def emit(self, record: logging.LogRecord) -> None:
         """
         Capture log records and store them in memory.
 
@@ -84,7 +85,7 @@ class Logger:
         log_level_name: str | None = None,
         s3_logging_enabled: bool | None = False,
         s3_logging_bucket_name: str | None = None,
-    ):
+    ) -> None:
         """
         Initialize the logger with the namespace and log level name.
 
@@ -140,6 +141,10 @@ class Logger:
 
         try:
             log_data = json.dumps(self.s3_log_handler.to_dict(), indent=4)
+
+            if self.s3_client is None or self.s3_bucket is None:
+                self.pylogger.warning("S3 client or bucket not configured. Skipping S3 log upload.")
+                return
 
             self.s3_client.put_object(Bucket=self.s3_bucket, Key=log_filename, Body=log_data)
 

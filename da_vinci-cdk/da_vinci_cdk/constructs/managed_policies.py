@@ -1,11 +1,12 @@
 import logging
 
 from aws_cdk import aws_iam as cdk_iam
+
 from constructs import Construct
 
 
 class BedrockAccessManagedPolicy(Construct):
-    def __init__(self, construct_id: str, scope: Construct):
+    def __init__(self, construct_id: str, scope: Construct) -> None:
         """
         Creates a managed policy for Bedrock access
 

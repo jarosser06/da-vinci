@@ -4,8 +4,8 @@ from aws_cdk import (
 )
 from aws_cdk import aws_iam as cdk_iam
 from aws_cdk import aws_lambda as cdk_lambda
-from constructs import Construct
 
+from constructs import Construct
 from da_vinci.core.execution_environment import runtime_environment_dict
 from da_vinci.core.global_settings import SETTINGS_ENABLED_VAR_NAME
 from da_vinci.core.resource_discovery import ResourceType
@@ -16,6 +16,7 @@ from da_vinci_cdk.constructs.access_management import (
     ResourceAccessRequest,
 )
 from da_vinci_cdk.constructs.base import apply_framework_tags
+
 
 DEFAULT_BASE_IMAGE = "public.ecr.aws/lambda/python:3.12"
 
@@ -43,7 +44,7 @@ class LambdaFunction(Construct):
         resource_access_requests: list[ResourceAccessRequest] | None = None,
         timeout: Duration | None = None,
         **kwargs,
-    ):
+    ) -> None:
         """
         Creates a Lambda function using a Docker image
 
@@ -139,7 +140,7 @@ class LambdaFunction(Construct):
         self.function = cdk_lambda.DockerImageFunction(
             self,
             f"{construct_id}-fn",
-            architecture=self.architecture,
+            architecture=self.architecture,  # type: ignore[arg-type]
             code=code,
             description=description,
             environment=environment,

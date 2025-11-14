@@ -2,6 +2,7 @@
 Application class and Core Stack for DaVinci CDK
 """
 
+from typing import Any
 from os import getenv
 from os.path import join as path_join
 from os.path import (
@@ -13,8 +14,8 @@ from aws_cdk import (
     DockerImage,
 )
 from aws_cdk import aws_lambda as cdk_lambda
-from constructs import Construct
 
+from constructs import Construct
 from da_vinci.core.global_settings import GlobalSetting as GlobalSettingTblObj
 from da_vinci.core.global_settings import GlobalSettings
 from da_vinci.core.resource_discovery import ResourceDiscoveryStorageSolution
@@ -33,6 +34,7 @@ from da_vinci_cdk.framework_stacks.tables.resource_registry.stack import (
 )
 from da_vinci_cdk.stack import Stack
 
+
 DA_VINCI_DISABLE_DOCKER_CACHE = getenv("DA_VINCI_DISABLE_DOCKER_CACHE", False)
 
 
@@ -49,10 +51,10 @@ class CoreStack(Stack):
         resource_discovery_table_name: str | None = None,
         resource_discovery_storage_solution: str = ResourceDiscoveryStorageSolution.SSM,
         root_domain_name: str | None = None,
-        s3_logging_bucket_name: str = None,
+        s3_logging_bucket_name: str | None = None,
         s3_logging_bucket_object_retention_days: int | None = None,
         using_external_logging_bucket: bool = False,
-    ):
+    ) -> None:
         """
         Bootstrap the initial infrastructure required to stand up a DaVinci
 
@@ -76,7 +78,7 @@ class CoreStack(Stack):
             description="Whether Global settings are enabled. Managed by framework deployment, do not modify!",
             namespace="da_vinci_framework::core",
             setting_key="global_settings_enabled",
-            setting_value=True,
+            setting_value="true",
             scope=self,
         )
 
@@ -84,7 +86,7 @@ class CoreStack(Stack):
             description="Whether the event bus is enabled. Managed by framework deployment, do not modify!",
             namespace="da_vinci_framework::core",
             setting_key="event_bus_enabled",
-            setting_value=event_bus_enabled,
+            setting_value=str(event_bus_enabled).lower(),
             scope=self,
         )
 
@@ -92,7 +94,7 @@ class CoreStack(Stack):
             description="Whether the exception trap is enabled. Managed by framework deployment, do not modify!",
             namespace="da_vinci_framework::core",
             setting_key="exception_trap_enabled",
-            setting_value=exception_trap_enabled,
+            setting_value=str(exception_trap_enabled).lower(),
             scope=self,
         )
 
@@ -129,7 +131,7 @@ class CoreStack(Stack):
 
         if resource_discovery_storage_solution == ResourceDiscoveryStorageSolution.DYNAMODB:
             resource_discovery_full_table_name = resource_namer(
-                name=resource_discovery_table_name,
+                name=resource_discovery_table_name,  # type: ignore[arg-type]
                 scope=self,
             )
 
@@ -186,7 +188,7 @@ class Application:
         architecture: str | None = cdk_lambda.Architecture.ARM_64,
         custom_context: dict | None = None,
         create_hosted_zone: bool | None = False,
-        disable_docker_image_cache: bool | None = DA_VINCI_DISABLE_DOCKER_CACHE,
+        disable_docker_image_cache: bool | None = DA_VINCI_DISABLE_DOCKER_CACHE,  # type: ignore[assignment]
         enable_exception_trap: bool | None = True,
         enable_logging_bucket: bool | None = False,
         enable_event_bus: bool | None = False,
@@ -257,7 +259,7 @@ class Application:
 
         if app_entry:
             if app_image_use_lib_base:
-                app_entry_build_args = {
+                app_entry_build_args: dict = {
                     "IMAGE": self.lib_docker_image.image,
                 }
             else:
@@ -271,7 +273,7 @@ class Application:
         else:
             self.app_docker_image = None
 
-        self._stacks = {}
+        self._stacks: dict[str, Any] = {}
 
         external_logging_bucket = False
 
@@ -323,29 +325,29 @@ class Application:
 
         self.cdk_app = CDKApp(context=context)
 
-        self.dependency_stacks = []
+        self.dependency_stacks: list[type] = []
 
         if resource_discovery_table_name:
             resource_registration_stack = self.add_uninitialized_stack(
-                stack=ResourceRegistrationTableStack,
+                stack=ResourceRegistrationTableStack,  # type: ignore[arg-type]
                 include_core_dependencies=False,
             )
 
-            self.dependency_stacks.append(resource_registration_stack)
+            self.dependency_stacks.append(resource_registration_stack)  # type: ignore[arg-type]
 
         global_settings_stack = self.add_uninitialized_stack(
-            stack=GlobalSettingsTableStack,
+            stack=GlobalSettingsTableStack,  # type: ignore[arg-type]
             include_core_dependencies=False,
         )
 
-        self.dependency_stacks.append(global_settings_stack)
+        self.dependency_stacks.append(global_settings_stack)  # type: ignore[arg-type]
 
         self.core_stack = CoreStack(
             app_name=self.app_name,
             create_hosted_zone=create_hosted_zone,
             deployment_id=self.deployment_id,
             scope=self.cdk_app,
-            stack_name=self.generate_stack_name(CoreStack),
+            stack_name=self.generate_stack_name(CoreStack),  # type: ignore[arg-type]
             root_domain_name=self.root_domain_name,
             using_external_logging_bucket=external_logging_bucket,
             resource_discovery_storage_solution=resource_discovery_storage_solution,
@@ -354,17 +356,17 @@ class Application:
             s3_logging_bucket_object_retention_days=s3_logging_bucket_object_retention_days,
         )
 
-        self.dependency_stacks.append(self.core_stack)
+        self.dependency_stacks.append(self.core_stack)  # type: ignore[arg-type]
 
         self._event_bus_stack = None
 
         if enable_event_bus:
-            self._event_bus_stack = self.add_uninitialized_stack(EventBusStack)
+            self._event_bus_stack = self.add_uninitialized_stack(EventBusStack)  # type: ignore[arg-type]
 
         self._exceptions_trap_stack = None
 
         if enable_exception_trap:
-            self._exceptions_trap_stack = self.add_uninitialized_stack(ExceptionsTrapStack)
+            self._exceptions_trap_stack = self.add_uninitialized_stack(ExceptionsTrapStack)  # type: ignore[arg-type]
 
     @staticmethod
     def generate_stack_name(stack: Stack) -> str:
@@ -375,7 +377,7 @@ class Application:
             stack: Stack to generate the name for
         """
 
-        return stack.__name__.lower()
+        return stack.__name__.lower()  # type: ignore[attr-defined]
 
     @property
     def lib_container_entry(self) -> str:
@@ -423,7 +425,7 @@ class Application:
         else:
             init_args["app_base_image"] = None
 
-        req_init_vars = stack.__init__.__code__.co_varnames
+        req_init_vars = stack.__init__.__code__.co_varnames  # type: ignore[misc]
 
         stk_req_init_vars = set(req_init_vars)
 
@@ -434,7 +436,7 @@ class Application:
         for arg in stk_args:
             del init_args[arg]
 
-        self._stacks[stack_name] = stack(**init_args)
+        self._stacks[stack_name] = stack(**init_args)  # type: ignore[operator]
 
         initialized_stack = self._stacks[stack_name]
 
@@ -469,7 +471,7 @@ class Application:
 
         return self._stacks[stack_name]
 
-    def synth(self, **kwargs):
+    def synth(self, **kwargs: Any) -> None:
         """
         Synthesize the CDK application
         """
@@ -487,8 +489,8 @@ class SideCarApplication:
         app_image_use_lib_base: bool | None = True,
         architecture: str | None = cdk_lambda.Architecture.ARM_64,
         log_level: str | None = "INFO",
-        disable_docker_image_cache: bool | None = DA_VINCI_DISABLE_DOCKER_CACHE,
-    ):
+        disable_docker_image_cache: bool | None = DA_VINCI_DISABLE_DOCKER_CACHE,  # type: ignore[assignment]
+    ) -> None:
         """
         Initialize a new SideCarApplication object
 
@@ -510,7 +512,7 @@ class SideCarApplication:
 
         self.deployment_id = deployment_id
 
-        self._stacks = {}
+        self._stacks: dict[str, Any] = {}
 
         self.lib_docker_image = DockerImage.from_build(
             cache_disabled=disable_docker_image_cache,
@@ -519,7 +521,7 @@ class SideCarApplication:
 
         if app_entry:
             if app_image_use_lib_base:
-                app_entry_build_args = {
+                app_entry_build_args: dict = {
                     "IMAGE": self.lib_docker_image.image,
                 }
             else:
@@ -561,7 +563,7 @@ class SideCarApplication:
             context=side_car_context,
         )
 
-        self.dependency_stacks = []
+        self.dependency_stacks: list[type] = []
 
     def _get_parent_context_values(self) -> dict:
         """
@@ -574,7 +576,6 @@ class SideCarApplication:
                 app_name=self.app_name,
                 deployment_id=self.deployment_id,
                 name=GlobalSettingTblObj.table_name,
-                scope=self,
             ),
         )
 
@@ -586,7 +587,7 @@ class SideCarApplication:
             "s3_logging_bucket",
         ]
 
-        results = {}
+        results: dict = {}
 
         for key in required_context_keys:
             setting_result = global_settings_tbl.get(
@@ -611,7 +612,7 @@ class SideCarApplication:
             stack: Stack to generate the name for
         """
 
-        return stack.__name__.lower()
+        return stack.__name__.lower()  # type: ignore[attr-defined]
 
     @property
     def lib_container_entry(self) -> str:
@@ -658,7 +659,7 @@ class SideCarApplication:
         else:
             init_args["app_base_image"] = None
 
-        req_init_vars = stack.__init__.__code__.co_varnames
+        req_init_vars = stack.__init__.__code__.co_varnames  # type: ignore[misc]
 
         stk_req_init_vars = set(req_init_vars)
 
@@ -669,7 +670,7 @@ class SideCarApplication:
         for arg in stk_args:
             del init_args[arg]
 
-        self._stacks[stack_name] = stack(**init_args)
+        self._stacks[stack_name] = stack(**init_args)  # type: ignore[operator]
 
         for dependency in self._stacks[stack_name].required_stacks:
 
@@ -682,7 +683,7 @@ class SideCarApplication:
 
         return self._stacks[stack_name]
 
-    def synth(self, **kwargs):
+    def synth(self, **kwargs: Any) -> None:
         """
         Synthesize the CDK application
         """

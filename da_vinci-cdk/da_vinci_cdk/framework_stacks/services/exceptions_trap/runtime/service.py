@@ -2,6 +2,7 @@
 Exception Trap Service module
 """
 
+from typing import Any
 from datetime import UTC, datetime, timedelta
 
 from da_vinci.core.global_settings import setting_value
@@ -12,11 +13,12 @@ from da_vinci.exception_trap.tables.trapped_exceptions import (
     TrappedExceptions,
 )
 
+
 logging = Logger("da_vinci_framework::exception_trap")
 
 
 class ExceptionTrapService(SimpleRESTServiceBase):
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Exception trap service
         """
@@ -52,7 +54,7 @@ class ExceptionTrapService(SimpleRESTServiceBase):
             "da_vinci_framework::exceptions_trap", "exception_retention_hours"
         )
 
-        exception = TrappedException(
+        trapped_exception = TrappedException(
             created=datetime.now(tz=UTC),
             exception=exception,
             exception_traceback=exception_traceback,
@@ -64,9 +66,9 @@ class ExceptionTrapService(SimpleRESTServiceBase):
             time_to_live=datetime.now(tz=UTC) + timedelta(hours=ttl_hours),
         )
 
-        logging.debug(f"Trapped exception: {exception.to_dict()}")
+        logging.debug(f"Trapped exception: {trapped_exception.to_dict()}")
 
-        self.trapped_exceptions.put(exception)
+        self.trapped_exceptions.put(trapped_exception)
 
         return self.respond(
             body={"message": "exception noted"},

@@ -1,12 +1,11 @@
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-from da_vinci.core.orm.client import (
-    TableClient,
+from da_vinci.core.orm.client import TableClient, TableScanDefinition
+from da_vinci.core.orm.table_object import (
     TableObject,
     TableObjectAttribute,
     TableObjectAttributeType,
-    TableScanDefinition,
 )
 
 
@@ -85,7 +84,7 @@ class TrappedException(TableObject):
 
 
 class TrappedExceptionsScanDefinition(TableScanDefinition):
-    def __init__(self):
+    def __init__(self) -> None:
         """
         The scan definition for the TrappedExceptions table
         """
@@ -95,7 +94,7 @@ class TrappedExceptionsScanDefinition(TableScanDefinition):
 
 
 class TrappedExceptions(TableClient):
-    def __init__(self, app_name: str | None = None, deployment_id: str | None = None):
+    def __init__(self, app_name: str | None = None, deployment_id: str | None = None) -> None:
         """
         The client for the TrappedExceptions table
 
@@ -117,7 +116,7 @@ class TrappedExceptions(TableClient):
             function_name: The name of the function that produced the exception
             exception_id: The ID of the exception
         """
-        return self.get_object(
+        return self.get_object(  # type: ignore[return-value]
             partition_key_value=function_name,
             sort_key_value=exception_id,
         )
@@ -134,7 +133,7 @@ class TrappedExceptions(TableClient):
         )
 
     def put(self, trapped_exception: TrappedException) -> TrappedException:
-        return self.put_object(
+        return self.put_object(  # type: ignore[func-returns-value, return-value]
             table_object=trapped_exception,
         )
 
@@ -145,6 +144,6 @@ class TrappedExceptions(TableClient):
         Keyword Arguments:
             scan_definition: The scan definition
         """
-        return self.full_scan(
+        return self.full_scan(  # type: ignore[return-value]
             scan_definition=scan_definition,
         )

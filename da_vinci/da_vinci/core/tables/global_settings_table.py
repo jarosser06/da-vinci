@@ -4,12 +4,11 @@ from datetime import UTC, datetime
 from enum import StrEnum, auto
 from typing import Any
 
-from da_vinci.core.orm.client import (
-    TableClient,
+from da_vinci.core.orm.client import TableClient, TableScanDefinition
+from da_vinci.core.orm.table_object import (
     TableObject,
     TableObjectAttribute,
     TableObjectAttributeType,
-    TableScanDefinition,
 )
 
 
@@ -63,7 +62,7 @@ class GlobalSetting(TableObject):
         ),
     ]
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         """
         Initialize a new Setting object
 
@@ -121,7 +120,7 @@ class GlobalSetting(TableObject):
 
 
 class GlobalSettingsScanDefinition(TableScanDefinition):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(table_object_class=GlobalSetting)
 
 
@@ -131,7 +130,7 @@ class GlobalSettings(TableClient):
         app_name: str | None = None,
         deployment_id: str | None = None,
         table_endpoint_name: str | None = None,
-    ):
+    ) -> None:
         """
         Global Settings Table Definitions
 
@@ -151,7 +150,7 @@ class GlobalSettings(TableClient):
         """
         Get all settings
         """
-        return self._all_objects()
+        return self._all_objects()  # type: ignore[return-value]
 
     def delete(self, setting: GlobalSetting) -> None:
         """
@@ -170,7 +169,7 @@ class GlobalSettings(TableClient):
             namespace: The namespace of the setting
             setting_key: The setting key
         """
-        return self.get_object(
+        return self.get_object(  # type: ignore[return-value]
             partition_key_value=namespace,
             sort_key_value=setting_key,
         )
@@ -182,7 +181,7 @@ class GlobalSettings(TableClient):
         Arguments:
             setting: The setting to put
         """
-        return self.put_object(setting)
+        return self.put_object(setting)  # type: ignore[func-returns-value, return-value]
 
     def scan(self, scan_definition: TableScanDefinition) -> list[TableObject]:
         """

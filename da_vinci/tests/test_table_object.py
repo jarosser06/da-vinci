@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from da_vinci.core.orm.orm_exceptions import MissingTableObjectAttributeException
+from da_vinci.core.orm.orm_exceptions import MissingTableObjectAttributeError
 from da_vinci.core.orm.table_object import (
     TableObject,
     TableObjectAttribute,
@@ -363,7 +363,7 @@ class TestTableObjectBasics:
                 ),
             ]
 
-        with pytest.raises(MissingTableObjectAttributeException):
+        with pytest.raises(MissingTableObjectAttributeError):
             StrictObject(pk="pk1")
 
     def test_table_object_with_default_values(self):
@@ -1001,10 +1001,9 @@ class TestTableObjectAdvancedFeatures:
                 ),
             ]
 
-        # schema_to_str has a bug - it calls full_description() which doesn't exist
-        # Test that it raises AttributeError as expected
-        with pytest.raises(AttributeError, match="full_description"):
-            TestObject.schema_to_str(only_indexed_attributes=True)
+        # Test that schema_to_str works correctly using object_name or __name__
+        result = TestObject.schema_to_str(only_indexed_attributes=True)
+        assert "TestObject" in result  # Should contain the class name
 
     def test_attribute_lookup_prefix(self):
         """Test attribute_lookup_prefix feature."""
@@ -2101,7 +2100,7 @@ class TestTableObjectCoverageGaps:
         assert "hidden_field" not in description
 
     def test_schema_to_str_calls_full_description(self):
-        """Test schema_to_str calling non-existent full_description (lines 928-931)."""
+        """Test schema_to_str works correctly using object_name or __name__."""
 
         class TestObject(TableObject):
             table_name = "test_table"
@@ -2111,9 +2110,9 @@ class TestTableObjectCoverageGaps:
                 attribute_type=TableObjectAttributeType.STRING,
             )
 
-        # This should raise AttributeError since full_description doesn't exist
-        with pytest.raises(AttributeError):
-            TestObject.schema_to_str()
+        # Test that schema_to_str works correctly
+        result = TestObject.schema_to_str()
+        assert "TestObject" in result  # Should contain the class name
 
     def test_update_date_attributes_with_default_datetime(self):
         """Test update_date_attributes with default datetime (line 948)."""

@@ -2,14 +2,15 @@ from typing import Any
 
 from aws_cdk import aws_dynamodb as dynamodb
 from aws_cdk import aws_iam as cdk_iam
+from aws_cdk.aws_iam import IGrantable
 from aws_cdk.custom_resources import (
     AwsCustomResource,
     AwsCustomResourcePolicy,
     AwsSdkCall,
     PhysicalResourceId,
 )
-from constructs import Construct
 
+from constructs import Construct
 from da_vinci.core.orm.table_object import TableObject
 from da_vinci.core.resource_discovery import ResourceDiscovery, ResourceDiscoveryStorageSolution
 from da_vinci.core.tables.resource_registry import ResourceRegistration
@@ -28,7 +29,7 @@ class DiscoverableResourceDynamoDBItem(Construct):
         endpoint: str,
         registration_name: str,
         registration_type: str,
-    ):
+    ) -> None:
         """
         Initialize a DiscoverableResourceDynamoDBItem object
 
@@ -71,7 +72,7 @@ class DiscoverableResourceDynamoDBItem(Construct):
         )
 
     @staticmethod
-    def is_attribute_changed(attr_name: str, new_value: Any, old_item_call: AwsSdkCall) -> bool:
+    def is_attribute_changed(attr_name: str, new_value: Any, old_item_call: Any) -> bool:
         """
         Compare attribute values between old and new state
 
@@ -182,9 +183,9 @@ class DiscoverableResourceDynamoDBItem(Construct):
         )
 
         # Compare attributes and only update those that changed
-        update_expressions = []
+        update_expressions: list = []
 
-        expression_values = {}
+        expression_values: dict = {}
 
         expression_names = {}
 
@@ -270,7 +271,7 @@ class DiscoverableResourceDynamoDBLookup(Construct):
         resource_name: str,
         resource_type: str,
         table_name: str,
-    ):
+    ) -> None:
         super().__init__(scope, construct_id)
 
         self.full_table_name = resource_namer(name=table_name, scope=self)
@@ -343,7 +344,7 @@ class DiscoverableResource(Construct):
         app_name: str | None = None,
         deployment_id: str | None = None,
         resource_discovery_storage_solution: str | None = None,
-    ):
+    ) -> None:
         """
         Initialize a DiscoverableResource object to
 
@@ -503,7 +504,7 @@ class DiscoverableResource(Construct):
             # You might want to add logging here with your CDK logger
             raise RuntimeError(error_msg) from e
 
-    def grant_read(self, resource: Construct):
+    def grant_read(self, resource: IGrantable):
         """
         Grant read access to the resource
 

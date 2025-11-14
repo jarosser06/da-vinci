@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from enum import StrEnum, auto
 from typing import Any
 
-from da_vinci.core.orm.orm_exceptions import MissingTableObjectAttributeException
+from da_vinci.core.orm.orm_exceptions import MissingTableObjectAttributeError
 
 
 class TableObjectAttributeType(StrEnum):
@@ -64,7 +64,7 @@ class TableObjectAttribute:
         exclude_from_schema_description: bool | None = False,
         is_indexed: bool = True,
         optional: bool = False,
-    ):
+    ) -> None:
         """
         Object representing an attribute of a TableObject
 
@@ -133,7 +133,7 @@ class TableObjectAttribute:
         self.custom_importer = custom_importer
 
     @staticmethod
-    def composite_string_value(values: list[str]):
+    def composite_string_value(values: list[str]) -> str:
         """
         Return a full composite string value given a list of attribute values
 
@@ -346,11 +346,7 @@ class TableObjectAttribute:
             if not value:
                 return []
 
-            if self.attribute_type is TableObjectAttributeType.NUMBER_LIST:
-                label = "N"
-
-            else:
-                label = "S"
+            label = "N" if self.attribute_type is TableObjectAttributeType.NUMBER_LIST else "S"
 
             return [{label: str(val)} for val in value]
 
@@ -374,7 +370,7 @@ class TableObjectAttribute:
 
         return value
 
-    def as_dynamodb_attribute(self, value: Any) -> dict:
+    def as_dynamodb_attribute(self, value: Any) -> dict | None:
         """
         Return the attribute as a DynamoDB attribute
 
@@ -462,10 +458,7 @@ class TableObjectAttribute:
 
         # Handle other list types
         elif TableObjectAttributeType.is_list(self.attribute_type):
-            if self.attribute_type is TableObjectAttributeType.NUMBER_LIST:
-                label = "N"
-            else:
-                label = "S"
+            label = "N" if self.attribute_type is TableObjectAttributeType.NUMBER_LIST else "S"
 
             return [item[label] for item in value]
 
@@ -498,7 +491,7 @@ class TableObjectAttribute:
 
         return value
 
-    def set_attribute(self, obj: Any, value: Any):
+    def set_attribute(self, obj: Any, value: Any) -> None:
         """
         Set the attribute on an object
 
@@ -577,11 +570,11 @@ class TableObject:
     attribute_lookup_prefix: str | None = None
     attributes: list[TableObjectAttribute] = []
     description: str | None = None
-    object_name: str = None
+    object_name: str | None = None
     sort_key_attribute: TableObjectAttribute | None = None
     ttl_attribute: TableObjectAttribute | None = None
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         """
         Base class for Table objects
         """
@@ -590,10 +583,12 @@ class TableObject:
         for attr in self.all_attributes():
             self.__attr_index__[attr.name] = attr
 
-            if attr.attribute_type is TableObjectAttributeType.COMPOSITE_STRING and set(
-                kwargs.keys()
-            ).issuperset(set(attr.argument_names)):
-                composite_args = []
+            if (
+                attr.attribute_type is TableObjectAttributeType.COMPOSITE_STRING
+                and attr.argument_names
+                and set(kwargs.keys()).issuperset(set(attr.argument_names))
+            ):
+                composite_args: list = []
 
                 for arg in attr.argument_names:
                     composite_args.append(kwargs[arg])
@@ -615,7 +610,7 @@ class TableObject:
                     attr.set_attribute(self, attr.default)
 
                 else:
-                    raise MissingTableObjectAttributeException(attr.name)
+                    raise MissingTableObjectAttributeError(attr.name)
 
     @classmethod
     def define(
@@ -628,7 +623,7 @@ class TableObject:
         description: str | None = None,
         sort_key_attribute: TableObjectAttribute | None = None,
         ttl_attribute: TableObjectAttribute | None = None,
-    ) -> "TableObject":
+    ) -> type["TableObject"]:
         """
         Define a TableObject
 
@@ -644,15 +639,15 @@ class TableObject:
         """
         obj_klass = type(object_name, (cls,), {})
 
-        obj_klass.partition_key_attribute = partition_key_attribute
-        obj_klass.object_name = object_name
-        obj_klass.table_name = table_name
+        obj_klass.partition_key_attribute = partition_key_attribute  # type: ignore[attr-defined]
+        obj_klass.object_name = object_name  # type: ignore[attr-defined]
+        obj_klass.table_name = table_name  # type: ignore[attr-defined]
 
-        obj_klass.attribute_lookup_prefix = attribute_lookup_prefix
-        obj_klass.sort_key_attribute = sort_key_attribute
-        obj_klass.attributes = attributes or []
-        obj_klass.description = description
-        obj_klass.ttl_attribute = ttl_attribute
+        obj_klass.attribute_lookup_prefix = attribute_lookup_prefix  # type: ignore[attr-defined]
+        obj_klass.sort_key_attribute = sort_key_attribute  # type: ignore[attr-defined]
+        obj_klass.attributes = attributes or []  # type: ignore[attr-defined]
+        obj_klass.description = description  # type: ignore[attr-defined]
+        obj_klass.ttl_attribute = ttl_attribute  # type: ignore[attr-defined]
 
         return obj_klass
 
@@ -704,9 +699,9 @@ class TableObject:
 
         split_values = full_value.split("-")
 
-        return {arg: split_values[idx] for idx, arg in enumerate(attr.argument_names)}
+        return {arg: split_values[idx] for idx, arg in enumerate(attr.argument_names or [])}
 
-    def execute_on_update(self):
+    def execute_on_update(self) -> None:
         """
         Execute the on update function
 
@@ -714,7 +709,7 @@ class TableObject:
         """
         logging.debug("Executing default execute_on_update function ... nothing updated")
 
-    def update(self, **kwargs):
+    def update(self, **kwargs) -> list[str]:
         """
         Update the attributes of the object and provide a list of attribute names
         that were updated.
@@ -722,7 +717,7 @@ class TableObject:
         Keyword arguments:
         kwargs -- Attributes to update
         """
-        changed_attrs = []
+        changed_attrs: list[str] = []
 
         for attr in self.all_attributes():
             if attr.name in kwargs:
@@ -747,7 +742,7 @@ class TableObject:
         exclude_attribute_names -- List of attribute names to exclude from the resulting dict
         json_compatible -- Convert datetime objects to strings and sets to lists for JSON compatibility
         """
-        res = {}
+        res: dict = {}
 
         if exclude_attribute_names is None:
             exclude_attribute_names = []
@@ -769,10 +764,8 @@ class TableObject:
                 json_compatible
                 and attr.attribute_type is TableObjectAttributeType.STRING_SET
                 or attr.attribute_type is TableObjectAttributeType.NUMBER_SET
-            ):
-
-                if val is not None:
-                    val = list(val)
+            ) and val is not None:
+                val = list(val)
 
             if attr.custom_exporter:
                 val = attr.custom_exporter(val)
@@ -788,7 +781,7 @@ class TableObject:
         Returns:
             Dict
         """
-        item = {}
+        item: dict = {}
 
         for attr in self.all_attributes():
             val = getattr(self, attr.name)
@@ -828,7 +821,7 @@ class TableObject:
         return attributes
 
     @classmethod
-    def attribute_definition(cls, name: str) -> TableObjectAttribute:
+    def attribute_definition(cls, name: str) -> TableObjectAttribute | None:
         """
         Get an attribute definition by name
 
@@ -856,7 +849,7 @@ class TableObject:
         Returns:
             TableObject
         """
-        updated_item = {}
+        updated_item: dict = {}
 
         for attr in cls.all_attributes():
             if attr.dynamodb_key_name in item:
@@ -922,7 +915,7 @@ class TableObject:
             str
         """
         schema_str_list = [
-            cls.full_description(),
+            cls.schema_description(),
         ]
 
         for attr in cls.all_attributes():
@@ -933,7 +926,7 @@ class TableObject:
     @staticmethod
     def update_date_attributes(
         date_attribute_names: list[str], obj: "TableObject", to_datetime: datetime | None = None
-    ):
+    ) -> None:
         """
         Update the record_last_updated attribute on the object. Helper method that is
         commonly used to construct execute_on_update functions.

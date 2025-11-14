@@ -11,8 +11,8 @@ from da_vinci.core.orm.client import (
     TableScanDefinition,
 )
 from da_vinci.core.orm.orm_exceptions import (
-    TableScanInvalidAttributeException,
-    TableScanInvalidComparisonException,
+    TableScanInvalidAttributeError,
+    TableScanInvalidComparisonError,
 )
 from da_vinci.core.orm.table_object import (
     TableObject,
@@ -77,13 +77,13 @@ class TestTableScanDefinition:
     def test_add_filter_invalid_comparison(self):
         """Test adding a filter with invalid comparison operator."""
         scan_def = TableScanDefinition(SampleTableObject)
-        with pytest.raises(TableScanInvalidComparisonException):
+        with pytest.raises(TableScanInvalidComparisonError):
             scan_def.add("value", "invalid_comparison", "test")
 
     def test_add_filter_invalid_attribute(self):
         """Test adding a filter for non-existent attribute."""
         scan_def = TableScanDefinition(SampleTableObject)
-        with pytest.raises(TableScanInvalidAttributeException):
+        with pytest.raises(TableScanInvalidAttributeError):
             scan_def.add("nonexistent_attribute", "equal", "test")
 
     def test_dynamic_comparison_methods(self):
@@ -440,7 +440,7 @@ class TestORMClientCoverageGaps:
         # Manually inject an invalid filter to test the error path
         scan_def._attribute_filters.append(("nonexistent", "=", "value"))
 
-        with pytest.raises(TableScanInvalidAttributeException):
+        with pytest.raises(TableScanInvalidAttributeError):
             scan_def.to_expression()
 
     def test_scan_definition_contains_expression(self):

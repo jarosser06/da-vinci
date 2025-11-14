@@ -3,12 +3,11 @@
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-from da_vinci.core.orm.client import (
-    TableClient,
+from da_vinci.core.orm.client import TableClient, TableScanDefinition
+from da_vinci.core.orm.table_object import (
     TableObject,
     TableObjectAttribute,
     TableObjectAttributeType,
-    TableScanDefinition,
 )
 
 
@@ -84,7 +83,7 @@ class EventBusResponse(TableObject):
         failure_reason: str | None = None,
         failure_traceback: str | None = None,
         time_to_live: datetime | None = None,
-    ):
+    ) -> None:
         """
         Initialize an event bus response object
 
@@ -113,14 +112,14 @@ class EventBusResponse(TableObject):
 
 
 class EventBusResponsesScanDefinition(TableScanDefinition):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             table_object_class=EventBusResponse,
         )
 
 
 class EventBusResponses(TableClient):
-    def __init__(self, app_name: str | None = None, deployment_id: str | None = None):
+    def __init__(self, app_name: str | None = None, deployment_id: str | None = None) -> None:
         super().__init__(
             app_name=app_name,
             deployment_id=deployment_id,
@@ -148,7 +147,7 @@ class EventBusResponses(TableClient):
             EventBusResponse
         """
 
-        return self.get_object(
+        return self.get_object(  # type: ignore[return-value]
             partition_key_value=event_type,
             sort_key_value=response_id,
         )
@@ -172,4 +171,4 @@ class EventBusResponses(TableClient):
         Returns:
             List of EventBusResponse
         """
-        return self.full_scan(scan_definition=scan_definition)
+        return self.full_scan(scan_definition=scan_definition)  # type: ignore[return-value]

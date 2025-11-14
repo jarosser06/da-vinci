@@ -4,6 +4,7 @@ from aws_cdk import (
     DockerImage,
 )
 from aws_cdk import Stack as CDKStack
+
 from constructs import Construct
 
 
@@ -20,7 +21,7 @@ class Stack(CDKStack):
         required_stacks: list | None = None,
         requires_event_bus: bool | None = False,
         requires_exceptions_trap: bool | None = False,
-    ):
+    ) -> None:
         """
         Initialize a new Stack object
 
@@ -44,7 +45,7 @@ class Stack(CDKStack):
 
             class MyStack(Stack):
                 def __init__(self, app_name: str, architecture: str, deployment_id: str,
-                             scope: Construct, stack_name: str):
+                             scope: Construct, stack_name: str) -> None:
                     super().__init__(
                         app_name=app_name,
                         architecture=architecture,

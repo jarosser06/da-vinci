@@ -10,8 +10,9 @@ from aws_cdk import aws_lambda_event_sources as cdk_lambda_event_sources
 from aws_cdk import aws_route53 as cdk_route53
 from aws_cdk import aws_route53_targets as cdk_route53_targets
 from aws_cdk import aws_sqs as cdk_sqs
-from constructs import Construct
+from aws_cdk.aws_iam import IGrantable
 
+from constructs import Construct
 from da_vinci.core.resource_discovery import ResourceType
 from da_vinci_cdk.constructs.access_management import (
     ResourceAccessPolicy,
@@ -41,7 +42,7 @@ class AsyncService(Construct):
         resource_access_requests: list[ResourceAccessRequest] | None = None,
         timeout: Duration | None = None,
         **kwargs,
-    ):
+    ) -> None:
         """
         Creates an asynchronous service that can be invoked by publishing to the SQS queue created
 
@@ -155,7 +156,7 @@ class AsyncService(Construct):
             resource_type=ResourceType.ASYNC_SERVICE,
         )
 
-    def grant_publish(self, resource: Construct):
+    def grant_publish(self, resource: IGrantable):
         """
         Grants the given resource the ability to publish to the queue
         and invoke the Async Service.
@@ -187,7 +188,7 @@ class SimpleRESTService(Construct):
         resource_access_requests: list[ResourceAccessRequest] | None = None,
         timeout: Duration | None = None,
         **kwargs,
-    ):
+    ) -> None:
         """
         Creates a Simle REST Service that generates an endpoint using Lambda function URLs
 
@@ -295,7 +296,7 @@ class SimpleRESTService(Construct):
             resource_type=ResourceType.REST_SERVICE,
         )
 
-    def grant_invoke(self, resource: Construct):
+    def grant_invoke(self, resource: IGrantable):
         """
         Grants the given resource the ability to invoke the Simple REST Service.
 
@@ -315,7 +316,7 @@ class APIGatewayRESTService(Construct):
         subdomain_name: str | None = None,
         subdomain_certificate: cdk_certificatemanager.ICertificate | None = None,
         **api_gw_args,
-    ):
+    ) -> None:
         """
         Creates a REST Service that generates an endpoint using API Gateway
 

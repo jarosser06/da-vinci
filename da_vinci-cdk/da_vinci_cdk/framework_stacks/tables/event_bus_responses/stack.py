@@ -1,5 +1,4 @@
 from constructs import Construct
-
 from da_vinci.event_bus.tables.event_bus_responses import (
     EventBusResponse,
 )
@@ -8,7 +7,7 @@ from da_vinci_cdk.stack import Stack
 
 
 class EventBusResponsesTableStack(Stack):
-    def __init__(self, app_name: str, deployment_id: str, scope: Construct, stack_name: str):
+    def __init__(self, app_name: str, deployment_id: str, scope: Construct, stack_name: str) -> None:
 
         super().__init__(
             app_name=app_name,

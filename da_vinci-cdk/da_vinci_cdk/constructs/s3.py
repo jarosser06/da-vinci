@@ -3,8 +3,9 @@ from aws_cdk import (
 )
 from aws_cdk import aws_iam as cdk_iam
 from aws_cdk import aws_s3 as cdk_s3
-from constructs import Construct
+from aws_cdk.aws_iam import IGrantable
 
+from constructs import Construct
 from da_vinci.core.resource_discovery import ResourceType
 from da_vinci_cdk.constructs.access_management import ResourceAccessPolicy
 from da_vinci_cdk.constructs.resource_discovery import DiscoverableResource
@@ -269,7 +270,7 @@ class Bucket(Construct):
             resource_type=ResourceType.BUCKET,
         )
 
-    def grant_read_access(self, resource: Construct) -> None:
+    def grant_read_access(self, resource: IGrantable) -> None:
         """
         Grants read access to the bucket
 
@@ -280,7 +281,7 @@ class Bucket(Construct):
 
         self._discovery_resource.grant_read(resource=resource)
 
-    def grant_read_write_access(self, resource: Construct) -> None:
+    def grant_read_write_access(self, resource: IGrantable) -> None:
         """
         Grants read and write access to the bucket
 

@@ -1,8 +1,8 @@
 """Custom Exceptions for the ORM"""
 
 
-class AugmentedRetrievalInvalidQueryException(ValueError):
-    def __init__(self, query: str, details: str):
+class AugmentedRetrievalInvalidQueryError(ValueError):
+    def __init__(self, query: str, details: str) -> None:
         """
         Indicates that an invalid query was generated for an augmented retrieval
 
@@ -13,8 +13,8 @@ class AugmentedRetrievalInvalidQueryException(ValueError):
         super().__init__(f"{query} is not a valid query: {details}")
 
 
-class MissingTableObjectAttributeException(ValueError):
-    def __init__(self, attribute_name: str):
+class MissingTableObjectAttributeError(ValueError):
+    def __init__(self, attribute_name: str) -> None:
         """
         Indicates that a required attribute was not provided to a TableObject
 
@@ -24,8 +24,8 @@ class MissingTableObjectAttributeException(ValueError):
         super().__init__(f"Required argument {attribute_name}, was not provided")
 
 
-class TableScanQueryException(ValueError):
-    def __init__(self, attribute_name: str, attribute_type: str):
+class TableScanQueryError(ValueError):
+    def __init__(self, attribute_name: str, attribute_type: str) -> None:
         """
         Indicates that an invalid attribute_name was provided for a given attribute_type
 
@@ -36,8 +36,8 @@ class TableScanQueryException(ValueError):
         super().__init__(f"{attribute_name} is not a valid {attribute_type}")
 
 
-class TableScanInvalidComparisonException(TableScanQueryException):
-    def __init__(self, comparison_name: str):
+class TableScanInvalidComparisonError(TableScanQueryError):
+    def __init__(self, comparison_name: str) -> None:
         """
         Raised when an invalid comparison operator was provided
 
@@ -47,8 +47,8 @@ class TableScanInvalidComparisonException(TableScanQueryException):
         super().__init__(attribute_name=comparison_name, attribute_type="comparison operator")
 
 
-class TableScanInvalidAttributeException(TableScanQueryException):
-    def __init__(self, attribute_name: str):
+class TableScanInvalidAttributeError(TableScanQueryError):
+    def __init__(self, attribute_name: str) -> None:
         """
         Raised when attempting to scan using an invalid attribute
 
@@ -58,8 +58,8 @@ class TableScanInvalidAttributeException(TableScanQueryException):
         super().__init__(attribute_name=attribute_name, attribute_type="table object attribute")
 
 
-class TableScanMissingAttributeException(ValueError):
-    def __init__(self, attribute_name: str):
+class TableScanMissingAttributeError(ValueError):
+    def __init__(self, attribute_name: str) -> None:
         """
         Used when a attribute is missing from a table scan
 

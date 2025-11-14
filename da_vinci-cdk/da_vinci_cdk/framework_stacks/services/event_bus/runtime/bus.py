@@ -18,7 +18,7 @@ from da_vinci.event_bus.tables.event_bus_subscriptions import EventBusSubscripti
 
 
 class EventBus:
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialize the EventBus object
         """
@@ -92,6 +92,6 @@ def handler(event: dict, context: dict):
     for record in event["Records"]:
         logging.debug(f"Record recieved: {record}")
 
-        event = Event.from_lambda_event(json.loads(record["body"]))
+        bus_event = Event.from_lambda_event(json.loads(record["body"]))
 
-        bus.invoke_subscriptions(event)
+        bus.invoke_subscriptions(bus_event)
