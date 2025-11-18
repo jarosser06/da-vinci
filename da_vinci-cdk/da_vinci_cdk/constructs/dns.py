@@ -1,6 +1,6 @@
 from aws_cdk import aws_route53 as cdk_route53
-
 from constructs import Construct
+
 from da_vinci.core.resource_discovery import ResourceType
 from da_vinci_cdk.constructs.resource_discovery import (
     DiscoverableResource,

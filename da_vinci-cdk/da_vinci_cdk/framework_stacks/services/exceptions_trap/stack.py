@@ -1,8 +1,8 @@
 import os
 
 from aws_cdk import DockerImage, Duration
-
 from constructs import Construct
+
 from da_vinci.core.tables.global_settings_table import GlobalSetting as GlobalSettingTblObj
 from da_vinci.core.tables.global_settings_table import (
     GlobalSettingType,

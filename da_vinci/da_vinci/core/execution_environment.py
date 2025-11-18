@@ -2,7 +2,6 @@ import os
 
 from da_vinci.core.exceptions import MissingRequiredRuntimeVariableError
 
-
 APP_NAME_ENV_NAME = "DA_VINCI_APP_NAME"
 DEPLOYMENT_ID_ENV_NAME = "DA_VINCI_DEPLOYMENT_ID"
 SERVICE_DISC_STOR_ENV_NAME = "DA_VINCI_RESOURCE_DISCOVERY_STORAGE"

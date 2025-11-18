@@ -1,5 +1,5 @@
-from datetime import datetime, UTC as utc_tz
-from typing import Optional
+from datetime import UTC as utc_tz
+from datetime import datetime
 from uuid import uuid4
 
 from da_vinci.core.orm.client import (
@@ -74,14 +74,14 @@ class ExampleTableObject(TableObject):
 
 
 class ExampleTableClient(TableClient):
-    def __init__(self, app_name: Optional[str] = None, deployment_id: Optional[str] = None):
+    def __init__(self, app_name: str | None = None, deployment_id: str | None = None):
         super().__init__(
             app_name=app_name,
             deployment_id=deployment_id,
             default_object_class=ExampleTableObject
         )
 
-    def get(self, primary_key: str) -> Optional[ExampleTableObject]:
+    def get(self, primary_key: str) -> ExampleTableObject | None:
         """
         Get an object by primary key
         """

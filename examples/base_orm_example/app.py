@@ -1,10 +1,9 @@
-from constructs import Construct
+from table_client import ExampleTableClient
 
+from constructs import Construct
 from da_vinci_cdk.application import Application
 from da_vinci_cdk.constructs.dynamodb import DynamoDBTable
 from da_vinci_cdk.stack import Stack
-
-from table_client import ExampleTableClient
 
 
 class ExampleTableStack(Stack):

@@ -9,8 +9,8 @@ from aws_cdk.custom_resources import (
     AwsSdkCall,
     PhysicalResourceId,
 )
-
 from constructs import Construct
+
 from da_vinci.core.orm.table_object import TableObject
 from da_vinci.core.resource_discovery import ResourceDiscovery, ResourceDiscoveryStorageSolution
 from da_vinci.core.tables.resource_registry import ResourceRegistration

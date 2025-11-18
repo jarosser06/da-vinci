@@ -1,4 +1,5 @@
 from constructs import Construct
+
 from da_vinci.event_bus.tables.event_bus_subscriptions import (
     EventBusSubscription,
 )
@@ -7,7 +8,9 @@ from da_vinci_cdk.stack import Stack
 
 
 class EventBusSubscriptionsTableStack(Stack):
-    def __init__(self, app_name: str, deployment_id: str, scope: Construct, stack_name: str) -> None:
+    def __init__(
+        self, app_name: str, deployment_id: str, scope: Construct, stack_name: str
+    ) -> None:
 
         super().__init__(
             app_name=app_name,

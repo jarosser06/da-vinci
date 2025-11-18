@@ -54,12 +54,69 @@ case $TARGET in
         echo "Running tests for da_vinci-cdk..."
         ;;
     all)
-        TEST_PATHS="da_vinci/tests da_vinci-cdk/tests"
+        # Run each package separately to avoid conftest conflicts
         echo "Running tests for all packages..."
+        echo ""
+
+        # Run core tests
+        echo "→ Running da_vinci core tests..."
+        PYTEST_CMD="uv run pytest da_vinci/tests"
+        if [ $COVERAGE -eq 1 ]; then
+            PYTEST_CMD="$PYTEST_CMD --cov=da_vinci --cov-append --cov-report="
+        fi
+        if [ $EMBEDDED -eq 1 ]; then
+            PYTEST_CMD="$PYTEST_CMD -q"
+        else
+            PYTEST_CMD="$PYTEST_CMD -v"
+        fi
+        echo "Command: $PYTEST_CMD"
+        $PYTEST_CMD
+        CORE_EXIT=$?
+
+        echo ""
+        echo "→ Running da_vinci-cdk tests..."
+        PYTEST_CMD="uv run pytest da_vinci-cdk/tests"
+        if [ $COVERAGE -eq 1 ]; then
+            PYTEST_CMD="$PYTEST_CMD --cov=da_vinci_cdk --cov-append --cov-report=term-missing --cov-report=html"
+        fi
+        if [ $EMBEDDED -eq 1 ]; then
+            PYTEST_CMD="$PYTEST_CMD -q"
+        else
+            PYTEST_CMD="$PYTEST_CMD -v"
+        fi
+        echo "Command: $PYTEST_CMD"
+        $PYTEST_CMD
+        CDK_EXIT=$?
+
+        # Set exit code based on both test runs
+        if [ $CORE_EXIT -eq 0 ] && [ $CDK_EXIT -eq 0 ]; then
+            EXIT_CODE=0
+        else
+            EXIT_CODE=1
+        fi
+
+        # Skip the normal test run below
+        if [ $EXIT_CODE -eq 0 ]; then
+            echo ""
+            echo "✓ All tests passed!"
+            if [ $COVERAGE -eq 1 ]; then
+                echo "  Coverage report generated in htmlcov/index.html"
+            fi
+        else
+            echo ""
+            echo "✗ Tests failed!"
+        fi
+
+        # In embedded mode, always exit 0 so hooks don't block
+        if [ $EMBEDDED -eq 1 ]; then
+            exit 0
+        fi
+
+        exit $EXIT_CODE
         ;;
 esac
 
-# Build pytest command
+# Build pytest command (for core or cdk only)
 PYTEST_CMD="uv run pytest"
 
 # Add test paths
@@ -67,7 +124,11 @@ PYTEST_CMD="$PYTEST_CMD $TEST_PATHS"
 
 # Add coverage if requested
 if [ $COVERAGE -eq 1 ]; then
-    PYTEST_CMD="$PYTEST_CMD --cov=da_vinci --cov=da_vinci_cdk --cov-report=term-missing --cov-report=html"
+    if [ $TARGET = "core" ]; then
+        PYTEST_CMD="$PYTEST_CMD --cov=da_vinci --cov-report=term-missing --cov-report=html"
+    else
+        PYTEST_CMD="$PYTEST_CMD --cov=da_vinci_cdk --cov-report=term-missing --cov-report=html"
+    fi
 fi
 
 # Adjust verbosity for embedded mode

@@ -2,7 +2,6 @@
 Exception Trap Service module
 """
 
-from typing import Any
 from datetime import UTC, datetime, timedelta
 
 from da_vinci.core.global_settings import setting_value
@@ -12,7 +11,6 @@ from da_vinci.exception_trap.tables.trapped_exceptions import (
     TrappedException,
     TrappedExceptions,
 )
-
 
 logging = Logger("da_vinci_framework::exception_trap")
 

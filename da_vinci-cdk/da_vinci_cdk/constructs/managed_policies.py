@@ -1,7 +1,6 @@
 import logging
 
 from aws_cdk import aws_iam as cdk_iam
-
 from constructs import Construct
 
 

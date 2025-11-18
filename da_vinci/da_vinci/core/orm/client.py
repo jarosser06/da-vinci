@@ -51,7 +51,9 @@ class TableScanDefinition:
         "not_equal": "!=",
     }
 
-    def __init__(self, table_object_class: type[TableObject], attribute_prefix: str | None = None) -> None:
+    def __init__(
+        self, table_object_class: type[TableObject], attribute_prefix: str | None = None
+    ) -> None:
         """
         Create a new scan definition for a DynamoDB table
 
@@ -211,7 +213,9 @@ class TableClient:
 
             storage_solution = None
             if resource_discovery_storage_solution:
-                storage_solution = ResourceDiscoveryStorageSolution(resource_discovery_storage_solution)
+                storage_solution = ResourceDiscoveryStorageSolution(
+                    resource_discovery_storage_solution
+                )
 
             resource_discovery = ResourceDiscovery(
                 resource_name=self.table_name,
@@ -491,7 +495,9 @@ class TableClient:
             Key=table_object.gen_dynamodb_key(**key_args),
         )
 
-    def scanner(self, scan_definition: TableScanDefinition) -> Generator[PaginatedResults, None, None]:
+    def scanner(
+        self, scan_definition: TableScanDefinition
+    ) -> Generator[PaginatedResults, None, None]:
         """
         Perform a scan on the table, works similar to the paginator.
 
@@ -617,7 +623,9 @@ class TableClient:
 
                     attr_definition = self.default_object_class.attribute_definition(attribute_name)
                     if attr_definition is None:
-                        raise ValueError(f"Attribute {attribute_name} not found in table definition")
+                        raise ValueError(
+                            f"Attribute {attribute_name} not found in table definition"
+                        )
 
                     update_instructions.append(f"{dynamo_key} = {dynamo_value}")
 

@@ -10,7 +10,7 @@ dev-dependencies = [
     "pytest-mock>=3.12.0",
     "moto[dynamodb,ssm,sqs,logs]>=5.0.0",
     # Linting and formatting
-    "ruff>=0.3.0",
+    "flake8>=7.0.0",
     "black>=24.0.0",
     "isort>=5.13.0",
     "mypy>=1.8.0",
@@ -39,37 +39,7 @@ markers = [
     "slow: Slow running tests",
 ]
 
-# Ruff configuration
-[tool.ruff]
-line-length = 100
-target-version = "py312"
-src = ["da_vinci/da_vinci", "da_vinci-cdk/da_vinci_cdk"]
-
-[tool.ruff.lint]
-select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "I",   # isort
-    "N",   # pep8-naming
-    "UP",  # pyupgrade
-    "B",   # flake8-bugbear
-    "C4",  # flake8-comprehensions
-    "SIM", # flake8-simplify
-    "TCH", # flake8-type-checking
-]
-ignore = [
-    "E501",  # Line too long (handled by black)
-]
-
-[tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401"]  # Unused imports in __init__.py
-"tests/**/*.py" = ["S101"]  # Allow assert in tests
-
-[tool.ruff.lint.isort]
-known-first-party = ["da_vinci", "da_vinci_cdk"]
-force-single-line = false
-lines-after-imports = 2
+# Flake8 configuration (in .flake8 file)
 
 # Black configuration
 [tool.black]

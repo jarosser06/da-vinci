@@ -62,14 +62,10 @@ esac
 # Track overall exit code
 OVERALL_EXIT_CODE=0
 
-# Run ruff
+# Run flake8
 echo ""
-echo "→ Running ruff..."
-if [ $FIX -eq 1 ]; then
-    uv run ruff check $PATHS --fix || OVERALL_EXIT_CODE=$?
-else
-    uv run ruff check $PATHS || OVERALL_EXIT_CODE=$?
-fi
+echo "→ Running flake8..."
+uv run flake8 $PATHS || OVERALL_EXIT_CODE=$?
 
 # Run black
 echo ""

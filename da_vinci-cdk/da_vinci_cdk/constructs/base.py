@@ -8,8 +8,8 @@ from aws_cdk import (
 from aws_cdk import aws_iam as cdk_iam
 from aws_cdk import aws_ssm as cdk_ssm
 from aws_cdk.aws_iam import IGrantable
-
 from constructs import Construct
+
 from da_vinci.core.base import standard_aws_resource_name
 
 
@@ -27,7 +27,10 @@ def custom_type_name(name: str, prefix: str | None = "DaVinci", separator: str |
 
 
 def resource_namer(
-    name: str, scope: Construct | None = None, app_name: str | None = None, deployment_id: str | None = None
+    name: str,
+    scope: Construct | None = None,
+    app_name: str | None = None,
+    deployment_id: str | None = None,
 ) -> str:
     """
     Generate a name for a resource by adding a prefix of app_name-deployment_id

@@ -12,8 +12,8 @@ from aws_cdk.custom_resources import (
     AwsSdkCall,
     PhysicalResourceId,
 )
-
 from constructs import Construct
+
 from da_vinci.core.orm.table_object import TableObject, TableObjectAttributeType
 from da_vinci.core.resource_discovery import ResourceType
 from da_vinci_cdk.constructs.access_management import ResourceAccessPolicy
