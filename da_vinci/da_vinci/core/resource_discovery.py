@@ -16,7 +16,6 @@ from da_vinci.core.execution_environment import (
 )
 from da_vinci.core.tables.resource_registry import ResourceRegistration
 
-
 SSM_SERVICE_DISCOVERY_PREFIX = "/da_vinci_framework/service_discovery"
 
 # Cache setup

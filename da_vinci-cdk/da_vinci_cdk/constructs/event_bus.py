@@ -7,8 +7,8 @@ from aws_cdk.custom_resources import (
     AwsSdkCall,
     PhysicalResourceId,
 )
-
 from constructs import Construct
+
 from da_vinci.core.resource_discovery import ResourceType
 from da_vinci.event_bus.tables.event_bus_subscriptions import (
     EventBusSubscription as EventBusSubscriptionTblObj,

@@ -921,7 +921,7 @@ class TestORMClientCoverageGaps:
 
     def test_update_object_remove_keys_only_nested(self, table_client):
         """Test update_object with nested remove_keys using mocking (lines 619-629)."""
-        from unittest.mock import MagicMock, call
+        from unittest.mock import MagicMock
 
         # Mock the client to avoid actual DynamoDB calls
         mock_client = MagicMock()

@@ -1,7 +1,7 @@
 """Shared pytest fixtures for da_vinci tests."""
 
 import os
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock
 
 import boto3
@@ -162,7 +162,7 @@ def mock_logger():
 
 
 @pytest.fixture(scope="function")
-def sample_table_items() -> list[Dict[str, Any]]:
+def sample_table_items() -> list[dict[str, Any]]:
     """Sample items for testing table operations."""
     return [
         {"pk": "item-1", "sk": "metadata", "value": "test-value-1", "count": 10},

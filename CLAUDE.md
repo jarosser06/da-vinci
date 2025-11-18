@@ -63,7 +63,7 @@ Da Vinci is a framework for rapidly developing Python-based AWS Cloud Native app
 ### Dependencies
 - Core: Python ≥3.11, boto3, requests
 - CDK: Python ≥3.12, aws-cdk-lib, constructs, da-vinci (workspace)
-- Dev: pytest, ruff, black, isort, mypy, boto3-stubs
+- Dev: pytest, flake8, black, isort, mypy, boto3-stubs
 
 ## Testing & Quality
 
@@ -74,7 +74,7 @@ Da Vinci is a framework for rapidly developing Python-based AWS Cloud Native app
 
 ### Linting
 - Line length: 100 characters
-- Tools: ruff, black, isort, mypy
+- Tools: flake8, black, isort, mypy
 - Zero lint errors required for PR
 
 ### Test Commands

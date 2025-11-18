@@ -7,12 +7,10 @@ from da_vinci.core.immutable_object import (
     MissingAttributeError,
     ObjectBody,
     ObjectBodySchema,
-    ObjectBodyValidationResults,
     RequiredCondition,
     RequiredConditionGroup,
     SchemaAttribute,
     SchemaAttributeType,
-    SchemaDeclarationError,
 )
 from da_vinci.core.orm.table_object import TableObjectAttributeType
 

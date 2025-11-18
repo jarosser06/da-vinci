@@ -5,7 +5,6 @@ from da_vinci.core.exceptions import GlobalSettingNotFoundError, GlobalSettingsN
 from da_vinci.core.orm.client import TableClient
 from da_vinci.core.tables.global_settings_table import GlobalSetting, GlobalSettings
 
-
 SETTINGS_ENABLED_VAR_NAME = "DaVinciFramework_GlobalSettingsEnabled"
 
 

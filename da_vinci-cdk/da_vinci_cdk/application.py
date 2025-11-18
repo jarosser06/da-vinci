@@ -2,20 +2,20 @@
 Application class and Core Stack for DaVinci CDK
 """
 
-from typing import Any
 from os import getenv
 from os.path import join as path_join
 from os.path import (
     realpath,
 )
+from typing import Any
 
 from aws_cdk import App as CDKApp
 from aws_cdk import (
     DockerImage,
 )
 from aws_cdk import aws_lambda as cdk_lambda
-
 from constructs import Construct
+
 from da_vinci.core.global_settings import GlobalSetting as GlobalSettingTblObj
 from da_vinci.core.global_settings import GlobalSettings
 from da_vinci.core.resource_discovery import ResourceDiscoveryStorageSolution
@@ -33,7 +33,6 @@ from da_vinci_cdk.framework_stacks.tables.resource_registry.stack import (
     ResourceRegistrationTableStack,
 )
 from da_vinci_cdk.stack import Stack
-
 
 DA_VINCI_DISABLE_DOCKER_CACHE = getenv("DA_VINCI_DISABLE_DOCKER_CACHE", False)
 
@@ -293,7 +292,7 @@ class Application:
 
                 postfix = s3_logging_bucket_name_postfix or ""
 
-            s3_logging_bucket_name = f"{prefix}{app_name}-{deployment_id}{postfix}"
+                s3_logging_bucket_name = f"{prefix}{app_name}-{deployment_id}{postfix}"
 
         else:
             s3_logging_bucket_name = None

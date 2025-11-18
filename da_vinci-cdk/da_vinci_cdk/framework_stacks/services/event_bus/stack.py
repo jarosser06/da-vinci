@@ -3,8 +3,8 @@ import os
 from aws_cdk import DockerImage, Duration
 from aws_cdk import aws_iam as cdk_iam
 from aws_cdk.aws_lambda import RecursiveLoop
-
 from constructs import Construct
+
 from da_vinci_cdk.constructs.access_management import (
     ResourceAccessRequest,
 )

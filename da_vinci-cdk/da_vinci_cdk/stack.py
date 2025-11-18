@@ -4,7 +4,6 @@ from aws_cdk import (
     DockerImage,
 )
 from aws_cdk import Stack as CDKStack
-
 from constructs import Construct
 
 

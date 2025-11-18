@@ -11,8 +11,8 @@ from aws_cdk import aws_route53 as cdk_route53
 from aws_cdk import aws_route53_targets as cdk_route53_targets
 from aws_cdk import aws_sqs as cdk_sqs
 from aws_cdk.aws_iam import IGrantable
-
 from constructs import Construct
+
 from da_vinci.core.resource_discovery import ResourceType
 from da_vinci_cdk.constructs.access_management import (
     ResourceAccessPolicy,

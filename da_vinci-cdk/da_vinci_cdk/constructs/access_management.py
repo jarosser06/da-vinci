@@ -1,10 +1,9 @@
 from dataclasses import dataclass
 
 from aws_cdk import aws_iam as cdk_iam
-
 from constructs import Construct
-from da_vinci_cdk.constructs.base import GlobalVariable
 
+from da_vinci_cdk.constructs.base import GlobalVariable
 
 _ACCESS_MANAGEMENT_PREFIX = "/da_vinci_framework/access_management"
 _DEFAULT_POLICY_NAME = "default"

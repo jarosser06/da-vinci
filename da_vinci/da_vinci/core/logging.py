@@ -7,7 +7,6 @@ from uuid import uuid4
 
 import boto3
 
-
 DEFAULT_LOG_LEVEL_NAME = "INFO"
 
 S3_BUCKET_ENV_VAR = "DA_VINCI_S3_LOGGING_BUCKET"
@@ -16,7 +15,9 @@ S3_BUCKET_ENV_VAR = "DA_VINCI_S3_LOGGING_BUCKET"
 class S3LogHandler(logging.Handler):
     """Custom log handler to store logs in memory and offload them to S3."""
 
-    def __init__(self, execution_id: str, namespace: str, metadata: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self, execution_id: str, namespace: str, metadata: dict[str, Any] | None = None
+    ) -> None:
         """
         Set up the S3 log handler with the execution ID and namespace.
 
