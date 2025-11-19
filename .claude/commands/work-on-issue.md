@@ -11,8 +11,10 @@ Work on a GitHub issue with flexible TDD workflow.
 Arguments:
 - Issue number (required)
 
+**IMPORTANT**: ALWAYS invoke the github-operations skill FIRST to fetch issue details.
+
 Workflow:
-1. Use github-operations skill to fetch issue details via mcp__github
+1. **REQUIRED**: Invoke github-operations skill to fetch issue details from GitHub
 2. Create branch: `issue/{number}-{brief-description}`
 3. Ask user if they want tests written first (optional TDD)
 4. If yes, use qa agent to create tests
