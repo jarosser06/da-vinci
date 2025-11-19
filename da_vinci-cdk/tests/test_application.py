@@ -481,6 +481,223 @@ class TestApplication:
         assert app.lib_container_entry is not None
         assert isinstance(app.lib_container_entry, str)
 
+    @patch("da_vinci_cdk.application.DockerImage")
+    def test_application_required_stacks_basic_dependency(self, mock_docker):
+        """Test that required_stacks creates proper CloudFormation dependencies."""
+        from da_vinci_cdk.stack import Stack
+        mock_docker.from_build.return_value = MagicMock(image="test-image")
+
+        app = Application(
+            app_name="test-app",
+            deployment_id="test-deployment",
+        )
+
+        # Create two simple stacks with dependency relationship
+        class StackB(Stack):
+            def __init__(self, app_name, deployment_id, scope, stack_name, **kwargs):
+                super().__init__(app_name=app_name, deployment_id=deployment_id, scope=scope, stack_name=stack_name)
+
+        class StackA(Stack):
+            def __init__(self, app_name, deployment_id, scope, stack_name, **kwargs):
+                super().__init__(
+                    app_name=app_name,
+                    deployment_id=deployment_id,
+                    scope=scope,
+                    stack_name=stack_name,
+                    required_stacks=[StackB],
+                )
+
+        # Add StackA which should automatically add StackB as dependency
+        stack_a = app.add_uninitialized_stack(StackA)
+
+        # Verify both stacks exist
+        assert stack_a is not None
+        assert "stackb" in app._stacks
+
+        # Verify dependency relationship
+        stack_b = app._stacks["stackb"]
+        assert stack_b in stack_a.dependencies
+
+    @patch("da_vinci_cdk.application.DockerImage")
+    def test_application_required_stacks_transitive_dependencies(self, mock_docker):
+        """Test that transitive dependencies through required_stacks work correctly."""
+        from da_vinci_cdk.stack import Stack
+        mock_docker.from_build.return_value = MagicMock(image="test-image")
+
+        app = Application(
+            app_name="test-app",
+            deployment_id="test-deployment",
+        )
+
+        # Create three stacks with transitive dependency: A -> B -> C
+        class StackC(Stack):
+            def __init__(self, app_name, deployment_id, scope, stack_name, **kwargs):
+                super().__init__(app_name=app_name, deployment_id=deployment_id, scope=scope, stack_name=stack_name)
+
+        class StackB(Stack):
+            def __init__(self, app_name, deployment_id, scope, stack_name, **kwargs):
+                super().__init__(
+                    app_name=app_name,
+                    deployment_id=deployment_id,
+                    scope=scope,
+                    stack_name=stack_name,
+                    required_stacks=[StackC],
+                )
+
+        class StackA(Stack):
+            def __init__(self, app_name, deployment_id, scope, stack_name, **kwargs):
+                super().__init__(
+                    app_name=app_name,
+                    deployment_id=deployment_id,
+                    scope=scope,
+                    stack_name=stack_name,
+                    required_stacks=[StackB],
+                )
+
+        # Add StackA which should recursively add StackB and StackC
+        stack_a = app.add_uninitialized_stack(StackA)
+
+        # Verify all stacks exist
+        assert stack_a is not None
+        assert "stackb" in app._stacks
+        assert "stackc" in app._stacks
+
+        # Verify dependency relationships
+        stack_b = app._stacks["stackb"]
+        stack_c = app._stacks["stackc"]
+
+        assert stack_b in stack_a.dependencies
+        assert stack_c in stack_b.dependencies
+
+    @patch("da_vinci_cdk.application.DockerImage")
+    def test_application_required_stacks_with_event_bus(self, mock_docker):
+        """Test that required_stacks works alongside event bus dependency."""
+        from da_vinci_cdk.stack import Stack
+        mock_docker.from_build.return_value = MagicMock(image="test-image")
+
+        app = Application(
+            app_name="test-app",
+            deployment_id="test-deployment",
+            enable_event_bus=True,
+        )
+
+        # Create stacks with both required_stacks and requires_event_bus
+        class StackB(Stack):
+            def __init__(self, app_name, deployment_id, scope, stack_name, **kwargs):
+                super().__init__(app_name=app_name, deployment_id=deployment_id, scope=scope, stack_name=stack_name)
+
+        class StackA(Stack):
+            def __init__(self, app_name, deployment_id, scope, stack_name, **kwargs):
+                super().__init__(
+                    app_name=app_name,
+                    deployment_id=deployment_id,
+                    scope=scope,
+                    stack_name=stack_name,
+                    required_stacks=[StackB],
+                    requires_event_bus=True,
+                )
+
+        # Add StackA
+        stack_a = app.add_uninitialized_stack(StackA)
+
+        # Verify both stacks exist
+        assert stack_a is not None
+        assert "stackb" in app._stacks
+
+        # Verify both dependencies are present
+        stack_b = app._stacks["stackb"]
+        event_bus_stack = app._event_bus_stack
+
+        assert stack_b in stack_a.dependencies
+        assert event_bus_stack in stack_a.dependencies
+
+    @patch("da_vinci_cdk.application.DockerImage")
+    def test_application_required_stacks_with_exception_trap(self, mock_docker):
+        """Test that required_stacks works alongside exception trap dependency."""
+        from da_vinci_cdk.stack import Stack
+        mock_docker.from_build.return_value = MagicMock(image="test-image")
+
+        app = Application(
+            app_name="test-app",
+            deployment_id="test-deployment",
+            enable_exception_trap=True,
+        )
+
+        # Create stacks with both required_stacks and requires_exceptions_trap
+        class StackB(Stack):
+            def __init__(self, app_name, deployment_id, scope, stack_name, **kwargs):
+                super().__init__(app_name=app_name, deployment_id=deployment_id, scope=scope, stack_name=stack_name)
+
+        class StackA(Stack):
+            def __init__(self, app_name, deployment_id, scope, stack_name, **kwargs):
+                super().__init__(
+                    app_name=app_name,
+                    deployment_id=deployment_id,
+                    scope=scope,
+                    stack_name=stack_name,
+                    required_stacks=[StackB],
+                    requires_exceptions_trap=True,
+                )
+
+        # Add StackA
+        stack_a = app.add_uninitialized_stack(StackA)
+
+        # Verify both stacks exist
+        assert stack_a is not None
+        assert "stackb" in app._stacks
+
+        # Verify both dependencies are present
+        stack_b = app._stacks["stackb"]
+        exceptions_trap_stack = app._exceptions_trap_stack
+
+        assert stack_b in stack_a.dependencies
+        assert exceptions_trap_stack in stack_a.dependencies
+
+    @patch("da_vinci_cdk.application.DockerImage")
+    def test_application_required_stacks_multiple_dependencies(self, mock_docker):
+        """Test that a stack can have multiple required_stacks."""
+        from da_vinci_cdk.stack import Stack
+        mock_docker.from_build.return_value = MagicMock(image="test-image")
+
+        app = Application(
+            app_name="test-app",
+            deployment_id="test-deployment",
+        )
+
+        # Create multiple dependency stacks
+        class StackB(Stack):
+            def __init__(self, app_name, deployment_id, scope, stack_name, **kwargs):
+                super().__init__(app_name=app_name, deployment_id=deployment_id, scope=scope, stack_name=stack_name)
+
+        class StackC(Stack):
+            def __init__(self, app_name, deployment_id, scope, stack_name, **kwargs):
+                super().__init__(app_name=app_name, deployment_id=deployment_id, scope=scope, stack_name=stack_name)
+
+        class StackA(Stack):
+            def __init__(self, app_name, deployment_id, scope, stack_name, **kwargs):
+                super().__init__(
+                    app_name=app_name,
+                    deployment_id=deployment_id,
+                    scope=scope,
+                    stack_name=stack_name,
+                    required_stacks=[StackB, StackC],
+                )
+
+        # Add StackA
+        stack_a = app.add_uninitialized_stack(StackA)
+
+        # Verify all stacks exist
+        assert stack_a is not None
+        assert "stackb" in app._stacks
+        assert "stackc" in app._stacks
+
+        # Verify both dependencies are present
+        stack_b = app._stacks["stackb"]
+        stack_c = app._stacks["stackc"]
+
+        assert stack_b in stack_a.dependencies
+        assert stack_c in stack_a.dependencies
+
 
 class TestSideCarApplication:
     """Tests for SideCarApplication class."""
