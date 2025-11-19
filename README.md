@@ -10,6 +10,9 @@ For the application deployment and infrastructure management, Da Vinci is purely
 CDK under the hood. It utilitzes a few techniques to manage stacks under a single
 umbrella without some of the typical pitfalls that come with CloudFormation dependencies.
 
+**STABILITY NOTE**: This framework is in the process of being stabilized and will be available as a proper
+Python package with docs.
+
 The best place to start is reviewing the existing framework stacks located in the CDK library or the 
 [example applications](#example-applications) section below.
 
