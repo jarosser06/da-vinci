@@ -1,4 +1,9 @@
 Changelog
+
+## [3.0.1] - 2025-11-20
+
+Fixed to include the Dockerfile in the package distribution
+
 =========
 
 ## [3.0.0] - 2025-01-19
