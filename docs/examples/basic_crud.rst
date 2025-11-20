@@ -178,21 +178,54 @@ Create ``task_service.py``:
 Step 3: Deploy Infrastructure
 ------------------------------
 
+Create ``table_stack.py``:
+
+.. code-block:: python
+
+   from constructs import Construct
+   from da_vinci_cdk.stack import Stack
+   from da_vinci_cdk.constructs.dynamodb import DynamoDBTable
+   from tables import TaskTable
+
+   class TaskTableStack(Stack):
+       """Stack that provisions the Task DynamoDB Table"""
+
+       def __init__(
+           self,
+           app_name: str,
+           deployment_id: str,
+           scope: Construct,
+           stack_name: str
+       ) -> None:
+           super().__init__(
+               app_name=app_name,
+               deployment_id=deployment_id,
+               scope=scope,
+               stack_name=stack_name,
+           )
+
+           self.table = DynamoDBTable.from_orm_table_object(
+               table_object=TaskTable,
+               scope=self,
+           )
+
 Create ``app.py``:
 
 .. code-block:: python
 
+   from os.path import dirname, abspath
    from da_vinci_cdk.application import Application
-   from tables import TaskTable
+   from table_stack import TaskTableStack
 
    # Create application
    app = Application(
-       app_name="task_manager",
+       app_name="task-manager",
        deployment_id="dev",
+       app_entry=abspath(dirname(__file__)),
    )
 
-   # Add task table
-   app.add_table(TaskTable)
+   # Add table stack
+   app.add_uninitialized_stack(TaskTableStack)
 
    # Synthesize CDK
    app.synth()

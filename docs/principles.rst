@@ -54,8 +54,18 @@ Da Vinci centralizes configuration and definitions to avoid duplication and ensu
    # Use in application code
    client = TableClient(UserTable)
 
-   # Use in infrastructure
-   app.add_table(UserTable)
+   # Use in infrastructure - create a stack
+   from da_vinci_cdk.stack import Stack
+   from da_vinci_cdk.constructs.dynamodb import DynamoDBTable
+
+   class UserTableStack(Stack):
+       def __init__(self, app_name, deployment_id, scope, stack_name):
+           super().__init__(app_name, deployment_id, scope, stack_name)
+           self.table = DynamoDBTable.from_orm_table_object(
+               table_object=UserTable, scope=self
+           )
+
+   app.add_uninitialized_stack(UserTableStack)
 
 **Configuration Management**
    Centralized configuration accessible across your application.

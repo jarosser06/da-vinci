@@ -3,10 +3,7 @@ Application class and Core Stack for DaVinci CDK
 """
 
 from os import getenv
-from os.path import join as path_join
-from os.path import (
-    realpath,
-)
+from os.path import realpath
 from typing import Any
 
 from aws_cdk import App as CDKApp
@@ -386,14 +383,14 @@ class Application:
 
         # DaVinci library should be installed by poetry as a dev dependency
         # this allows for the ability to build the container image located
-        # in the library's root directory
+        # in the library's package directory
         import da_vinci
 
         da_vinci_spec = da_vinci.__spec__
 
         da_vinci_lib_path = da_vinci_spec.submodule_search_locations[0]
 
-        return realpath(path_join(da_vinci_lib_path, "../"))
+        return realpath(da_vinci_lib_path)
 
     def add_uninitialized_stack(
         self, stack: Stack, include_core_dependencies: bool | None = True
@@ -643,14 +640,14 @@ class SideCarApplication:
 
         # DaVinci library should be installed by poetry as a dev dependency
         # this allows for the ability to build the container image located
-        # in the library's root directory
+        # in the library's package directory
         import da_vinci
 
         da_vinci_spec = da_vinci.__spec__
 
         da_vinci_lib_path = da_vinci_spec.submodule_search_locations[0]
 
-        return realpath(path_join(da_vinci_lib_path, "../"))
+        return realpath(da_vinci_lib_path)
 
     def add_uninitialized_stack(self, stack: Stack) -> Stack:
         """

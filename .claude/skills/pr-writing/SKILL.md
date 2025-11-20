@@ -1,31 +1,28 @@
 # PR Writing
 
-**Description**: Create well-structured pull request descriptions. Use when creating PRs.
+**Description**: Create concise, objective pull request descriptions. Use when creating PRs.
 
-## When to Use This Skill
+## PR Format
 
-- Creating new pull requests
-- Writing PR descriptions
-- Documenting changes for review
+```markdown
+## Summary
+[1-2 sentences: what changed]
 
-## PR Structure
+Closes #{issue_number}
 
-### Summary
-- Brief overview of changes (1-3 sentences)
-- Why the changes were made
-- Impact of the changes
+## Changes
+- [Specific change 1]
+- [Specific change 2]
 
-### Changes
-- Bullet list of specific changes
-- Group related changes together
-- Be concise but complete
-
-### Tests Added
-- List new tests added
-- What the tests cover
+## Tests Added
+- [Specific test 1]
+- [Specific test 2]
+```
 
 ## Key Principles
 
-1. **Clear Summary**: Explain why, not just what
-2. **Complete Changes List**: Reviewers shouldn't be surprised
-3. **Document New Tests**: Show what test coverage was added
+1. **Keep it short**: 1-2 sentence summary
+2. **Objective language**: No "improved", "enhanced", "powerful", "elegant"
+3. **List what changed**: Specific changes only
+4. **List new tests**: What tests were added, not coverage metrics
+5. **Link issue**: Always include "Closes #N" or "Fixes #N"

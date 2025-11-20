@@ -242,23 +242,46 @@ Create ``event_handlers.py``:
 Step 4: Deploy with Event Bus
 ------------------------------
 
+Create ``table_stacks.py``:
+
+.. code-block:: python
+
+   from constructs import Construct
+   from da_vinci_cdk.stack import Stack
+   from da_vinci_cdk.constructs.dynamodb import DynamoDBTable
+   from tables import UserTable, UserStatsTable
+
+   class UserTableStack(Stack):
+       """Stack for User table"""
+       def __init__(self, app_name: str, deployment_id: str, scope: Construct, stack_name: str):
+           super().__init__(app_name, deployment_id, scope, stack_name)
+           self.table = DynamoDBTable.from_orm_table_object(table_object=UserTable, scope=self)
+
+   class UserStatsTableStack(Stack):
+       """Stack for UserStats table"""
+       def __init__(self, app_name: str, deployment_id: str, scope: Construct, stack_name: str):
+           super().__init__(app_name, deployment_id, scope, stack_name)
+           self.table = DynamoDBTable.from_orm_table_object(table_object=UserStatsTable, scope=self)
+
 Create ``app.py``:
 
 .. code-block:: python
 
+   from os.path import dirname, abspath
    from da_vinci_cdk.application import Application
-   from tables import UserTable, UserStatsTable
+   from table_stacks import UserTableStack, UserStatsTableStack
 
    # Create application with event bus enabled
    app = Application(
-       app_name="user_system",
+       app_name="user-system",
        deployment_id="dev",
+       app_entry=abspath(dirname(__file__)),
        enable_event_bus=True,  # Enable event bus
    )
 
-   # Add tables
-   app.add_table(UserTable)
-   app.add_table(UserStatsTable)
+   # Add table stacks
+   app.add_uninitialized_stack(UserTableStack)
+   app.add_uninitialized_stack(UserStatsTableStack)
 
    # Note: Event handlers are Lambda functions that are triggered by
    # SQS queues. You would create Lambda functions for your handlers
@@ -328,6 +351,9 @@ Key Concepts
 
 Benefits
 --------
+
+**Complete Event Traceability**
+   All events and processing results are stored in DynamoDB. Query event history, track which subscribers processed which events, identify failures, and build audit reports programmatically.
 
 **Extensibility**
    Add new handlers without modifying existing code.

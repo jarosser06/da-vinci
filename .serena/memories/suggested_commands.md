@@ -44,7 +44,7 @@ git checkout -b feature/description
 git checkout -b fix/description
 
 # Create issue branch
-git checkout -b issue/{number}-description
+git checkout -b issue/<#>
 ```
 
 ## System Commands (macOS/Darwin)

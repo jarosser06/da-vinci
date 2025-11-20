@@ -97,12 +97,22 @@ Here's how data flows through a typical Da Vinci application:
 
 2. **Deployment Time**
 
-   CDK generates infrastructure from definitions:
+   CDK generates infrastructure from definitions. Create a stack for your table:
 
    .. code-block:: python
 
-      app = Application(app_name="my_app", deployment_id="dev")
-      app.add_table(UserTable)
+      from da_vinci_cdk.stack import Stack
+      from da_vinci_cdk.constructs.dynamodb import DynamoDBTable
+
+      class UserTableStack(Stack):
+          def __init__(self, app_name, deployment_id, scope, stack_name):
+              super().__init__(app_name, deployment_id, scope, stack_name)
+              self.table = DynamoDBTable.from_orm_table_object(
+                  table_object=UserTable, scope=self
+              )
+
+      app = Application(app_name="my-app", deployment_id="dev")
+      app.add_uninitialized_stack(UserTableStack)
       app.synth()  # Generates CloudFormation
 
 3. **Runtime**
