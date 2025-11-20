@@ -62,7 +62,15 @@ class ReportedException:
 
 
 class ExceptionReporter(RESTClientBase):
+    """
+    Client for reporting exceptions to the Da Vinci exception trap
+
+    Automatically discovers the exception trap endpoint and provides methods
+    for reporting exceptions with context and metadata.
+    """
+
     def __init__(self) -> None:
+        """Initialize the exception reporter with automatic resource discovery"""
         super().__init__(resource_name="exceptions_trap")
 
     def report(

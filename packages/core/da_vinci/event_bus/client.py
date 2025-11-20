@@ -17,7 +17,15 @@ from da_vinci.exception_trap.client import ExceptionReporter
 
 
 class EventPublisher(AsyncClientBase):
+    """
+    Client for publishing events to the Da Vinci event bus
+
+    Automatically discovers the event bus queue endpoint and provides
+    methods for submitting events with optional delays.
+    """
+
     def __init__(self) -> None:
+        """Initialize the event publisher with automatic resource discovery"""
         super().__init__(resource_name="event_bus")
 
     def submit(self, event: Event, delay: int | None = None):
@@ -35,6 +43,8 @@ class EventPublisher(AsyncClientBase):
 
 
 class EventResponseStatus(StrEnum):
+    """Status values for event processing responses"""
+
     FAILURE = "FAILURE"
     INITIALIZED = "INITIALIZED"
     NO_SUBSCRIPTIONS = "NO_SUBSCRIPTIONS"
@@ -76,7 +86,15 @@ class EventResponse:
 
 
 class EventResponder(RESTClientBase):
+    """
+    Client for sending event processing responses
+
+    Automatically discovers the event bus responses endpoint and provides
+    methods for reporting event processing status.
+    """
+
     def __init__(self) -> None:
+        """Initialize the event responder with automatic resource discovery"""
         super().__init__(resource_name="event_bus_responses")
 
     def response(
