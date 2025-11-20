@@ -64,14 +64,69 @@ docs/
 
 The documentation is hosted on S3 with CloudFront CDN.
 
-**Deploy Infrastructure:**
+#### Option 1: Without Custom Domain
+
+Deploy with CloudFront URL only:
+
 ```bash
-./infrastructure/deploy-docs-infrastructure.sh da-vinci-docs [domain-name] [certificate-arn]
+./infrastructure/deploy-docs-infrastructure.sh da-vinci-docs
 ```
 
-**Deploy Documentation (Release Process Only):**
+This creates:
+- S3 bucket for documentation
+- CloudFront distribution (generates domain like `d1234abcd.cloudfront.net`)
+
+#### Option 2: With Custom Domain
+
+**Prerequisites:**
+- Route53 hosted zone (e.g., `davinciproject.dev`)
+- ACM certificate in `us-east-1` for your docs domain
+
+**Step 1: Request Certificate (if needed)**
+
 ```bash
-./scripts/deploy-docs.sh <version> [bucket-name] [cloudfront-id]
+# Request certificate in us-east-1 (required for CloudFront)
+CERT_ARN=$(aws acm request-certificate \
+  --domain-name docs.davinciproject.dev \
+  --validation-method DNS \
+  --region us-east-1 \
+  --query 'CertificateArn' \
+  --output text)
+
+# Get DNS validation record and add to Route53
+aws acm describe-certificate \
+  --certificate-arn $CERT_ARN \
+  --region us-east-1 \
+  --query 'Certificate.DomainValidationOptions[0].ResourceRecord'
+
+# Wait for validation (5-10 minutes)
+```
+
+**Step 2: Deploy Infrastructure**
+
+```bash
+./infrastructure/deploy-docs-infrastructure.sh \
+  da-vinci-docs \
+  docs.davinciproject.dev \
+  Z1234567890ABC \
+  arn:aws:acm:us-east-1:123456789012:certificate/...
+```
+
+Parameters:
+1. Stack name
+2. Domain name
+3. Hosted Zone ID
+4. Certificate ARN
+
+**Step 3: Configure GitHub Secrets**
+
+```bash
+# Source generated environment file
+source infrastructure/docs-env.sh
+
+# Set secrets for automated deployment
+gh secret set DOCS_S3_BUCKET --body "$DOCS_S3_BUCKET"
+gh secret set DOCS_CLOUDFRONT_ID --body "$DOCS_CLOUDFRONT_ID"
 ```
 
 ### Infrastructure Components
@@ -79,7 +134,8 @@ The documentation is hosted on S3 with CloudFront CDN.
 - **S3 Bucket:** Stores HTML documentation files
 - **CloudFront Distribution:** CDN for fast global access
 - **Origin Access Control:** Secure access to S3
-- **Route53 (Optional):** Custom domain configuration
+- **Route53 (Optional):** Custom domain A record
+- **ACM Certificate (Optional):** SSL/TLS for custom domain
 
 ### Versioning
 
@@ -88,6 +144,14 @@ Documentation is versioned alongside code releases:
 - `/v3.0/` - Specific version
 - `/latest/` - Latest release
 - `/versions.json` - Version metadata
+
+### Manual Deployment
+
+To deploy documentation manually (outside of release process):
+
+```bash
+./scripts/deploy-docs.sh 3.0.0 da-vinci-docs-docs E1234567890ABC
+```
 
 ## CI/CD Integration
 
