@@ -37,7 +37,16 @@
       "Skill(github-operations)",
       "Skill(pr-writing)",
       "Skill(issue-writing)",
-      "Skill(doc-audit)"
+      "Skill(doc-audit)",
+      "Skill(python-docs)",
+      "mcp__serena",
+      "mcp__context7",
+      "mcp__github",
+      "Bash(mkdir:*)",
+      "Bash(rm:*)",
+      "Bash(cat:*)",
+      "Bash(uv sync:*)",
+      "WebSearch"
     ]
   }
 }

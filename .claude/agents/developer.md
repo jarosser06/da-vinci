@@ -2,6 +2,7 @@
 model: sonnet
 skills:
   - development
+  - python-docs
 tools:
   - Read
   - Write
