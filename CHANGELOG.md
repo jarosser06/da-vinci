@@ -1,20 +1,43 @@
 Changelog
 =========
 
-### 2025.4.20 (Unreleased)
-- Global Setting as value method converts string `None` to Python null object
-- Add support for initializing an empty ObjectBody
-- Fix ORM client update method to use proper DynamoDB Key names
+## [3.0.0] - 2025-01-19
+
+### Breaking Changes
+- Normalized Object Body to operate more similar to a native dictionary
+- Remove global_setting toggle, global setting is now required
+- Remove `__init__.py` from ORM, Object classes can be accessed from client import `da_vinci.core.orm.client`
+- Rename Da Vinci Tables by prepending `da_vinci`
+
+### Added
+- Add CI workflow with lint and test validation
+- Add private PyPI infrastructure and build automation
+- Add release automation system
+- Add comprehensive test suite with 93% coverage for core package
+- Add CDK test infrastructure with zero skipped tests
+- Add AI development integration and tooling (MCP servers, Claude Code configuration)
+- Add support for service discovery backed by DynamoDB
+- Add support for side car applications
 - Add support for regex validation of immutable objects
 - Add support for conditional required attributes in immutable object
-- Add support for service discovery backed by DynamoDB
-- Rename Da Vinci Tables by prepending `da_vinci`
-- Add support for side car applications
-- (**Potentially Breaking**) Normalized Object Body to operate more similar to a native dictionary
-- (**Potentially Breaking**) Remove global_setting toggle, global setting is now required
-- (**Potentially Breaking**) Remove `__init__.py` from ORM, Object classes can be accessed from client import `da_vinci.core.orm.client`
+- Add support for initializing an empty ObjectBody
+- Add custom context attribute for Application
+- Add comprehensive tests for required_stacks dependency feature
 
-### 2024.12.7 (Latest)
+### Changed
+- Enhance type safety and modernize codebase infrastructure
+- Standardize code formatting and type hints across codebase
+- Fix linting configuration and update type hints across codebase
+- Remove strict keyword enforcement on immutable get
+- Revert redundant client module renames
+
+### Fixed
+- Global Setting as value method converts string `None` to Python null object
+- Fix ORM client update method to use proper DynamoDB Key names
+- Fix invalid resource table name reference
+- Update side car application to use direct table name
+
+## [2024.12.7] - 2024-12-07
 - Fix Event object `next_event()` bug where it wasn't referencing the `callback_event_type_on_failure` attribute correctly
 
 ### 2024.12.6
