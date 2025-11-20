@@ -19,16 +19,28 @@ from da_vinci.core.resource_discovery import ResourceDiscovery
 
 
 class TableResultSortOrder(StrEnum):
+    """Sort order for table query results"""
+
     ASCENDING = auto()
     DESCENDING = auto()
 
 
 class PaginatorCall:
+    """Paginator call types for DynamoDB operations"""
+
     QUERY = "query"
     SCAN = "scan"
 
 
 class PaginatedResults:
+    """
+    Container for paginated DynamoDB query results
+
+    Keyword Arguments:
+    items -- List of table objects returned from the query
+    last_evaluated_key -- Key to use for fetching the next page (optional)
+    """
+
     def __init__(self, items: list[TableObject], last_evaluated_key: dict | None = None) -> None:
         self.items = items
 
@@ -41,6 +53,14 @@ class PaginatedResults:
 
 
 class TableScanDefinition:
+    """
+    Define filters for scanning a DynamoDB table
+
+    Provides a builder pattern for constructing filter expressions for DynamoDB
+    scan and query operations. Supports various comparison operators and handles
+    attribute type conversions.
+    """
+
     _comparison_operators = {
         "contains": "contains",
         "equal": "=",
@@ -194,6 +214,13 @@ class TableScanDefinition:
 
 
 class TableClient:
+    """
+    Client for interacting with DynamoDB tables using Da Vinci table objects
+
+    Provides high-level operations for querying, scanning, and managing DynamoDB
+    tables with automatic resource discovery and pagination support.
+    """
+
     def __init__(
         self,
         default_object_class: type[TableObject],
@@ -202,6 +229,16 @@ class TableClient:
         table_endpoint_name: str | None = None,
         resource_discovery_storage_solution: str | None = None,
     ) -> None:
+        """
+        Initialize the table client with resource discovery
+
+        Keyword Arguments:
+        default_object_class -- TableObject subclass defining the table schema
+        app_name -- Application name for resource discovery (optional)
+        deployment_id -- Deployment identifier for resource discovery (optional)
+        table_endpoint_name -- Explicit table name (optional, will be discovered if not provided)
+        resource_discovery_storage_solution -- Storage solution for resource discovery (optional)
+        """
         self.default_object_class = default_object_class
 
         self.table_name = self.default_object_class.table_name

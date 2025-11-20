@@ -10,6 +10,14 @@ if TYPE_CHECKING:
 
 
 class Event:
+    """
+    Represent an event published to the Da Vinci event bus
+
+    Events are the primary communication mechanism in the Da Vinci framework,
+    allowing services to publish and subscribe to asynchronous messages. Each
+    event includes metadata for tracking, callbacks, and event chaining.
+    """
+
     def __init__(
         self,
         body: "ObjectBody | dict | str",
@@ -22,8 +30,7 @@ class Event:
         response_id: str | None = None,
     ) -> None:
         """
-        Event is a class that represents an event that is published to
-        the event bus.
+        Create a new event for publishing to the event bus
 
         Keyword Arguments:
             body: Body of the event

@@ -78,17 +78,31 @@ Da Vinci is a framework for rapidly developing Python-based AWS Cloud Native app
 - Tools: flake8, black, isort, mypy
 - Zero lint errors required for PR
 
+### CRITICAL: Use Project Scripts
+
+**ALWAYS use the provided scripts. DO NOT run tools directly or make up your own commands.**
+
 ### Test Commands
 - `./test.sh` - Run all tests
 - `./test.sh core` - Test da_vinci only
 - `./test.sh cdk` - Test da_vinci-cdk only
 - `./test.sh --coverage` - With coverage report
 
+**NEVER run pytest directly. ALWAYS use ./test.sh**
+
 ### Lint Commands
 - `./lint.sh` - Lint all packages
 - `./lint.sh --fix` - Auto-fix issues
 - `./lint.sh core` - Lint da_vinci only
 - `./lint.sh cdk` - Lint da_vinci-cdk only
+
+**NEVER run flake8, black, isort, or mypy directly. ALWAYS use ./lint.sh**
+
+### Documentation Commands
+- `./scripts/build-docs.sh` - Build Sphinx documentation
+- `./scripts/deploy-docs.sh <version> <bucket> <distribution-id>` - Deploy docs to S3
+
+**NEVER run sphinx-build or make directly. ALWAYS use ./scripts/build-docs.sh**
 
 ## Development Workflow
 

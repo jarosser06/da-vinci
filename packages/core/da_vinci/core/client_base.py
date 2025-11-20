@@ -17,6 +17,22 @@ from da_vinci.core.resource_discovery import (
 
 @dataclass
 class BaseClient:
+    """
+    Base client for Da Vinci service clients with automatic resource discovery
+
+    Provides automatic endpoint discovery for AWS resources using the resource
+    discovery system. Can be initialized with an explicit endpoint or use
+    automatic discovery based on resource name and type.
+
+    Keyword Arguments:
+    resource_name -- Name of the resource to connect to
+    resource_type -- Type of resource (e.g., REST_SERVICE, ASYNC_SERVICE)
+    endpoint -- Explicit endpoint URL (optional, will be discovered if not provided)
+    app_name -- Application name for resource discovery (optional)
+    deployment_id -- Deployment identifier for resource discovery (optional)
+    resource_discovery_storage -- Storage solution for resource discovery (optional)
+    """
+
     resource_name: str
     resource_type: str
     endpoint: str | None = None
@@ -25,6 +41,12 @@ class BaseClient:
     resource_discovery_storage: str | None = None
 
     def __post_init__(self) -> None:
+        """
+        Initialize the client and discover endpoint if not explicitly provided
+
+        Uses the resource discovery system to automatically locate the endpoint
+        for the specified resource if an explicit endpoint was not provided.
+        """
         if self.endpoint:
             return
 
@@ -59,10 +81,26 @@ class AsyncClientBase(BaseClient):
     resource_discovery_storage: str | None = None
 
     def __post_init__(self) -> None:
+        """
+        Initialize the async client and create SQS boto3 client
+
+        Calls parent initialization for endpoint discovery and creates
+        a boto3 SQS client for message publishing.
+        """
         super().__post_init__()
         self.boto_client = boto3.client("sqs")
 
     def publish(self, body: dict | str, delay: int = 0) -> None:
+        """
+        Publish a message to the SQS queue
+
+        Keyword Arguments:
+        body -- Message body as dict or string (dict will be JSON-encoded)
+        delay -- Delay in seconds before message becomes available (default: 0)
+
+        Raises:
+            ValueError -- If endpoint is not set
+        """
         formatted_body: str
         if isinstance(body, dict):
             formatted_body = json.dumps(body, cls=DaVinciObjectEncoder)
@@ -108,6 +146,12 @@ class RESTClientBase(BaseClient):
     resource_discovery_storage: str | None = None
 
     def __post_init__(self) -> None:
+        """
+        Initialize the REST client and configure AWS SigV4 authentication
+
+        Calls parent initialization for endpoint discovery and sets up AWS SigV4
+        authentication for Lambda function URLs unless authentication is disabled.
+        """
         super().__post_init__()
 
         if self.disable_auth:

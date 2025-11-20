@@ -77,6 +77,16 @@ class InvalidRequestResponse(ErrorResponse):
 
 @dataclass
 class Route:
+    """
+    Define a route for a REST service
+
+    Keyword Arguments:
+    handler -- Function to handle requests to this route
+    method -- HTTP method for this route (GET, POST, PUT, DELETE, etc.)
+    path -- URL path for this route
+    required_arguments -- List of required parameter names (optional)
+    """
+
     handler: Callable
     method: str
     path: str
