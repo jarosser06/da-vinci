@@ -6,7 +6,7 @@ skills:
   - testing
 ---
 
-Work on a GitHub issue with flexible TDD workflow.
+Work on a GitHub issue.
 
 Arguments:
 - Issue number (required)
@@ -19,10 +19,8 @@ Workflow:
    - Get current GitHub username with: `gh api user --jq .login`
    - Update issue with assignees array containing the username
 3. Create branch: `issue/{number}-{brief-description}`
-4. Ask user if they want tests written first (optional TDD)
-5. If yes, use qa agent to create tests
-6. Use developer agent to implement the solution
-7. Validate with `./test.sh` and `./lint.sh`
-8. Report completion and next steps (user can run /create-pr)
+4. Use development skill to implement the solution
+5. Run validation (`./test.sh` and `./lint.sh`) if applicable
+6. Report completion and next steps (user can run /create-pr)
 
-Note: TDD is encouraged but flexible - tests can be written before or after implementation based on user preference.
+Note: Testing may not be applicable for all issues (e.g., documentation, infrastructure, configuration).

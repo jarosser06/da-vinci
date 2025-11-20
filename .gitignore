@@ -166,5 +166,6 @@ poetry.lock
 
 # Infrastructure secrets
 infrastructure/config.sh
+infrastructure/docs-env.sh
 *.pem
 *.key
