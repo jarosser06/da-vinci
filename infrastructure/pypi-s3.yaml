@@ -1,0 +1,326 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Private PyPI repository using S3 for da_vinci packages'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Description: 'Project or organization name (e.g., my-company, acme-corp)'
+    Default: 'da-vinci'
+    AllowedPattern: '^[a-z0-9][a-z0-9-]*[a-z0-9]$'
+    ConstraintDescription: 'Project name must be lowercase, alphanumeric, and hyphens only'
+
+  Environment:
+    Type: String
+    Description: 'Environment name'
+    Default: 'production'
+    AllowedValues:
+      - production
+      - staging
+      - development
+
+  DomainName:
+    Type: String
+    Description: 'Domain name for PyPI repository (e.g., packages.davinciproject.dev)'
+    Default: ''
+
+  HostedZoneId:
+    Type: String
+    Description: 'Route 53 Hosted Zone ID (leave empty to skip CloudFront/Route53 setup)'
+    Default: ''
+
+  CertificateArn:
+    Type: String
+    Description: 'ACM Certificate ARN in us-east-1 for CloudFront (leave empty to skip CloudFront setup)'
+    Default: ''
+
+Conditions:
+  UseCloudFront: !And
+    - !Not [!Equals [!Ref DomainName, '']]
+    - !Not [!Equals [!Ref HostedZoneId, '']]
+    - !Not [!Equals [!Ref CertificateArn, '']]
+
+Resources:
+  # S3 Bucket for PyPI packages
+  PyPIBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !Sub '${ProjectName}-pypi-${Environment}'
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: !If [UseCloudFront, true, false]
+        BlockPublicPolicy: !If [UseCloudFront, true, false]
+        IgnorePublicAcls: !If [UseCloudFront, true, false]
+        RestrictPublicBuckets: !If [UseCloudFront, true, false]
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldNoncurrentVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 90
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+            AllowedOrigins:
+              - '*'
+            MaxAge: 3600
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-pypi'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: 'Private PyPI Repository'
+
+  # S3 Bucket Policy - CloudFront OAC or public access
+  PyPIBucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: !Ref PyPIBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - !If
+            - UseCloudFront
+            - Sid: AllowCloudFrontServicePrincipal
+              Effect: Allow
+              Principal:
+                Service: cloudfront.amazonaws.com
+              Action:
+                - 's3:GetObject'
+                - 's3:ListBucket'
+              Resource:
+                - !Sub '${PyPIBucket.Arn}/*'
+                - !GetAtt PyPIBucket.Arn
+              Condition:
+                StringEquals:
+                  'AWS:SourceArn': !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
+            - Sid: PublicReadGetObject
+              Effect: Allow
+              Principal: '*'
+              Action: 's3:GetObject'
+              Resource: !Sub '${PyPIBucket.Arn}/simple/*'
+
+  # IAM User for CI/CD deployments
+  DeploymentUser:
+    Type: 'AWS::IAM::User'
+    Properties:
+      UserName: !Sub '${ProjectName}-pypi-deployer-${Environment}'
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-pypi-deployment-user'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: 'PyPI package deployment'
+
+  # IAM Policy for deployment user
+  DeploymentPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: !Sub '${ProjectName}-pypi-deployment-policy'
+      Users:
+        - !Ref DeploymentUser
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: S3BucketAccess
+            Effect: Allow
+            Action:
+              - 's3:PutObject'
+              - 's3:PutObjectAcl'
+              - 's3:GetObject'
+              - 's3:DeleteObject'
+              - 's3:ListBucket'
+            Resource:
+              - !GetAtt PyPIBucket.Arn
+              - !Sub '${PyPIBucket.Arn}/*'
+          - Sid: CloudFormationReadAccess
+            Effect: Allow
+            Action:
+              - 'cloudformation:DescribeStacks'
+              - 'cloudformation:DescribeStackResources'
+              - 'cloudformation:DescribeStackEvents'
+              - 'cloudformation:GetTemplate'
+            Resource: !Sub 'arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}/*'
+
+  # CloudFront Origin Access Control
+  CloudFrontOriginAccessControl:
+    Type: 'AWS::CloudFront::OriginAccessControl'
+    Condition: UseCloudFront
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub '${ProjectName}-pypi-OAC'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # CloudFront Function to append index.html to directory requests
+  IndexRewriteFunction:
+    Type: 'AWS::CloudFront::Function'
+    Condition: UseCloudFront
+    Properties:
+      Name: !Sub '${ProjectName}-pypi-index-rewrite'
+      AutoPublish: true
+      FunctionCode: |
+        function handler(event) {
+          var request = event.request;
+          var uri = request.uri;
+
+          // If URI ends with '/', append 'index.html'
+          if (uri.endsWith('/')) {
+            request.uri += 'index.html';
+          }
+          // If URI is a directory path without trailing slash and doesn't have a file extension
+          else if (!uri.includes('.') && !uri.endsWith('/')) {
+            request.uri += '/index.html';
+          }
+
+          return request;
+        }
+      FunctionConfig:
+        Comment: 'Append index.html to directory requests for PyPI simple index'
+        Runtime: cloudfront-js-2.0
+
+  # CloudFront Distribution
+  CloudFrontDistribution:
+    Type: 'AWS::CloudFront::Distribution'
+    Condition: UseCloudFront
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub 'PyPI distribution for ${DomainName}'
+        Aliases:
+          - !Ref DomainName
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateArn
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt PyPIBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt CloudFrontOriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          Compress: true
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt IndexRewriteFunction.FunctionARN
+          MinTTL: 0
+          DefaultTTL: 3600
+          MaxTTL: 86400
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        PriceClass: PriceClass_100
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-pypi-distribution'
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Route 53 Record - IPv4
+  Route53RecordA:
+    Type: 'AWS::Route53::RecordSet'
+    Condition: UseCloudFront
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2  # CloudFront hosted zone ID (constant)
+        EvaluateTargetHealth: false
+
+  # Route 53 Record - IPv6
+  Route53RecordAAAA:
+    Type: 'AWS::Route53::RecordSet'
+    Condition: UseCloudFront
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: AAAA
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2  # CloudFront hosted zone ID (constant)
+        EvaluateTargetHealth: false
+
+Outputs:
+  BucketName:
+    Description: 'S3 bucket name for PyPI repository'
+    Value: !Ref PyPIBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketName'
+
+  BucketURL:
+    Description: 'PyPI index URL'
+    Value: !If
+      - UseCloudFront
+      - !Sub 'https://${DomainName}/simple/'
+      - !Sub 'https://${PyPIBucket}.s3.${AWS::Region}.amazonaws.com/simple/'
+    Export:
+      Name: !Sub '${AWS::StackName}-PyPIIndexURL'
+
+  DeploymentUserArn:
+    Description: 'IAM user ARN for deployments'
+    Value: !GetAtt DeploymentUser.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-DeploymentUserArn'
+
+  DeploymentUserName:
+    Description: 'IAM user name for deployments'
+    Value: !Ref DeploymentUser
+    Export:
+      Name: !Sub '${AWS::StackName}-DeploymentUserName'
+
+  CloudFrontDistributionId:
+    Condition: UseCloudFront
+    Description: 'CloudFront distribution ID'
+    Value: !Ref CloudFrontDistribution
+    Export:
+      Name: !Sub '${AWS::StackName}-DistributionId'
+
+  CloudFrontDomainName:
+    Condition: UseCloudFront
+    Description: 'CloudFront distribution domain name'
+    Value: !GetAtt CloudFrontDistribution.DomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-CloudFrontDomain'
+
+  PyPIURL:
+    Description: 'PyPI repository URL'
+    Value: !If
+      - UseCloudFront
+      - !Sub 'https://${DomainName}'
+      - !Sub 'https://${PyPIBucket}.s3.${AWS::Region}.amazonaws.com'
+    Export:
+      Name: !Sub '${AWS::StackName}-PyPIURL'
+
+  InstallationCommand:
+    Description: 'pip install command for using this PyPI'
+    Value: !If
+      - UseCloudFront
+      - !Sub 'pip install --extra-index-url https://${DomainName}/simple/ da-vinci'
+      - !Sub 'pip install --extra-index-url https://${PyPIBucket}.s3.${AWS::Region}.amazonaws.com/simple/ da-vinci'
+    Export:
+      Name: !Sub '${AWS::StackName}-InstallCommand'

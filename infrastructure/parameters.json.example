@@ -1,0 +1,22 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "da-vinci"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "production"
+  },
+  {
+    "ParameterKey": "DomainName",
+    "ParameterValue": "packages.davinciproject.dev"
+  },
+  {
+    "ParameterKey": "HostedZoneId",
+    "ParameterValue": "Z0262969F14JBDC8QNT1"
+  },
+  {
+    "ParameterKey": "CertificateArn",
+    "ParameterValue": ""
+  }
+]

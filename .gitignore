@@ -163,3 +163,8 @@ cython_debug/
 poetry.lock
 
 .DS_Store
+
+# Infrastructure secrets
+infrastructure/config.sh
+*.pem
+*.key
