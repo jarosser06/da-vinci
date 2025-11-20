@@ -11,17 +11,18 @@ Da Vinci is a framework for rapidly developing Python-based AWS Cloud Native app
 ## Versioning
 
 ### Format
-- **YYYY.MM.PP** - Date-based versioning
-- **YYYY.MM** = API contract version
-- **PP** = Patch number for non-breaking changes
+- **MAJOR.MINOR.PATCH** - [Semantic Versioning](https://semver.org/)
+- **MAJOR** = Incompatible API changes
+- **MINOR** = Backward-compatible functionality additions
+- **PATCH** = Backward-compatible bug fixes
 
 ### Version Policy
-- Same YYYY.MM = Same API contract (backward compatible)
-- Different YYYY.MM = Potential breaking changes
-- Projects should pin to specific YYYY.MM for stability
+- Same MAJOR version = API compatibility (MINOR and PATCH are backward compatible)
+- Different MAJOR version = Breaking changes
+- Projects should pin to specific MAJOR.MINOR for stability
 
 ### Current Version
-- 2025.4.20
+- 2.0.0
 
 ## Core Principles
 
