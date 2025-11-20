@@ -127,9 +127,9 @@ echo -e "${GREEN}✓ Updated core package${NC}" >&2
 echo -e "${YELLOW}→${NC} Updating packages/cdk/pyproject.toml..." >&2
 sed -i.bak "s/^version = \".*\"/version = \"$NEW_VERSION\"/" "$CDK_PYPROJECT"
 
-# Update CDK dependency on core to exact version
+# Update CDK dependency on core to minimum version
 # Match only in dependencies array, not the name field
-sed -i.bak "/dependencies = \[/,/\]/s/\"da-vinci[^\"]*\"/\"da-vinci==$NEW_VERSION\"/" "$CDK_PYPROJECT"
+sed -i.bak "/dependencies = \[/,/\]/s/\"da-vinci[^\"]*\"/\"da-vinci>=$NEW_VERSION\"/" "$CDK_PYPROJECT"
 rm "${CDK_PYPROJECT}.bak"
 echo -e "${GREEN}✓ Updated CDK package and dependency${NC}" >&2
 
