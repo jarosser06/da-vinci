@@ -43,7 +43,7 @@ The core package provides several key components:
    - Environment-aware lookups
 
 **Event System**
-   - ``EventPublisher`` - Publish events to EventBridge
+   - ``EventPublisher`` - Publish events to event bus
    - Event-driven architecture support
    - Type-safe event handling
 

@@ -26,7 +26,7 @@ Key Features
    Built-in service discovery mechanisms to connect services across your application.
 
 **Event-Driven Architecture**
-   First-class support for event-driven patterns with SQS, EventBridge, and more.
+   Built-in event bus for event-driven patterns using SQS.
 
 **Infrastructure as Code**
    CDK constructs that generate infrastructure from your application definitions.
