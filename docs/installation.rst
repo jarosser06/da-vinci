@@ -19,23 +19,29 @@ Installing Da Vinci
 Using pip
 ~~~~~~~~~
 
-Install the core runtime package:
+Da Vinci packages are hosted on a custom PyPI server. You need to specify the extra index URL:
 
 .. code-block:: bash
 
-   pip install da-vinci
+   pip install --extra-index-url https://packages.davinciproject.dev/simple/ da-vinci da-vinci-cdk
 
-Install the CDK package for infrastructure:
-
-.. code-block:: bash
-
-   pip install da-vinci-cdk
-
-Install both packages:
+Or install packages individually:
 
 .. code-block:: bash
 
-   pip install da-vinci da-vinci-cdk
+   pip install --extra-index-url https://packages.davinciproject.dev/simple/ da-vinci
+   pip install --extra-index-url https://packages.davinciproject.dev/simple/ da-vinci-cdk
+
+Using Poetry
+~~~~~~~~~~~~
+
+If you're using Poetry, add the custom PyPI source:
+
+.. code-block:: bash
+
+   poetry source add --priority=explicit davinciproject https://packages.davinciproject.dev/simple/
+   poetry add da-vinci --source davinciproject
+   poetry add da-vinci-cdk --source davinciproject
 
 Using uv
 ~~~~~~~~
@@ -44,7 +50,7 @@ If you're using the `uv <https://github.com/astral-sh/uv>`_ package manager:
 
 .. code-block:: bash
 
-   uv add da-vinci da-vinci-cdk
+   uv add da-vinci da-vinci-cdk --extra-index-url https://packages.davinciproject.dev/simple/
 
 Development Installation
 -------------------------
