@@ -114,10 +114,9 @@ jobs:
           S3_DOCS_BUCKET: ${{ secrets.DOCS_S3_BUCKET }}
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.DOCS_CLOUDFRONT_ID }}
         run: |
-          VERSION=${{ steps.version.outputs.version }}
           if [ -n "$S3_DOCS_BUCKET" ]; then
-            echo "Deploying documentation version $VERSION..."
-            ./scripts/deploy-docs.sh "$VERSION" "$S3_DOCS_BUCKET" "$CLOUDFRONT_DISTRIBUTION_ID"
+            echo "Deploying documentation..."
+            ./scripts/deploy-docs.sh "$S3_DOCS_BUCKET" "$CLOUDFRONT_DISTRIBUTION_ID"
           else
             echo "Skipping documentation deployment - DOCS_S3_BUCKET not configured"
           fi
