@@ -10,7 +10,7 @@ from da_vinci.core.execution_environment import runtime_environment_dict
 from da_vinci.core.global_settings import SETTINGS_ENABLED_VAR_NAME
 from da_vinci.core.resource_discovery import ResourceType
 from da_vinci.core.tables.global_settings_table import GlobalSetting
-from da_vinci.exception_trap.exception_trap_client import EXCEPTION_TRAP_ENV_VAR
+from da_vinci.exception_trap.client import EXCEPTION_TRAP_ENV_VAR
 from da_vinci_cdk.constructs.access_management import (
     ResourceAccessPolicy,
     ResourceAccessRequest,
