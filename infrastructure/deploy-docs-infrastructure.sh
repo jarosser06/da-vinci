@@ -1,6 +1,16 @@
 #!/bin/bash
 # Deploy documentation hosting infrastructure
 # This creates the S3 bucket and CloudFront distribution for hosting docs
+#
+# Usage:
+#   ./deploy-docs-infrastructure.sh [stack-name] [domain-name] [hosted-zone-id] [certificate-arn]
+#
+# Examples:
+#   # Basic deployment without custom domain
+#   ./deploy-docs-infrastructure.sh da-vinci-docs
+#
+#   # With custom domain
+#   ./deploy-docs-infrastructure.sh da-vinci-docs docs.davinciproject.dev Z1234567890ABC arn:aws:acm:...
 
 set -e
 
@@ -8,7 +18,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 STACK_NAME="${1:-da-vinci-docs}"
 DOMAIN_NAME="${2:-}"
-CERTIFICATE_ARN="${3:-}"
+HOSTED_ZONE_ID="${3:-}"
+CERTIFICATE_ARN="${4:-}"
 
 echo "Deploying documentation hosting infrastructure..."
 echo "Stack Name: $STACK_NAME"
@@ -17,6 +28,13 @@ PARAMS=""
 if [ -n "$DOMAIN_NAME" ]; then
     echo "Domain Name: $DOMAIN_NAME"
     PARAMS="$PARAMS ParameterKey=DomainName,ParameterValue=$DOMAIN_NAME"
+
+    if [ -n "$HOSTED_ZONE_ID" ]; then
+        echo "Hosted Zone ID: $HOSTED_ZONE_ID"
+        PARAMS="$PARAMS ParameterKey=HostedZoneId,ParameterValue=$HOSTED_ZONE_ID"
+    else
+        echo "WARNING: Domain name provided without Hosted Zone ID - DNS record will not be created"
+    fi
 fi
 
 if [ -n "$CERTIFICATE_ARN" ]; then
@@ -71,5 +89,12 @@ echo ""
 echo "Environment variables saved to: $SCRIPT_DIR/docs-env.sh"
 echo "Source this file to use: source $SCRIPT_DIR/docs-env.sh"
 echo ""
-echo "To deploy documentation:"
-echo "  ./scripts/deploy-docs.sh <version> $BUCKET_NAME $DISTRIBUTION_ID"
+echo "Next steps:"
+echo "  1. Set up GitHub secrets for automated deployment:"
+echo "     gh secret set DOCS_S3_BUCKET --body \"$BUCKET_NAME\""
+echo "     gh secret set DOCS_CLOUDFRONT_ID --body \"$DISTRIBUTION_ID\""
+echo ""
+echo "  2. Deploy documentation manually:"
+echo "     ./scripts/deploy-docs.sh <version> $BUCKET_NAME $DISTRIBUTION_ID"
+echo ""
+echo "  3. Documentation will be automatically deployed on release (when secrets are set)"

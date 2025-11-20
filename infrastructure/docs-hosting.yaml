@@ -7,6 +7,11 @@ Parameters:
     Description: 'Custom domain for documentation (e.g., docs.davinciproject.dev)'
     Default: ''
 
+  HostedZoneId:
+    Type: String
+    Description: 'Route53 Hosted Zone ID for the domain (required if DomainName is set)'
+    Default: ''
+
   CertificateArn:
     Type: String
     Description: 'ARN of ACM certificate for custom domain (must be in us-east-1 for CloudFront)'
@@ -14,7 +19,11 @@ Parameters:
 
 Conditions:
   HasCustomDomain: !Not [!Equals [!Ref DomainName, '']]
+  HasHostedZone: !Not [!Equals [!Ref HostedZoneId, '']]
   HasCertificate: !Not [!Equals [!Ref CertificateArn, '']]
+  CreateDNSRecord: !And
+    - !Condition HasCustomDomain
+    - !Condition HasHostedZone
 
 Resources:
   # S3 Bucket for documentation
@@ -123,12 +132,12 @@ Resources:
         - Key: Purpose
           Value: Documentation
 
-  # Route53 Record (optional, only if domain name provided)
+  # Route53 Record (optional, only if domain name and hosted zone provided)
   DocsRecord:
     Type: AWS::Route53::RecordSet
-    Condition: HasCustomDomain
+    Condition: CreateDNSRecord
     Properties:
-      HostedZoneName: !Sub '${DomainName}.'
+      HostedZoneId: !Ref HostedZoneId
       Name: !Ref DomainName
       Type: A
       AliasTarget:
