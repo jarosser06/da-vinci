@@ -58,25 +58,6 @@ Da Vinci consists of two Python packages:
 
 These packages work together to provide a complete development experience where your business logic definitions drive both your runtime code and infrastructure deployment.
 
-When to Use Da Vinci
----------------------
-
-Da Vinci is ideal for:
-
-- Building serverless applications on AWS
-- Teams that want infrastructure-as-code integrated with application code
-- Projects requiring rapid development without sacrificing control
-- Applications using DynamoDB as primary datastore
-- Event-driven architectures
-- Microservices and distributed systems
-
-Da Vinci may not be the best fit if:
-
-- You're not using AWS as your primary cloud provider
-- You prefer to keep infrastructure and application code completely separate
-- You need to support multiple cloud providers
-- Your application doesn't use serverless architectures
-
 Version History
 ---------------
 
@@ -93,7 +74,7 @@ Projects should pin to a specific MAJOR.MINOR version for stability. See the :do
 License
 -------
 
-Da Vinci is released under the MIT License. See the LICENSE file in the repository for full details.
+Da Vinci is released under the MIT License. See the `LICENSE file <https://github.com/jarosser06/da-vinci/blob/main/LICENSE>`_ in the repository for full details.
 
 Getting Help
 ------------
