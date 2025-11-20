@@ -138,6 +138,7 @@ main() {
   # Check if GitHub secrets already exist (idempotent check)
   log_info "Checking if GitHub secrets already exist..."
   SECRETS_EXIST=false
+  NEED_NEW_ACCESS_KEY=true
 
   if command -v gh &> /dev/null; then
     if gh secret list 2>/dev/null | grep -q "AWS_PYPI_ACCESS_KEY_ID"; then
@@ -171,65 +172,66 @@ main() {
     fi
     # Clear the existing keys variable so we create new ones
     EXISTING_KEYS=""
-  # If secrets exist and access keys exist, we're done (idempotent)
+  # If secrets exist and access keys exist, check if we need to add docs secrets
   elif [[ "$SECRETS_EXIST" == true && -n "$EXISTING_KEYS" ]]; then
-    log_success "GitHub secrets and AWS access keys already configured"
-    log_info "Setup is complete and idempotent - no changes needed"
-    echo ""
+    log_success "AWS PyPI secrets already configured"
     echo -e "${GREEN}Existing access key IDs:${NC} $EXISTING_KEYS"
     echo ""
-    log_info "To rotate credentials, run: $0 --rotate"
-    exit 0
+
+    # Don't create new access keys, just check for docs secrets
+    NEED_NEW_ACCESS_KEY=false
   fi
 
   # Create new access key if needed
   ACCESS_KEY_ID=""
   SECRET_ACCESS_KEY=""
 
-  if [[ -n "$EXISTING_KEYS" ]]; then
-    log_warn "Access keys already exist but GitHub secrets are not configured"
-    echo -e "${YELLOW}Existing access key IDs:${NC}"
-    echo "$EXISTING_KEYS"
-    echo ""
-    log_error "Cannot retrieve secret access key for existing keys"
-    log_info "You must delete the existing key and create a new one, or manually add secrets"
-    echo ""
-    read -p "Do you want to delete the old key and create a new one? (y/N) " -n 1 -r
-    echo ""
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-      log_info "Exiting without creating new access key"
-      exit 0
+  if [[ "$NEED_NEW_ACCESS_KEY" == true ]]; then
+    if [[ -n "$EXISTING_KEYS" ]]; then
+      log_warn "Access keys already exist but GitHub secrets are not configured"
+      echo -e "${YELLOW}Existing access key IDs:${NC}"
+      echo "$EXISTING_KEYS"
+      echo ""
+      log_error "Cannot retrieve secret access key for existing keys"
+      log_info "You must delete the existing key and create a new one, or manually add secrets"
+      echo ""
+      read -p "Do you want to delete the old key and create a new one? (y/N) " -n 1 -r
+      echo ""
+      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        log_info "Exiting without creating new access key"
+        exit 0
+      fi
+      echo ""
+
+      # Delete all existing keys
+      for KEY_ID in $EXISTING_KEYS; do
+        log_info "Deleting access key: $KEY_ID"
+        aws iam delete-access-key \
+          --user-name "$USERNAME" \
+          --access-key-id "$KEY_ID" \
+          $AWS_PROFILE_FLAG
+      done
+      log_success "Old access keys deleted"
+      echo ""
     fi
-    echo ""
 
-    # Delete all existing keys
-    for KEY_ID in $EXISTING_KEYS; do
-      log_info "Deleting access key: $KEY_ID"
-      aws iam delete-access-key \
-        --user-name "$USERNAME" \
-        --access-key-id "$KEY_ID" \
-        $AWS_PROFILE_FLAG
-    done
-    log_success "Old access keys deleted"
+    # Create new access key
+    log_info "Creating new access key for user: $USERNAME"
+    ACCESS_KEY_JSON=$(aws iam create-access-key \
+      --user-name "$USERNAME" \
+      $AWS_PROFILE_FLAG)
+
+    ACCESS_KEY_ID=$(echo "$ACCESS_KEY_JSON" | jq -r '.AccessKey.AccessKeyId')
+    SECRET_ACCESS_KEY=$(echo "$ACCESS_KEY_JSON" | jq -r '.AccessKey.SecretAccessKey')
+
+    if [[ -z "$ACCESS_KEY_ID" || -z "$SECRET_ACCESS_KEY" ]]; then
+      log_error "Failed to create access key"
+      exit 1
+    fi
+
+    log_success "Access key created successfully!"
     echo ""
   fi
-
-  # Create new access key
-  log_info "Creating new access key for user: $USERNAME"
-  ACCESS_KEY_JSON=$(aws iam create-access-key \
-    --user-name "$USERNAME" \
-    $AWS_PROFILE_FLAG)
-
-  ACCESS_KEY_ID=$(echo "$ACCESS_KEY_JSON" | jq -r '.AccessKey.AccessKeyId')
-  SECRET_ACCESS_KEY=$(echo "$ACCESS_KEY_JSON" | jq -r '.AccessKey.SecretAccessKey')
-
-  if [[ -z "$ACCESS_KEY_ID" || -z "$SECRET_ACCESS_KEY" ]]; then
-    log_error "Failed to create access key"
-    exit 1
-  fi
-
-  log_success "Access key created successfully!"
-  echo ""
 
   # Get bucket name and docs infrastructure from stack outputs
   BUCKET_NAME=$(aws cloudformation describe-stacks \
@@ -255,46 +257,61 @@ main() {
 
   # Check if GitHub CLI is available for automatic secret management
   if command -v gh &> /dev/null; then
-    log_info "GitHub CLI detected - automatically adding secrets to repository..."
+    log_info "Configuring GitHub secrets..."
     echo ""
 
-    # Set GitHub secrets using gh CLI
-    if gh secret set AWS_PYPI_ACCESS_KEY_ID -b"$ACCESS_KEY_ID" && \
-       gh secret set AWS_PYPI_SECRET_ACCESS_KEY -b"$SECRET_ACCESS_KEY" && \
-       gh secret set AWS_PYPI_REGION -b"$AWS_REGION" && \
-       gh secret set AWS_PYPI_BUCKET -b"$BUCKET_NAME"; then
+    # Set AWS PyPI secrets if we have new credentials
+    if [[ "$NEED_NEW_ACCESS_KEY" == true ]]; then
+      log_info "Setting AWS PyPI secrets..."
+      if gh secret set AWS_PYPI_ACCESS_KEY_ID -b"$ACCESS_KEY_ID" && \
+         gh secret set AWS_PYPI_SECRET_ACCESS_KEY -b"$SECRET_ACCESS_KEY" && \
+         gh secret set AWS_PYPI_REGION -b"$AWS_REGION" && \
+         gh secret set AWS_PYPI_BUCKET -b"$BUCKET_NAME"; then
 
-      log_success "GitHub secrets configured successfully!"
-      echo ""
-      echo -e "${GREEN}Configured secrets:${NC}"
-      echo "  - AWS_PYPI_ACCESS_KEY_ID: $ACCESS_KEY_ID"
-      echo "  - AWS_PYPI_SECRET_ACCESS_KEY: ****** (hidden)"
-      echo "  - AWS_PYPI_REGION: $AWS_REGION"
-      echo "  - AWS_PYPI_BUCKET: $BUCKET_NAME"
-
-      # Set docs secrets if infrastructure exists
-      if [[ -n "$DOCS_BUCKET" && "$DOCS_BUCKET" != "None" ]]; then
-        log_info "Configuring documentation secrets..."
-        if gh secret set DOCS_S3_BUCKET -b"$DOCS_BUCKET" && \
-           gh secret set DOCS_CLOUDFRONT_ID -b"$DOCS_DIST_ID"; then
-          echo "  - DOCS_S3_BUCKET: $DOCS_BUCKET"
-          echo "  - DOCS_CLOUDFRONT_ID: $DOCS_DIST_ID"
-          log_success "Documentation secrets configured!"
-        else
-          log_warn "Failed to set documentation secrets"
-        fi
+        log_success "AWS PyPI secrets configured!"
+        echo ""
+        echo -e "${GREEN}Configured secrets:${NC}"
+        echo "  - AWS_PYPI_ACCESS_KEY_ID: $ACCESS_KEY_ID"
+        echo "  - AWS_PYPI_SECRET_ACCESS_KEY: ****** (hidden)"
+        echo "  - AWS_PYPI_REGION: $AWS_REGION"
+        echo "  - AWS_PYPI_BUCKET: $BUCKET_NAME"
+        echo ""
       else
-        log_info "Documentation infrastructure not deployed - skipping docs secrets"
+        log_error "Failed to set AWS PyPI secrets"
+        display_manual_instructions
+        exit 1
       fi
-      echo ""
-
-      log_success "Setup complete! CI/CD pipeline is ready for automated deployments."
-    else
-      log_error "Failed to set GitHub secrets automatically"
-      log_info "Falling back to manual instructions..."
-      echo ""
-      display_manual_instructions
     fi
+
+    # Always check and update docs secrets if infrastructure exists
+    if [[ -n "$DOCS_BUCKET" && "$DOCS_BUCKET" != "None" ]]; then
+      log_info "Checking documentation secrets..."
+
+      # Check if docs secrets already exist
+      DOCS_SECRETS_EXIST=false
+      if gh secret list 2>/dev/null | grep -q "DOCS_S3_BUCKET"; then
+        DOCS_SECRETS_EXIST=true
+      fi
+
+      if [[ "$DOCS_SECRETS_EXIST" == true ]]; then
+        log_info "Documentation secrets already exist - updating..."
+      fi
+
+      if gh secret set DOCS_S3_BUCKET -b"$DOCS_BUCKET" && \
+         gh secret set DOCS_CLOUDFRONT_ID -b"$DOCS_DIST_ID"; then
+        echo "  - DOCS_S3_BUCKET: $DOCS_BUCKET"
+        echo "  - DOCS_CLOUDFRONT_ID: $DOCS_DIST_ID"
+        log_success "Documentation secrets configured!"
+        echo ""
+      else
+        log_warn "Failed to set documentation secrets"
+      fi
+    else
+      log_info "Documentation infrastructure not deployed - skipping docs secrets"
+      echo ""
+    fi
+
+    log_success "Setup complete! CI/CD pipeline is ready for automated deployments."
   else
     log_warn "GitHub CLI (gh) not found - displaying manual instructions"
     log_info "Install gh CLI for automatic secret management: https://cli.github.com/"
