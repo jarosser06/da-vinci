@@ -33,11 +33,20 @@ Parameters:
     Description: 'ACM Certificate ARN in us-east-1 for CloudFront (leave empty to skip CloudFront setup)'
     Default: ''
 
+  DocsCertificateArn:
+    Type: String
+    Description: 'ACM Certificate ARN in us-east-1 for docs CloudFront (must cover docs.* subdomain, can be wildcard cert) - leave empty to skip docs infrastructure'
+    Default: ''
+
 Conditions:
   UseCloudFront: !And
     - !Not [!Equals [!Ref DomainName, '']]
     - !Not [!Equals [!Ref HostedZoneId, '']]
     - !Not [!Equals [!Ref CertificateArn, '']]
+
+  CreateDocsInfrastructure: !And
+    - !Condition UseCloudFront
+    - !Not [!Equals [!Ref DocsCertificateArn, '']]
 
 Resources:
   # S3 Bucket for PyPI packages
@@ -265,6 +274,143 @@ Resources:
         HostedZoneId: Z2FDTNDATAQYW2  # CloudFront hosted zone ID (constant)
         EvaluateTargetHealth: false
 
+  # ========================================================================
+  # Documentation Infrastructure (Optional)
+  # ========================================================================
+
+  # S3 Bucket for documentation
+  DocsBucket:
+    Type: AWS::S3::Bucket
+    Condition: CreateDocsInfrastructure
+    Properties:
+      BucketName: !Sub '${ProjectName}-docs-${Environment}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: 404.html
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 30
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-docs-${Environment}'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: Documentation
+
+  # Bucket Policy to allow CloudFront access
+  DocsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: CreateDocsInfrastructure
+    Properties:
+      Bucket: !Ref DocsBucket
+      PolicyDocument:
+        Statement:
+          - Sid: AllowCloudFrontOAI
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: 's3:GetObject'
+            Resource: !Sub '${DocsBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                'AWS:SourceArn': !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${DocsDistribution}'
+
+  # CloudFront Origin Access Control for Docs
+  DocsOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Condition: CreateDocsInfrastructure
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub '${ProjectName}-docs-oac-${Environment}'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # CloudFront Distribution for Docs
+  DocsDistribution:
+    Type: AWS::CloudFront::Distribution
+    Condition: CreateDocsInfrastructure
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub 'Documentation for ${ProjectName}-${Environment}'
+        DefaultRootObject: index.html
+        HttpVersion: http2and3
+        PriceClass: PriceClass_100
+        Aliases:
+          - !Sub 'docs.${DomainName}'
+        ViewerCertificate:
+          AcmCertificateArn: !Ref DocsCertificateArn
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt DocsBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+            OriginAccessControlId: !Ref DocsOriginAccessControl
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # CachingOptimized
+          ResponseHeadersPolicyId: 5cc3b908-e619-4b99-88e5-2cf7f45965bd  # CORS-With-Preflight
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 404
+            ResponsePagePath: /404.html
+          - ErrorCode: 404
+            ResponseCode: 404
+            ResponsePagePath: /404.html
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-docs-distribution-${Environment}'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: Documentation
+
+  # Route53 Record for Docs - IPv4
+  DocsRecordA:
+    Type: AWS::Route53::RecordSet
+    Condition: CreateDocsInfrastructure
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub 'docs.${DomainName}'
+      Type: A
+      AliasTarget:
+        HostedZoneId: Z2FDTNDATAQYW2  # CloudFront hosted zone ID (constant)
+        DNSName: !GetAtt DocsDistribution.DomainName
+
+  # Route53 Record for Docs - IPv6
+  DocsRecordAAAA:
+    Type: AWS::Route53::RecordSet
+    Condition: CreateDocsInfrastructure
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub 'docs.${DomainName}'
+      Type: AAAA
+      AliasTarget:
+        HostedZoneId: Z2FDTNDATAQYW2  # CloudFront hosted zone ID (constant)
+        DNSName: !GetAtt DocsDistribution.DomainName
+
 Outputs:
   BucketName:
     Description: 'S3 bucket name for PyPI repository'
@@ -324,3 +470,31 @@ Outputs:
       - !Sub 'pip install --extra-index-url https://${PyPIBucket}.s3.${AWS::Region}.amazonaws.com/simple/ da-vinci'
     Export:
       Name: !Sub '${AWS::StackName}-InstallCommand'
+
+  DocsBucketName:
+    Condition: CreateDocsInfrastructure
+    Description: 'S3 bucket name for documentation'
+    Value: !Ref DocsBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-DocsBucket'
+
+  DocsDistributionId:
+    Condition: CreateDocsInfrastructure
+    Description: 'CloudFront distribution ID for documentation'
+    Value: !Ref DocsDistribution
+    Export:
+      Name: !Sub '${AWS::StackName}-DocsDistributionId'
+
+  DocsDistributionDomain:
+    Condition: CreateDocsInfrastructure
+    Description: 'CloudFront distribution domain name for documentation'
+    Value: !GetAtt DocsDistribution.DomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-DocsDistributionDomain'
+
+  DocumentationURL:
+    Condition: CreateDocsInfrastructure
+    Description: 'Documentation URL'
+    Value: !Sub 'https://docs.${DomainName}'
+    Export:
+      Name: !Sub '${AWS::StackName}-DocumentationURL'

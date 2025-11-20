@@ -231,13 +231,27 @@ main() {
   log_success "Access key created successfully!"
   echo ""
 
-  # Get bucket name from stack outputs
+  # Get bucket name and docs infrastructure from stack outputs
   BUCKET_NAME=$(aws cloudformation describe-stacks \
     --stack-name "$STACK_NAME" \
     --region "$AWS_REGION" \
     --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue" \
     --output text \
     $AWS_PROFILE_FLAG)
+
+  DOCS_BUCKET=$(aws cloudformation describe-stacks \
+    --stack-name "$STACK_NAME" \
+    --region "$AWS_REGION" \
+    --query "Stacks[0].Outputs[?OutputKey=='DocsBucketName'].OutputValue" \
+    --output text \
+    $AWS_PROFILE_FLAG 2>/dev/null || echo "")
+
+  DOCS_DIST_ID=$(aws cloudformation describe-stacks \
+    --stack-name "$STACK_NAME" \
+    --region "$AWS_REGION" \
+    --query "Stacks[0].Outputs[?OutputKey=='DocsDistributionId'].OutputValue" \
+    --output text \
+    $AWS_PROFILE_FLAG 2>/dev/null || echo "")
 
   # Check if GitHub CLI is available for automatic secret management
   if command -v gh &> /dev/null; then
@@ -257,6 +271,21 @@ main() {
       echo "  - AWS_PYPI_SECRET_ACCESS_KEY: ****** (hidden)"
       echo "  - AWS_PYPI_REGION: $AWS_REGION"
       echo "  - AWS_PYPI_BUCKET: $BUCKET_NAME"
+
+      # Set docs secrets if infrastructure exists
+      if [[ -n "$DOCS_BUCKET" && "$DOCS_BUCKET" != "None" ]]; then
+        log_info "Configuring documentation secrets..."
+        if gh secret set DOCS_S3_BUCKET -b"$DOCS_BUCKET" && \
+           gh secret set DOCS_CLOUDFRONT_ID -b"$DOCS_DIST_ID"; then
+          echo "  - DOCS_S3_BUCKET: $DOCS_BUCKET"
+          echo "  - DOCS_CLOUDFRONT_ID: $DOCS_DIST_ID"
+          log_success "Documentation secrets configured!"
+        else
+          log_warn "Failed to set documentation secrets"
+        fi
+      else
+        log_info "Documentation infrastructure not deployed - skipping docs secrets"
+      fi
       echo ""
 
       log_success "Setup complete! CI/CD pipeline is ready for automated deployments."
@@ -304,6 +333,19 @@ display_manual_instructions() {
   echo "$BUCKET_NAME"
   echo ""
 
+  # Add docs secrets if they exist
+  if [[ -n "$DOCS_BUCKET" && "$DOCS_BUCKET" != "None" ]]; then
+    echo -e "${GREEN}Secret Name:${NC} DOCS_S3_BUCKET"
+    echo -e "${YELLOW}Value:${NC}"
+    echo "$DOCS_BUCKET"
+    echo ""
+
+    echo -e "${GREEN}Secret Name:${NC} DOCS_CLOUDFRONT_ID"
+    echo -e "${YELLOW}Value:${NC}"
+    echo "$DOCS_DIST_ID"
+    echo ""
+  fi
+
   echo -e "${CYAN}╔════════════════════════════════════════════════════════════════════════════╗${NC}"
   echo -e "${CYAN}║                          IMPORTANT NOTES                                   ║${NC}"
   echo -e "${CYAN}╠════════════════════════════════════════════════════════════════════════════╣${NC}"
@@ -335,6 +377,21 @@ $AWS_REGION
 AWS_PYPI_BUCKET
 $BUCKET_NAME
 
+EOF
+
+  # Add docs secrets to temp file if they exist
+  if [[ -n "$DOCS_BUCKET" && "$DOCS_BUCKET" != "None" ]]; then
+    cat >> "$TEMP_FILE" <<EOF
+DOCS_S3_BUCKET
+$DOCS_BUCKET
+
+DOCS_CLOUDFRONT_ID
+$DOCS_DIST_ID
+
+EOF
+  fi
+
+  cat >> "$TEMP_FILE" <<EOF
 Created: $(date)
 User: $USERNAME
 Project: $PROJECT_NAME

@@ -62,80 +62,83 @@ docs/
 
 ### Deploy Documentation Hosting
 
-The documentation is hosted on S3 with CloudFront CDN.
+Documentation infrastructure is integrated with the main PyPI infrastructure and deployed together using a single CloudFormation stack.
 
-#### Option 1: Without Custom Domain
+#### Prerequisites
 
-Deploy with CloudFront URL only:
+- AWS account with appropriate permissions
+- Route53 hosted zone (for custom domain)
+- ACM certificate in `us-east-1` for CloudFront (if using custom domain)
+
+#### Deploy Infrastructure
+
+Documentation infrastructure is configured in `infrastructure/parameters.json` along with PyPI settings:
+
+```json
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "da-vinci"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "production"
+  },
+  {
+    "ParameterKey": "DomainName",
+    "ParameterValue": "packages.davinciproject.dev"
+  },
+  {
+    "ParameterKey": "HostedZoneId",
+    "ParameterValue": "Z1234567890ABC"
+  },
+  {
+    "ParameterKey": "CertificateArn",
+    "ParameterValue": "arn:aws:acm:us-east-1:123456789012:certificate/..."
+  },
+  {
+    "ParameterKey": "DocsCertificateArn",
+    "ParameterValue": "arn:aws:acm:us-east-1:123456789012:certificate/..."
+  }
+]
+```
+
+**Note:** The documentation domain is automatically set to `docs.{DomainName}`. For example, if `DomainName` is `packages.davinciproject.dev`, the docs will be at `docs.packages.davinciproject.dev`. The `DocsCertificateArn` must cover this subdomain (use a wildcard certificate like `*.davinciproject.dev` or a certificate that includes both domains).
+
+**Deploy with documentation infrastructure:**
 
 ```bash
-./infrastructure/deploy-docs-infrastructure.sh da-vinci-docs
+./infrastructure/deploy.sh
 ```
 
 This creates:
-- S3 bucket for documentation
-- CloudFront distribution (generates domain like `d1234abcd.cloudfront.net`)
+- PyPI S3 bucket and CloudFront distribution
+- Documentation S3 bucket and CloudFront distribution
+- Route53 DNS records for both domains
+- IAM deployment user with appropriate permissions
 
-#### Option 2: With Custom Domain
+**Configure GitHub Secrets:**
 
-**Prerequisites:**
-- Route53 hosted zone (e.g., `davinciproject.dev`)
-- ACM certificate in `us-east-1` for your docs domain
-
-**Step 1: Request Certificate (if needed)**
+After deployment, the script generates `infrastructure/config.sh` with all necessary values:
 
 ```bash
-# Request certificate in us-east-1 (required for CloudFront)
-CERT_ARN=$(aws acm request-certificate \
-  --domain-name docs.davinciproject.dev \
-  --validation-method DNS \
-  --region us-east-1 \
-  --query 'CertificateArn' \
-  --output text)
-
-# Get DNS validation record and add to Route53
-aws acm describe-certificate \
-  --certificate-arn $CERT_ARN \
-  --region us-east-1 \
-  --query 'Certificate.DomainValidationOptions[0].ResourceRecord'
-
-# Wait for validation (5-10 minutes)
-```
-
-**Step 2: Deploy Infrastructure**
-
-```bash
-./infrastructure/deploy-docs-infrastructure.sh \
-  da-vinci-docs \
-  docs.davinciproject.dev \
-  Z1234567890ABC \
-  arn:aws:acm:us-east-1:123456789012:certificate/...
-```
-
-Parameters:
-1. Stack name
-2. Domain name
-3. Hosted Zone ID
-4. Certificate ARN
-
-**Step 3: Configure GitHub Secrets**
-
-```bash
-# Source generated environment file
-source infrastructure/docs-env.sh
+# Source configuration
+source infrastructure/config.sh
 
 # Set secrets for automated deployment
 gh secret set DOCS_S3_BUCKET --body "$DOCS_S3_BUCKET"
 gh secret set DOCS_CLOUDFRONT_ID --body "$DOCS_CLOUDFRONT_ID"
 ```
 
-### Infrastructure Components
+#### Infrastructure Components
 
 - **S3 Bucket:** Stores HTML documentation files
 - **CloudFront Distribution:** CDN for fast global access
 - **Origin Access Control:** Secure access to S3
-- **Route53 (Optional):** Custom domain A record
-- **ACM Certificate (Optional):** SSL/TLS for custom domain
+- **Route53:** Custom domain DNS records
+- **ACM Certificate:** SSL/TLS for custom domain
+
+All documentation infrastructure is conditional - if you don't provide `DocsCertificateArn` parameter, the documentation infrastructure won't be created. Documentation requires CloudFront to be enabled (DomainName, HostedZoneId, and CertificateArn must be set).
 
 ### Versioning
 
@@ -150,7 +153,11 @@ Documentation is versioned alongside code releases:
 To deploy documentation manually (outside of release process):
 
 ```bash
-./scripts/deploy-docs.sh 3.0.0 da-vinci-docs-docs E1234567890ABC
+# Source infrastructure configuration
+source infrastructure/config.sh
+
+# Deploy specific version
+./scripts/deploy-docs.sh 3.0.0 "$DOCS_S3_BUCKET" "$DOCS_CLOUDFRONT_ID"
 ```
 
 ## CI/CD Integration

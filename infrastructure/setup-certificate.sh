@@ -74,7 +74,15 @@ main() {
     exit 1
   fi
 
+  # Extract base domain for wildcard
+  BASE_DOMAIN=$(echo "$DOMAIN_NAME" | sed -E 's/^[^.]+\.//')
+  WILDCARD_DOMAIN="*.$BASE_DOMAIN"
+
   log_info "Domain: $DOMAIN_NAME"
+  log_info "Wildcard Domain: $WILDCARD_DOMAIN"
+  log_info "This certificate will cover:"
+  log_info "  - $DOMAIN_NAME (PyPI packages)"
+  log_info "  - docs.$DOMAIN_NAME (documentation)"
   log_info "Hosted Zone ID: $HOSTED_ZONE_ID"
   log_info "Certificate Region: $CERTIFICATE_REGION (required for CloudFront)"
   echo ""
@@ -83,11 +91,11 @@ main() {
   log_info "Checking for existing certificate..."
   EXISTING_CERT=$(aws acm list-certificates \
     --region "$CERTIFICATE_REGION" \
-    --query "CertificateSummaryList[?DomainName=='$DOMAIN_NAME'].CertificateArn" \
+    --query "CertificateSummaryList[?DomainName=='$WILDCARD_DOMAIN'].CertificateArn" \
     --output text)
 
   if [ -n "$EXISTING_CERT" ]; then
-    log_warn "Certificate already exists for $DOMAIN_NAME"
+    log_warn "Certificate already exists for $WILDCARD_DOMAIN"
     echo "  Certificate ARN: $EXISTING_CERT"
     echo ""
 
@@ -102,7 +110,7 @@ main() {
 
     if [ "$CERT_STATUS" = "ISSUED" ]; then
       log_success "Certificate is already issued and ready to use!"
-      update_parameters_file "$EXISTING_CERT"
+      update_parameters_file "$EXISTING_CERT" "$EXISTING_CERT"
       exit 0
     elif [ "$CERT_STATUS" = "PENDING_VALIDATION" ]; then
       log_warn "Certificate is pending validation"
@@ -113,17 +121,18 @@ main() {
       exit 1
     fi
   else
-    # Request new certificate
-    log_info "Requesting new ACM certificate for $DOMAIN_NAME..."
+    # Request new wildcard certificate
+    log_info "Requesting new wildcard ACM certificate for $WILDCARD_DOMAIN..."
     CERT_ARN=$(aws acm request-certificate \
-      --domain-name "$DOMAIN_NAME" \
+      --domain-name "$WILDCARD_DOMAIN" \
       --validation-method DNS \
       --region "$CERTIFICATE_REGION" \
       --query 'CertificateArn' \
       --output text)
 
-    log_success "Certificate requested!"
+    log_success "Wildcard certificate requested!"
     echo "  Certificate ARN: $CERT_ARN"
+    echo "  This certificate will cover both $DOMAIN_NAME and docs.$DOMAIN_NAME"
     echo ""
 
     # Wait for DNS validation record to be available
@@ -235,17 +244,22 @@ EOF
   fi
 
   echo ""
-  update_parameters_file "$CERT_ARN"
+  update_parameters_file "$CERT_ARN" "$CERT_ARN"
 }
 
 update_parameters_file() {
   local CERT_ARN=$1
+  local DOCS_CERT_ARN=$2
 
-  log_info "Updating parameters.json with certificate ARN..."
+  log_info "Updating parameters.json with certificate ARNs..."
 
-  # Update CertificateArn in parameters.json
-  jq --arg arn "$CERT_ARN" \
-    'map(if .ParameterKey == "CertificateArn" then .ParameterValue = $arn else . end)' \
+  # Update both CertificateArn and DocsCertificateArn in parameters.json
+  jq --arg arn "$CERT_ARN" --arg docsarn "$DOCS_CERT_ARN" \
+    'map(
+      if .ParameterKey == "CertificateArn" then .ParameterValue = $arn
+      elif .ParameterKey == "DocsCertificateArn" then .ParameterValue = $docsarn
+      else . end
+    )' \
     "$PARAMETERS_FILE" > "${PARAMETERS_FILE}.tmp"
 
   mv "${PARAMETERS_FILE}.tmp" "$PARAMETERS_FILE"
@@ -258,6 +272,9 @@ update_parameters_file() {
   echo -e "${CYAN}╚════════════════════════════════════════════════════════════════╝${NC}"
   echo ""
   echo "Certificate ARN: $CERT_ARN"
+  echo "This wildcard certificate covers:"
+  echo "  - $DOMAIN_NAME (PyPI)"
+  echo "  - docs.$DOMAIN_NAME (Documentation)"
   echo ""
   echo "Next steps:"
   echo "  1. Deploy infrastructure: ${YELLOW}./infrastructure/deploy.sh${NC}"
