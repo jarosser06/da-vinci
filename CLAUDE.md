@@ -106,6 +106,34 @@ Da Vinci is a framework for rapidly developing Python-based AWS Cloud Native app
 
 ## Development Workflow
 
+### Skills and Commands
+
+**CRITICAL: Skill Activation is Mandatory**
+
+When executing any slash command (e.g., `/create-pr`, `/work-on-issue`), you MUST:
+1. Activate ALL skills listed in the command's frontmatter using the Skill tool
+2. Skills are activated using: `Skill(skill-name)`
+3. Skills MUST be activated BEFORE executing any other steps in the command
+
+**Example**:
+```
+Command frontmatter lists: skills: [pr-writing, testing, linting]
+You MUST call: Skill(pr-writing), Skill(testing), Skill(linting)
+BEFORE running any tests, linting, or creating PRs
+```
+
+**Available Skills**:
+- `development` - Development patterns and implementation guidance
+- `testing` - Test execution and coverage validation
+- `linting` - Code quality and formatting
+- `code-review` - Comprehensive code review
+- `github-operations` - GitHub issue and PR management
+- `pr-writing` - Pull request description formatting
+- `issue-writing` - GitHub issue creation standards
+- `doc-audit` - Documentation validation
+- `definition-of-done` - Work completion validation
+- `python-docs` - Da Vinci framework documentation queries
+
 ### Branch Strategy
 - Feature branches: `feature/description`
 - Fix branches: `fix/description`
