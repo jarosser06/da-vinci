@@ -9,6 +9,7 @@ Prerequisites
 Before starting, ensure you have:
 
 - Python 3.11+ installed (Python 3.12+ required for CDK)
+- Docker installed and running (required for Lambda function packaging)
 - AWS account with appropriate permissions (DynamoDB, Lambda, CloudFormation)
 - AWS credentials configured (``aws configure``)
 - AWS CDK CLI installed (``npm install -g aws-cdk``)
@@ -34,14 +35,14 @@ Create a file called ``tables.py`` to define your DynamoDB tables:
        """User table for storing user information"""
 
        table_name = "users"
-       partition_key_attribute = "user_id"
+
+       partition_key_attribute = TableObjectAttribute(
+           name="user_id",
+           attribute_type=TableObjectAttributeType.STRING,
+           description="Unique user identifier",
+       )
 
        attributes = [
-           TableObjectAttribute(
-               name="user_id",
-               attribute_type=TableObjectAttributeType.STRING,
-               description="Unique user identifier",
-           ),
            TableObjectAttribute(
                name="email",
                attribute_type=TableObjectAttributeType.STRING,
@@ -93,30 +94,71 @@ Create a file called ``user_service.py`` for your business logic:
            """List all users"""
            return list(self.table_client.scan())
 
-Step 3: Deploy Infrastructure with CDK
+Step 3: Create Table Stack
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Create a file called ``table_stack.py`` for your DynamoDB table stack:
+
+.. code-block:: python
+
+   from constructs import Construct
+   from da_vinci_cdk.stack import Stack
+   from da_vinci_cdk.constructs.dynamodb import DynamoDBTable
+   from tables import UserTable
+
+   class UserTableStack(Stack):
+       """Stack that provisions the User DynamoDB Table"""
+
+       def __init__(
+           self,
+           app_name: str,
+           deployment_id: str,
+           scope: Construct,
+           stack_name: str
+       ) -> None:
+           super().__init__(
+               app_name=app_name,
+               deployment_id=deployment_id,
+               scope=scope,
+               stack_name=stack_name,
+           )
+
+           self.table = DynamoDBTable.from_orm_table_object(
+               table_object=UserTable,
+               scope=self,
+           )
+
+Step 4: Deploy Infrastructure with CDK
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Create a file called ``app.py`` for your CDK infrastructure:
 
 .. code-block:: python
 
+   from os.path import dirname, abspath
    from da_vinci_cdk.application import Application
-   from tables import UserTable
+   from table_stack import UserTableStack
 
    # Create application
    app = Application(
-       app_name="my_app",
+       app_name="my-app",
        deployment_id="dev",
+       app_entry=abspath(dirname(__file__)),
    )
 
-   # Add tables to application
-   # This automatically creates the DynamoDB infrastructure
-   app.add_table(UserTable)
+   # Add table stack to application
+   app.add_uninitialized_stack(UserTableStack)
 
    # Synthesize CDK stacks
    app.synth()
 
-Step 4: Deploy to AWS
+.. note::
+
+   **Naming Requirements**: ``app_name`` and ``deployment_id`` must use only alphanumeric characters and hyphens.
+   They must start with a letter. Do not use underscores, as CloudFormation stack names follow the pattern
+   ``/^[A-Za-z][A-Za-z0-9-]*$/``.
+
+Step 5: Deploy to AWS
 ~~~~~~~~~~~~~~~~~~~~~~
 
 Deploy your application to AWS using the CDK CLI:
@@ -129,7 +171,7 @@ Deploy your application to AWS using the CDK CLI:
    # Deploy the application
    cdk deploy --all
 
-Step 5: Use Your Application
+Step 6: Use Your Application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Now you can use your application:

@@ -266,13 +266,23 @@ Infrastructure
            product.add_method("DELETE", integration)
 
 
+   # Table Stack
+   class ProductTableStack(Stack):
+       """Stack for Product table"""
+       def __init__(self, app_name, deployment_id, scope, stack_name):
+           super().__init__(app_name, deployment_id, scope, stack_name)
+           self.table = DynamoDBTable.from_orm_table_object(
+               table_object=ProductTable, scope=self
+           )
+
    # Application
    app = Application(
-       app_name="product_api",
+       app_name="product-api",
        deployment_id="dev",
+       app_entry=abspath(dirname(__file__)),
    )
 
-   app.add_table(ProductTable)
+   app.add_uninitialized_stack(ProductTableStack)
    app.add_uninitialized_stack(ApiStack)
 
    app.synth()

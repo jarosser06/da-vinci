@@ -73,11 +73,25 @@ General tasks, chores, or work items that don't fit bug or feature.
 - `package: core` (#17becf) - Related to da-vinci core package
 - `package: cdk` (#8b5cf6) - Related to da-vinci-cdk package
 
+## Resource Guides
+
+### 📖 [Objective Language Guide](resources/objective-language.md)
+Comprehensive guide for writing clear, factual, objective issues without subjective or marketing language.
+
+**Use when**: Creating or reviewing issues to ensure they are well-defined and unambiguous.
+
+### 📖 [Acceptance Criteria Guide](resources/acceptance-criteria.md)
+Detailed guide for writing specific, verifiable acceptance criteria that are yes/no answerable.
+
+**Use when**: Writing or reviewing acceptance criteria to ensure they are measurable and not subjective.
+
 ## Key Principles
 
-1. **Always include type label**: Every issue must have bug, feature, or task
-2. **Set priority**: Assign appropriate priority level
-3. **Tag package if applicable**: Use package labels for package-specific issues
-4. **Complete all required sections**: Don't skip sections for the issue type
-5. **Be specific**: Provide enough detail for someone else to understand and act on
-6. **Update status labels**: Use status labels to track progress
+1. **Objective Language Only**: No subjective adverbs (easily, simply) or adjectives (powerful, robust)
+2. **Specific Requirements**: Vague terms like "improve" or "enhance" must include specifics
+3. **Verifiable Acceptance Criteria**: Each criterion must be answerable with yes/no
+4. **Don't Repeat Project Standards**: Test coverage, linting, etc. are already defined
+5. **Always include type label**: Every issue must have bug, feature, or task
+6. **Set priority**: Assign appropriate priority level
+7. **Tag package if applicable**: Use package labels for package-specific issues
+8. **Complete all required sections**: Don't skip sections for the issue type

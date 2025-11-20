@@ -4,17 +4,19 @@ FROM $IMAGE
 # set the pip cache location
 ENV PIP_CACHE_DIR=/tmp/pip-cache
 
-# set the poetry cache
-ENV POETRY_CACHE_DIR=/tmp/poetry-cache
-
+# Install system dependencies needed by da-vinci
 RUN dnf install -y gcc libxml2-devel libxslt-devel git && \
     rm -Rf /var/cache/yum && \
-    pip install --upgrade pip && \
-    pip install poetry
+    pip install --upgrade pip
 
-
-RUN poetry config virtualenvs.create false
-
+# If pyproject.toml exists (development mode), use poetry
+# Otherwise (installed package), install da-vinci via pip
 ADD . ${LAMBDA_TASK_ROOT}/da_vinci
-
-RUN cd ${LAMBDA_TASK_ROOT}/da_vinci/ && poetry install 
+RUN if [ -f ${LAMBDA_TASK_ROOT}/da_vinci/pyproject.toml ]; then \
+        pip install poetry && \
+        poetry config virtualenvs.create false && \
+        cd ${LAMBDA_TASK_ROOT}/da_vinci/ && \
+        poetry install; \
+    else \
+        pip install da-vinci; \
+    fi 

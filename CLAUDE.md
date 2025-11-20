@@ -109,7 +109,7 @@ Da Vinci is a framework for rapidly developing Python-based AWS Cloud Native app
 ### Branch Strategy
 - Feature branches: `feature/description`
 - Fix branches: `fix/description`
-- Issue branches: `issue/{number}-description`
+- Issue branches: `issue/<#>`
 
 ### Commit Message Format
 - Title: Under 70 characters, active voice

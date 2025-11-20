@@ -84,14 +84,18 @@ The Event Bus enables Lambda functions to communicate using events. Any function
 
 Functions publish events with a type and payload. The Event Bus handles delivery to all functions that subscribe to that event type. Subscribers process events independently - if one fails, others continue normally.
 
+All events and their processing results are stored in DynamoDB tables, creating a complete audit trail. This includes the original event, when it was published, which subscribers received it, processing status, and any responses. Event data is stored in a structured format that can be queried programmatically.
+
 **Key Benefits**
 
+- Complete audit trail of all events and processing results
+- Query event history programmatically via DynamoDB
+- Track which functions processed which events
+- Identify processing failures and successes
 - Add new functions without changing existing code
 - Multiple functions can handle the same event
-- Automatic event delivery and tracking
 - Function failures stay isolated
 - No direct dependencies between functions
-- Managed queuing and routing
 
 **Use When**
 
@@ -100,6 +104,8 @@ Functions publish events with a type and payload. The Event Bus handles delivery
 - Adding features to existing processes
 - Building independent processing steps
 - Decoupling application components
+- Audit trail of event processing required
+- Need to query event history programmatically
 
 Deployment Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~
