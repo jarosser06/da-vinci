@@ -150,6 +150,9 @@ OUTPUTS=$(aws cloudformation describe-stacks \
 
 PYPI_URL=$(echo "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="BucketURL") | .OutputValue')
 USER_ARN=$(echo "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="DeploymentUserArn") | .OutputValue')
+DOCS_BUCKET=$(echo "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="DocsBucketName") | .OutputValue // "not-configured"')
+DOCS_DIST_ID=$(echo "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="DocsDistributionId") | .OutputValue // "not-configured"')
+DOCS_URL=$(echo "$OUTPUTS" | jq -r '.[] | select(.OutputKey=="DocumentationURL") | .OutputValue // "not-configured"')
 
 echo ""
 echo -e "${GREEN}✓ Stack deployment complete!${NC}"
@@ -163,6 +166,13 @@ echo "  PyPI Index URL:  $PYPI_URL"
 echo "  Deployment User: $DEPLOYMENT_USER"
 echo "  User ARN:        $USER_ARN"
 echo ""
+if [ "$DOCS_BUCKET" != "not-configured" ]; then
+    echo -e "${YELLOW}Documentation Infrastructure:${NC}"
+    echo "  Docs Bucket:     $DOCS_BUCKET"
+    echo "  Distribution ID: $DOCS_DIST_ID"
+    echo "  Docs URL:        $DOCS_URL"
+    echo ""
+fi
 
 # Save configuration (non-sensitive info only)
 echo -e "${YELLOW}→${NC} Saving configuration to infrastructure/config.sh..."
@@ -176,6 +186,11 @@ export S3_PYPI_BUCKET="$BUCKET_NAME"
 export AWS_REGION="$REGION"
 export DEPLOYMENT_USER="$DEPLOYMENT_USER"
 export PYPI_INDEX_URL="$PYPI_URL"
+
+# Documentation Infrastructure
+export DOCS_S3_BUCKET="$DOCS_BUCKET"
+export DOCS_CLOUDFRONT_ID="$DOCS_DIST_ID"
+export DOCS_URL="$DOCS_URL"
 
 # For credentials, either:
 # 1. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY manually
