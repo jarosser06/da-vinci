@@ -9,14 +9,10 @@ RUN dnf install -y gcc libxml2-devel libxslt-devel git && \
     rm -Rf /var/cache/yum && \
     pip install --upgrade pip
 
-# If pyproject.toml exists (development mode), use poetry
-# Otherwise (installed package), install da-vinci via pip
 ADD . ${LAMBDA_TASK_ROOT}/da_vinci
 RUN if [ -f ${LAMBDA_TASK_ROOT}/da_vinci/pyproject.toml ]; then \
         pip install poetry && \
         poetry config virtualenvs.create false && \
         cd ${LAMBDA_TASK_ROOT}/da_vinci/ && \
         poetry install; \
-    else \
-        pip install da-vinci; \
     fi 
