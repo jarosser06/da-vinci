@@ -13,7 +13,7 @@ from da_vinci.core.immutable_object import ObjectBodySchema
 from da_vinci.core.json import DaVinciObjectEncoder
 from da_vinci.core.logging import Logger
 from da_vinci.event_bus.event import Event
-from da_vinci.exception_trap.exception_trap_client import ExceptionReporter
+from da_vinci.exception_trap.client import ExceptionReporter
 
 
 class EventPublisher(AsyncClientBase):
