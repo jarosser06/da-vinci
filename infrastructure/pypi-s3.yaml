@@ -144,7 +144,7 @@ Resources:
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
-          - Sid: S3BucketAccess
+          - Sid: S3PyPIBucketAccess
             Effect: Allow
             Action:
               - 's3:PutObject'
@@ -155,6 +155,32 @@ Resources:
             Resource:
               - !GetAtt PyPIBucket.Arn
               - !Sub '${PyPIBucket.Arn}/*'
+          - Sid: S3DocsBucketAccess
+            Effect: Allow
+            Action:
+              - 's3:PutObject'
+              - 's3:GetObject'
+              - 's3:DeleteObject'
+              - 's3:ListBucket'
+            Resource: !If
+              - CreateDocsInfrastructure
+              - - !GetAtt DocsBucket.Arn
+                - !Sub '${DocsBucket.Arn}/*'
+              - - !Ref 'AWS::NoValue'
+          - Sid: CloudFrontInvalidation
+            Effect: Allow
+            Action:
+              - 'cloudfront:CreateInvalidation'
+              - 'cloudfront:GetInvalidation'
+            Resource:
+              - !If
+                - UseCloudFront
+                - !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
+                - !Ref 'AWS::NoValue'
+              - !If
+                - CreateDocsInfrastructure
+                - !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${DocsDistribution}'
+                - !Ref 'AWS::NoValue'
           - Sid: CloudFormationReadAccess
             Effect: Allow
             Action:
