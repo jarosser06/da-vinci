@@ -23,6 +23,11 @@ Parameters:
     Description: 'Domain name for PyPI repository (e.g., packages.davinciproject.dev)'
     Default: ''
 
+  BaseDomain:
+    Type: String
+    Description: 'Base domain for Route53 zone (e.g., davinciproject.dev) - used for docs subdomain'
+    Default: ''
+
   HostedZoneId:
     Type: String
     Description: 'Route 53 Hosted Zone ID (leave empty to skip CloudFront/Route53 setup)'
@@ -348,7 +353,7 @@ Resources:
         HttpVersion: http2and3
         PriceClass: PriceClass_100
         Aliases:
-          - !Sub 'docs.${DomainName}'
+          - !Sub 'docs.${BaseDomain}'
         ViewerCertificate:
           AcmCertificateArn: !Ref DocsCertificateArn
           SslSupportMethod: sni-only
@@ -393,7 +398,7 @@ Resources:
     Condition: CreateDocsInfrastructure
     Properties:
       HostedZoneId: !Ref HostedZoneId
-      Name: !Sub 'docs.${DomainName}'
+      Name: !Sub 'docs.${BaseDomain}'
       Type: A
       AliasTarget:
         HostedZoneId: Z2FDTNDATAQYW2  # CloudFront hosted zone ID (constant)
@@ -405,7 +410,7 @@ Resources:
     Condition: CreateDocsInfrastructure
     Properties:
       HostedZoneId: !Ref HostedZoneId
-      Name: !Sub 'docs.${DomainName}'
+      Name: !Sub 'docs.${BaseDomain}'
       Type: AAAA
       AliasTarget:
         HostedZoneId: Z2FDTNDATAQYW2  # CloudFront hosted zone ID (constant)
@@ -495,6 +500,6 @@ Outputs:
   DocumentationURL:
     Condition: CreateDocsInfrastructure
     Description: 'Documentation URL'
-    Value: !Sub 'https://docs.${DomainName}'
+    Value: !Sub 'https://docs.${BaseDomain}'
     Export:
       Name: !Sub '${AWS::StackName}-DocumentationURL'
