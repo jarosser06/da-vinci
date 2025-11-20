@@ -46,11 +46,11 @@ done
 # Determine test paths based on target
 case $TARGET in
     core)
-        TEST_PATHS="da_vinci/tests"
+        TEST_PATHS="packages/core/tests"
         echo "Running tests for da_vinci core..."
         ;;
     cdk)
-        TEST_PATHS="da_vinci-cdk/tests"
+        TEST_PATHS="packages/cdk/tests"
         echo "Running tests for da_vinci-cdk..."
         ;;
     all)
@@ -60,7 +60,7 @@ case $TARGET in
 
         # Run core tests
         echo "→ Running da_vinci core tests..."
-        PYTEST_CMD="uv run pytest da_vinci/tests"
+        PYTEST_CMD="uv run pytest packages/core/tests"
         if [ $COVERAGE -eq 1 ]; then
             PYTEST_CMD="$PYTEST_CMD --cov=da_vinci --cov-append --cov-report="
         fi
@@ -75,7 +75,7 @@ case $TARGET in
 
         echo ""
         echo "→ Running da_vinci-cdk tests..."
-        PYTEST_CMD="uv run pytest da_vinci-cdk/tests"
+        PYTEST_CMD="uv run pytest packages/cdk/tests"
         if [ $COVERAGE -eq 1 ]; then
             PYTEST_CMD="$PYTEST_CMD --cov=da_vinci_cdk --cov-append --cov-report=term-missing --cov-report=html"
         fi

@@ -1,5 +1,5 @@
 [tool.uv.workspace]
-members = ["da_vinci", "da_vinci-cdk"]
+members = ["packages/core", "packages/cdk"]
 
 [tool.uv]
 dev-dependencies = [
@@ -20,7 +20,7 @@ dev-dependencies = [
 
 # Pytest configuration
 [tool.pytest.ini_options]
-testpaths = ["da_vinci/tests", "da_vinci-cdk/tests"]
+testpaths = ["packages/core/tests", "packages/cdk/tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -89,7 +89,7 @@ follow_imports = "normal"
 strict_optional = false  # Relaxed - allow None without Optional
 explicit_package_bases = true
 namespace_packages = true
-mypy_path = "da_vinci:da_vinci-cdk"
+mypy_path = "packages/core:packages/cdk"
 
 [[tool.mypy.overrides]]
 module = "tests.*"

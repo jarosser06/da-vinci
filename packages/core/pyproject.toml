@@ -1,6 +1,6 @@
 [project]
 name = "da-vinci"
-version = "2025.4.20"
+version = "3.0.0"
 description = "Da Vinci is used to rapidly build AWS Cloud Native based systems"
 authors = [{ name = "Jim Rosser" }]
 license = { text = "MIT" }
@@ -14,9 +14,9 @@ dependencies = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["da_vinci"]
-include = [
-    "Dockerfile",
-]
+
+[tool.hatch.build.targets.wheel.force-include]
+"da_vinci/Dockerfile" = "da_vinci/Dockerfile"
 
 [build-system]
 requires = ["hatchling"]
