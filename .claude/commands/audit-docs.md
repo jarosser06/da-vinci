@@ -1,9 +1,17 @@
 ---
 description: Audit documentation for code example accuracy and objective language
 scope: project
+skills:
+  - doc-audit
 ---
 
-Activate the doc-audit skill and perform a comprehensive audit of the da_vinci Sphinx documentation.
+Audit documentation for code examples and objective language.
+
+**CRITICAL**: You MUST activate ALL skills listed in frontmatter using the Skill tool before proceeding.
+
+Steps:
+1. **REQUIRED**: Activate skill: `Skill(doc-audit)`
+2. Perform comprehensive audit of the da_vinci Sphinx documentation
 
 Focus on:
 
