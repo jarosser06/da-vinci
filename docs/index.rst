@@ -43,7 +43,6 @@ The framework consists of two packages that work together:
    :maxdepth: 1
    :caption: Additional Information
 
-   migration
    contributing
    changelog
 
