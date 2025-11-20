@@ -2,28 +2,37 @@ Da Vinci
 ========
 A framework for rapidly developing Python-based AWS Cloud Native applications.
 
-Da Vinci is ideal for projects that require a low-bootstrap cost but require
-best-practices for rapidly developed software, internal IT and Intelligent
-Business Automation as examples.
+Da Vinci is ideal for projects that require a low-bootstrap cost but require best-practices for rapidly developed software, internal IT and Intelligent Business Automation as examples.
 
-For the application deployment and infrastructure management, Da Vinci is purely
-CDK under the hood. It utilitzes a few techniques to manage stacks under a single
-umbrella without some of the typical pitfalls that come with CloudFormation dependencies.
+For application deployment and infrastructure management, Da Vinci is purely CDK under the hood. It utilizes a few techniques to manage stacks under a single umbrella without some of the typical pitfalls that come with CloudFormation dependencies.
 
-**STABILITY NOTE**: This framework is in the process of being stabilized and will be available as a proper
-Python package with docs.
+## Installation
 
-The best place to start is reviewing the existing framework stacks located in the CDK library or the 
-[example applications](#example-applications) section below.
+**Using pip:**
+```bash
+pip install --extra-index-url https://packages.davinciproject.dev/simple/ da-vinci da-vinci-cdk
+```
+
+**Using Poetry:**
+```bash
+poetry source add --priority=explicit davinciproject https://packages.davinciproject.dev/simple/
+poetry add da-vinci --source davinciproject
+poetry add da-vinci-cdk --source davinciproject
+```
+
+**Using uv:**
+```bash
+uv add da-vinci da-vinci-cdk --extra-index-url https://packages.davinciproject.dev/simple/
+```
+
+## Overview
 
 The framework is split into two libraries:
 
-- `da_vinci` - This is the core library that will be utilized to develop the applcation business logic.
-- `da_vinci-cdk` - This is the CDK library that would be utilized to declare the application and AWS resource management.
+- **`da_vinci`** - Core runtime library for application business logic
+- **`da_vinci-cdk`** - CDK library for infrastructure declarations
 
-**WARNING**: CDK `destroy` operations may attempt to delete resources in an incorrect order that violates the defined
-dependencies. While deployment honors dependencies correctly, destroy operations can fail due to CDK not properly
-reversing the dependency order. Manual cleanup may be required in some cases. 
+**Note**: CDK `destroy` operations may attempt to delete resources in an incorrect order that violates defined dependencies. While deployment honors dependencies correctly, destroy operations can fail due to CDK not properly reversing the dependency order. Manual cleanup may be required in some cases. 
 
 ### Key Features
 - **AWS-Native Development**: Leverage AWS services directly while eliminating boilerplate
@@ -39,14 +48,13 @@ reversing the dependency order. Manual cleanup may be required in some cases.
 4. **Single Source of Truth**: Table definitions drive infrastructure, explicit dependencies, centralized configuration
 
 ### Versioning
-This library uses date-based versioning to indicate API contracts. The version number format is YYYY.MM.PP where:
+This library uses [Semantic Versioning](https://semver.org/) (SemVer). The version number format is MAJOR.MINOR.PATCH where:
 
-- `YYYY.MM` indicates the API contract version
-- `PP` is a patch number for non-breaking changes and bug fixes
+- `MAJOR` - Incompatible API changes
+- `MINOR` - Backward-compatible functionality additions
+- `PATCH` - Backward-compatible bug fixes
 
-For example: `2024.12.01` and `2024.12.02` maintain the same API contract, while `2025.01.01` indicates potential breaking changes from `2024.12`.
-
-Projects should pin to a specific `YYYY.MM` to maintain stability.
+For example: `2.0.0`, `2.1.0`, `2.0.1`
 
 Check the [Changelog](CHANGELOG.md) for specifics about what changed.
 

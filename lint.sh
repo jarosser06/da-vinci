@@ -46,15 +46,15 @@ done
 # Determine paths based on target
 case $TARGET in
     core)
-        PATHS="da_vinci/da_vinci"
+        PATHS="packages/core/da_vinci"
         echo "Linting da_vinci core..."
         ;;
     cdk)
-        PATHS="da_vinci-cdk/da_vinci_cdk"
+        PATHS="packages/cdk/da_vinci_cdk"
         echo "Linting da_vinci-cdk..."
         ;;
     all)
-        PATHS="da_vinci/da_vinci da_vinci-cdk/da_vinci_cdk"
+        PATHS="packages/core/da_vinci packages/cdk/da_vinci_cdk"
         echo "Linting all packages..."
         ;;
 esac

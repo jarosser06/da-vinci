@@ -5,8 +5,8 @@ This document contains global information for AI-assisted development on the Da 
 ## Project Overview
 
 Da Vinci is a framework for rapidly developing Python-based AWS Cloud Native applications. It consists of two packages:
-- **da_vinci**: Core runtime library for application business logic
-- **da_vinci-cdk**: CDK library for infrastructure declarations
+- **da_vinci** (`packages/core`): Core runtime library for application business logic
+- **da_vinci-cdk** (`packages/cdk`): CDK library for infrastructure declarations
 
 ## Versioning
 
@@ -55,7 +55,7 @@ Da Vinci is a framework for rapidly developing Python-based AWS Cloud Native app
 ## Package Management
 
 ### uv Workspace
-- Monorepo with two packages
+- Monorepo with two packages in `packages/` directory
 - Root workspace configuration
 - Shared development dependencies
 - Both packages installed in editable mode
@@ -128,8 +128,9 @@ Da Vinci is a framework for rapidly developing Python-based AWS Cloud Native app
 ## Key Files
 
 - `pyproject.toml` - Root workspace configuration
-- `da_vinci/pyproject.toml` - Core package configuration
-- `da_vinci-cdk/pyproject.toml` - CDK package configuration
+- `packages/core/pyproject.toml` - Core package configuration
+- `packages/cdk/pyproject.toml` - CDK package configuration
+- `scripts/` - Build and distribution automation
 - `CONTRIBUTING.md` - Contribution guidelines
 - `CHANGELOG.md` - Version history
 - `README.md` - Project overview
