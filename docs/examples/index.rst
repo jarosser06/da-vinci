@@ -24,7 +24,7 @@ Quick Links
 -----------
 
 - :doc:`basic_crud` - Simple CRUD application with DynamoDB
-- :doc:`event_driven` - Event-driven architecture with EventBridge
+- :doc:`event_driven` - Event-driven architecture with SQS event bus
 - :doc:`multi_table` - Working with multiple related tables
 - :doc:`api_backend` - REST API backend with Lambda
 - :doc:`batch_processing` - Batch data processing pipeline

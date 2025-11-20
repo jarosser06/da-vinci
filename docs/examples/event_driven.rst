@@ -261,9 +261,9 @@ Create ``app.py``:
    app.add_table(UserStatsTable)
 
    # Note: Event handlers are Lambda functions that are triggered by
-   # EventBridge rules. You would create Lambda functions for your handlers
-   # and configure EventBridge rules to route events to them.
-   # See the CDK documentation for details on wiring Lambda functions to EventBridge.
+   # SQS queues. You would create Lambda functions for your handlers
+   # and configure them to consume from the event queues.
+   # See the CDK documentation for details on wiring Lambda functions to SQS.
 
    app.synth()
 
@@ -312,7 +312,7 @@ Key Concepts
 ------------
 
 **Event Publisher**
-   Publishes events to EventBridge when actions occur.
+   Publishes events to the event bus when actions occur.
 
 **Event Handlers**
    Lambda functions that respond to specific event types.

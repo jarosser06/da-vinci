@@ -77,7 +77,7 @@ Da Vinci centralizes configuration and definitions to avoid duplication and ensu
 Da Vinci embraces AWS services rather than abstracting them away.
 
 **Leverage AWS Managed Services**
-   Use DynamoDB, SQS, EventBridge, etc. as they were designed, with Da Vinci providing helpers rather than replacements.
+   Use DynamoDB, SQS, etc. as they were designed, with Da Vinci providing helpers rather than replacements.
 
 **CDK Under the Hood**
    Infrastructure is pure CDK - you can mix Da Vinci constructs with standard CDK constructs.
@@ -85,7 +85,7 @@ Da Vinci embraces AWS services rather than abstracting them away.
 **AWS Patterns**
    Follow AWS best practices and patterns:
 
-- Event-driven with EventBridge and SQS
+- Event-driven with SQS-based event bus
 - Serverless with Lambda
 - NoSQL with DynamoDB
 - Infrastructure as Code with CDK
