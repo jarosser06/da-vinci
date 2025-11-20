@@ -491,15 +491,37 @@ class SideCarApplication:
         disable_docker_image_cache: bool | None = DA_VINCI_DISABLE_DOCKER_CACHE,  # type: ignore[assignment]
     ) -> None:
         """
-        Initialize a new SideCarApplication object
+        Initialize a sidecar application that shares resources with a parent application
+
+        A sidecar application is a separate CDK application that deploys alongside
+        and connects to an existing da_vinci Application. It shares the parent's
+        global settings, event bus, and exception trap, but maintains its own
+        infrastructure stacks. Use this for deploying auxiliary services that need
+        to interact with the main application without being part of it.
+
+        The sidecar reads configuration from the parent application's global settings
+        table to automatically discover shared resources. This requires the parent
+        application to be deployed first.
+
+        Organization:
+        - Sidecar has its own CDK app and stacks
+        - Shares parent's deployment_id for resource naming
+        - Gets separate resource names via sidecar_app_name prefix
+        - Connects to parent's global settings, event bus, exception trap
+
+        Request flow differences:
+        - Regular service: Part of main Application CDK tree
+        - Sidecar service: Separate CDK app, connects via resource discovery
 
         Keyword Arguments:
-            app_entry: Path to the application entry point (default: None)
-            app_image_use_lib_base: Use the library base image for the application (default: True)
-            app_name: Name of the application
-            deployment_id: Identifier assigned to the installation
-            disable_docker_image_cache: Disable the docker image cache (default: False)
-            sidecar_app_name: Name of the sidecar application
+        app_name -- Name of the parent application to connect to
+        deployment_id -- Deployment identifier (must match parent application)
+        sidecar_app_name -- Unique name for this sidecar (used in resource naming)
+        app_entry -- Path to sidecar application code directory
+        app_image_use_lib_base -- Build sidecar image on da_vinci base image
+        architecture -- Lambda architecture (ARM_64 or X86_64)
+        log_level -- Logging level for sidecar functions
+        disable_docker_image_cache -- Disable Docker build cache
         """
         self.app_entry = app_entry
 

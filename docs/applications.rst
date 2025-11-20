@@ -171,6 +171,102 @@ The Application manages AWS CloudFormation stacks and their dependencies:
        enable_exception_trap=True
    )
 
+Sidecar Applications
+--------------------
+
+Overview
+~~~~~~~~
+
+A sidecar application is a separate CDK application that deploys alongside and connects to an existing da_vinci Application. Sidecars share the parent's operational infrastructure (global settings, event bus, exception trap) but maintain their own stack deployments.
+
+When to Use
+~~~~~~~~~~~
+
+Use a sidecar application when you need:
+
+- Auxiliary services that support the main application
+- Services with different deployment lifecycles
+- Additional infrastructure that shouldn't be in the main app
+- Services managed by different teams using the same resources
+
+**Example use cases:**
+
+- Monitoring dashboards that read from main app's exception trap
+- Admin tools that modify global settings
+- Background processing services triggered by main app events
+- Integration services connecting to external systems
+
+How It Works
+~~~~~~~~~~~~
+
+**Resource Organization:**
+
+- Sidecar has its own CDK app and CloudFormation stacks
+- Shares parent's ``deployment_id`` for consistent resource naming
+- Gets unique resource names via ``sidecar_app_name`` prefix
+- Connects to parent's infrastructure via resource discovery
+
+**Deployment Requirements:**
+
+1. Parent application must be deployed first
+2. Sidecar reads parent's configuration from global settings table
+3. Sidecar automatically discovers shared resources
+4. Sidecar can add its own stacks and Lambda functions
+
+**Request Flow Differences:**
+
+.. code-block:: none
+
+   Regular Application Service:
+   Request → API Gateway → Lambda (in Application stack)
+                           ↓
+                      Shared Resources
+
+   Sidecar Service:
+   Request → API Gateway → Lambda (in SidecarApplication stack)
+                           ↓
+                      Shared Resources ← Discovered via resource registry
+
+Example
+~~~~~~~
+
+.. code-block:: python
+
+   from da_vinci_cdk import Application, SideCarApplication, Stack
+
+   # Main application (deploy first)
+   app = Application(
+       app_name='customer-portal',
+       deployment_id='prod',
+       enable_event_bus=True,
+       enable_exception_trap=True
+   )
+
+   # Sidecar application for admin tools (deploy separately)
+   admin_app = SideCarApplication(
+       app_name='customer-portal',        # Same as parent
+       deployment_id='prod',               # Same as parent
+       sidecar_app_name='admin-tools',    # Unique identifier
+       app_entry='./admin_src'
+   )
+
+   # Add stacks to sidecar
+   admin_app.add_uninitialized_stack(AdminDashboardStack)
+
+   # Sidecar functions can access parent's:
+   # - Global settings table
+   # - Event bus (if enabled)
+   # - Exception trap (if enabled)
+   # - Resource registry
+
+Limitations
+~~~~~~~~~~~
+
+- Parent application must exist and be deployed
+- Cannot modify parent application's stacks
+- Shares parent's global settings (read/write access)
+- Must use same AWS account and region as parent
+
 Best Practices
 --------------
 
@@ -181,6 +277,7 @@ Resource Organization
 - Store shared configuration in global settings
 - Use event bus for component communication
 - Use exception trap for error tracking
+- Use sidecars for auxiliary services with separate lifecycles
 
 Environment Isolation
 ~~~~~~~~~~~~~~~~~~~~~
