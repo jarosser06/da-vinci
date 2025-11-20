@@ -52,6 +52,26 @@ If you're using the `uv <https://github.com/astral-sh/uv>`_ package manager:
 
    uv add da-vinci da-vinci-cdk --extra-index-url https://packages.davinciproject.dev/simple/
 
+Or configure in your ``pyproject.toml``:
+
+.. code-block:: toml
+
+   [project]
+   dependencies = [
+       "da-vinci>=3.0.0",
+       "da-vinci-cdk>=3.0.0",
+   ]
+
+   [[tool.uv.index]]
+   name = "davinciproject"
+   url = "https://packages.davinciproject.dev/simple/"
+
+Then install with:
+
+.. code-block:: bash
+
+   uv sync
+
 Development Installation
 -------------------------
 
