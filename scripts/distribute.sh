@@ -279,7 +279,39 @@ esac
 # Generate root index after all packages are uploaded
 generate_root_index
 
+# Invalidate CloudFront cache if using CloudFront
+invalidate_cloudfront_cache() {
+    echo -e "${YELLOW}→${NC} Invalidating CloudFront cache..."
+
+    # Try to get distribution ID from CloudFormation stack
+    local stack_name="${PROJECT_NAME}-pypi-${ENVIRONMENT}"
+    local distribution_id=$(aws cloudformation describe-stacks \
+        --stack-name "$stack_name" \
+        --region "$AWS_REGION" \
+        --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" \
+        --output text 2>/dev/null || echo "")
+
+    if [ -z "$distribution_id" ] || [ "$distribution_id" == "None" ]; then
+        echo -e "${YELLOW}  No CloudFront distribution found, skipping cache invalidation${NC}"
+        return
+    fi
+
+    echo "  Distribution ID: $distribution_id"
+
+    # Create invalidation for all index.html files
+    aws cloudfront create-invalidation \
+        --distribution-id "$distribution_id" \
+        --paths "/simple/*/index.html" "/simple/index.html" \
+        --region us-east-1 >/dev/null
+
+    echo -e "${GREEN}✓ CloudFront cache invalidation initiated${NC}"
+    echo ""
+}
+
 if [ $DRY_RUN -eq 0 ]; then
+    # Invalidate CloudFront cache
+    invalidate_cloudfront_cache
+
     # Determine PyPI URL (CloudFront domain or S3 URL)
     if [ -n "$DOMAIN_NAME" ] && [ "$DOMAIN_NAME" != "null" ]; then
         PYPI_URL="https://$DOMAIN_NAME/simple/"
