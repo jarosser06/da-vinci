@@ -11,6 +11,7 @@ Guide the user through the process of releasing a new version of the da_vinci pa
 
 2. **Run bump-version script**: Execute `./scripts/bump-version.sh {bump_type} --no-changelog` to:
    - Update version in both `packages/core/pyproject.toml` and `packages/cdk/pyproject.toml`
+   - Update `__version__` in `packages/core/da_vinci/__init__.py` to match
    - Update CDK dependency on core to exact version
    - Regenerate `uv.lock`
    - Capture the new version number from stdout

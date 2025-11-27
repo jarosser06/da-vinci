@@ -123,6 +123,13 @@ sed -i.bak "s/^version = \".*\"/version = \"$NEW_VERSION\"/" "$CORE_PYPROJECT"
 rm "${CORE_PYPROJECT}.bak"
 echo -e "${GREEN}✓ Updated core package${NC}" >&2
 
+# Update __version__ in __init__.py
+CORE_INIT="$PROJECT_ROOT/packages/core/da_vinci/__init__.py"
+echo -e "${YELLOW}→${NC} Updating packages/core/da_vinci/__init__.py..." >&2
+sed -i.bak "s/^__version__ = \".*\"/__version__ = \"$NEW_VERSION\"/" "$CORE_INIT"
+rm "${CORE_INIT}.bak"
+echo -e "${GREEN}✓ Updated __version__${NC}" >&2
+
 # Update CDK package version
 echo -e "${YELLOW}→${NC} Updating packages/cdk/pyproject.toml..." >&2
 sed -i.bak "s/^version = \".*\"/version = \"$NEW_VERSION\"/" "$CDK_PYPROJECT"

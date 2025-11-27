@@ -15,4 +15,6 @@ RUN if [ -f ${LAMBDA_TASK_ROOT}/da_vinci/pyproject.toml ]; then \
         poetry config virtualenvs.create false && \
         cd ${LAMBDA_TASK_ROOT}/da_vinci/ && \
         poetry install; \
+    else \
+        pip install 'boto3>=1.37.13' 'requests>=2.32.3' 'requests-auth-aws-sigv4==0.7'; \
     fi 
