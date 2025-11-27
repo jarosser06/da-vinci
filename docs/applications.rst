@@ -159,6 +159,48 @@ The Application handles container image builds for Lambda functions:
        app_image_use_lib_base=False  # Uses your Dockerfile from app_entry
    )
 
+.. _docker-custom-indexes:
+
+Application Dockerfile Requirements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When using a custom Dockerfile in your application's ``app_entry`` directory, you must install uv to respect custom package index configurations in your ``pyproject.toml``.
+
+**Why uv is Required**
+
+If your ``pyproject.toml`` specifies a custom package index:
+
+.. code-block:: toml
+
+   [[tool.uv.index]]
+   url = "https://packages.example.com/simple/"
+
+Then pip will not respect this configuration. The Dockerfile must use ``uv pip install`` to properly read the index configuration from ``pyproject.toml``.
+
+**Required Dockerfile Pattern**
+
+.. code-block:: dockerfile
+
+   # Image is passed as a build arg by the framework
+   ARG IMAGE
+   FROM $IMAGE
+
+   # Install uv to respect pyproject.toml index configuration
+   RUN pip install uv
+
+   ADD . ${LAMBDA_TASK_ROOT}/myapp
+   RUN rm -rf /var/task/myapp/.venv
+
+   # Use uv pip install to respect custom package indexes
+   RUN cd ${LAMBDA_TASK_ROOT}/myapp && uv pip install --system .
+
+**Key Points**
+
+- ``pip install uv`` installs uv in the Lambda base image
+- ``uv pip install --system`` reads ``[[tool.uv.index]]`` from ``pyproject.toml``
+- ``--system`` flag installs packages globally (no virtual environment)
+- This pattern works with both PyPI and custom package repositories
+
 Stack Management
 ~~~~~~~~~~~~~~~~
 

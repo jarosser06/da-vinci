@@ -72,6 +72,10 @@ Then install with:
 
    uv sync
 
+**Important for Docker Deployments**
+
+If you use a custom package index in ``pyproject.toml``, your application's Dockerfile must use ``uv pip install`` instead of ``pip install`` to respect the index configuration. See :ref:`docker-custom-indexes` in the Applications documentation for the required Dockerfile pattern.
+
 Development Installation
 -------------------------
 
