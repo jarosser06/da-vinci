@@ -283,13 +283,25 @@ generate_root_index
 invalidate_cloudfront_cache() {
     echo -e "${YELLOW}→${NC} Invalidating CloudFront cache..."
 
-    # Try to get distribution ID from CloudFormation stack
-    local stack_name="${PROJECT_NAME}-pypi-${ENVIRONMENT}"
-    local distribution_id=$(aws cloudformation describe-stacks \
-        --stack-name "$stack_name" \
-        --region "$AWS_REGION" \
-        --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" \
-        --output text 2>/dev/null || echo "")
+    # Try multiple possible stack name patterns
+    local stack_names=(
+        "${PROJECT_NAME}-pypi-infrastructure"
+        "${PROJECT_NAME}-pypi-${ENVIRONMENT}"
+        "${PROJECT_NAME}-pypi"
+    )
+
+    local distribution_id=""
+    for stack_name in "${stack_names[@]}"; do
+        distribution_id=$(aws cloudformation describe-stacks \
+            --stack-name "$stack_name" \
+            --region "$AWS_REGION" \
+            --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" \
+            --output text 2>/dev/null || echo "")
+
+        if [ -n "$distribution_id" ] && [ "$distribution_id" != "None" ]; then
+            break
+        fi
+    done
 
     if [ -z "$distribution_id" ] || [ "$distribution_id" == "None" ]; then
         echo -e "${YELLOW}  No CloudFront distribution found, skipping cache invalidation${NC}"
