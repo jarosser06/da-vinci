@@ -1,6 +1,6 @@
 [project]
 name = "da-vinci"
-version = "3.0.3"
+version = "3.0.4"
 description = "Da Vinci is used to rapidly build AWS Cloud Native based systems"
 authors = [{ name = "Jim Rosser" }]
 license = { text = "MIT" }

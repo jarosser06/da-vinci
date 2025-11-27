@@ -1,5 +1,10 @@
 Changelog
 
+## [3.0.4] - 2025-11-26
+
+Fix Docker packaging for production deployments. Add production install path to Dockerfile for wheel installations. Add __version__ constant and synchronization. Document custom package index requirements for Docker deployments.
+
+
 ## [3.0.1] - 2025-11-20
 
 Fixed to include the Dockerfile in the package distribution
