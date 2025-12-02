@@ -1,4 +1,6 @@
 ---
+name: documentation
+description: Documentation agent for maintaining accurate, objective documentation for da_vinci project. Use for docstring validation, documentation updates, and documentation audits.
 model: sonnet
 skills:
   - python-docs

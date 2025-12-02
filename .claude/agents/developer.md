@@ -1,4 +1,6 @@
 ---
+name: developer
+description: Python developer agent for implementing features and fixes in da_vinci packages. Use for feature development, bug fixes, and code modifications.
 model: sonnet
 skills:
   - development

@@ -1,4 +1,6 @@
 ---
+name: qa
+description: QA engineer agent for creating pytest tests and ensuring test coverage for da_vinci packages. Use for test creation and test coverage improvements.
 model: sonnet
 skills:
   - testing
