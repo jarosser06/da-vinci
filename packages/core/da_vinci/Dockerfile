@@ -1,5 +1,6 @@
 ARG IMAGE=public.ecr.aws/lambda/python:3.12
 FROM $IMAGE
+ARG DA_VINCI_VERSION
 
 # set the pip cache location
 ENV PIP_CACHE_DIR=/tmp/pip-cache
@@ -7,7 +8,7 @@ ENV PIP_CACHE_DIR=/tmp/pip-cache
 # Install system dependencies needed by da-vinci
 RUN dnf install -y gcc libxml2-devel libxslt-devel git && \
     rm -Rf /var/cache/yum && \
-    pip install --upgrade pip
+    pip install --upgrade pip uv
 
 ADD . ${LAMBDA_TASK_ROOT}/da_vinci
 RUN if [ -f ${LAMBDA_TASK_ROOT}/da_vinci/pyproject.toml ]; then \
@@ -16,5 +17,5 @@ RUN if [ -f ${LAMBDA_TASK_ROOT}/da_vinci/pyproject.toml ]; then \
         cd ${LAMBDA_TASK_ROOT}/da_vinci/ && \
         poetry install; \
     else \
-        pip install 'boto3>=1.37.13' 'requests>=2.32.3' 'requests-auth-aws-sigv4==0.7'; \
+        uv pip install --system --extra-index-url https://packages.davinciproject.dev/simple/ "da-vinci==${DA_VINCI_VERSION}"; \
     fi 
