@@ -248,7 +248,10 @@ class Application:
 
         self.root_domain_name = root_domain_name
 
+        import da_vinci
+
         self.lib_docker_image = DockerImage.from_build(
+            build_args={"DA_VINCI_VERSION": da_vinci.__version__},
             cache_disabled=disable_docker_image_cache,
             path=self.lib_container_entry,
         )
@@ -532,7 +535,10 @@ class SideCarApplication:
 
         self._stacks: dict[str, Any] = {}
 
+        import da_vinci
+
         self.lib_docker_image = DockerImage.from_build(
+            build_args={"DA_VINCI_VERSION": da_vinci.__version__},
             cache_disabled=disable_docker_image_cache,
             path=self.lib_container_entry,
         )
