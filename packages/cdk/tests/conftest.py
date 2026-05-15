@@ -49,15 +49,13 @@ def temp_dockerfile_dir():
     with tempfile.TemporaryDirectory() as tmpdir:
         # Create a minimal Dockerfile
         dockerfile_path = Path(tmpdir) / "Dockerfile"
-        dockerfile_path.write_text(
-            """ARG IMAGE
+        dockerfile_path.write_text("""ARG IMAGE
 FROM ${IMAGE}
 ARG FUNCTION_INDEX
 ARG FUNCTION_HANDLER
 COPY ${FUNCTION_INDEX}.py ${LAMBDA_TASK_ROOT}
 CMD ["${FUNCTION_INDEX}.${FUNCTION_HANDLER}"]
-"""
-        )
+""")
         # Create a minimal Python file
         index_path = Path(tmpdir) / "index.py"
         index_path.write_text("def handler(event, context):\n    return {'statusCode': 200}\n")

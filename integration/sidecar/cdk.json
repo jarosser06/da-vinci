@@ -1,0 +1,10 @@
+{
+  "app": "uv run env PYTHONPATH=. python app.py",
+  "watch": {
+    "include": ["**"],
+    "exclude": ["__pycache__/**", "*.pyc"]
+  },
+  "context": {
+    "@aws-cdk/custom-resources:installLatestAwsSdkDefault": false
+  }
+}

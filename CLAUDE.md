@@ -1,193 +1,84 @@
-# Da Vinci - Claude Code Integration
+# Linting Standards
 
-This document contains global information for AI-assisted development on the Da Vinci framework.
+## Core Principle
 
-## Project Overview
+**All linting errors must be resolved before committing code.**
 
-Da Vinci is a framework for rapidly developing Python-based AWS Cloud Native applications. It consists of two packages:
-- **da_vinci** (`packages/core`): Core runtime library for application business logic
-- **da_vinci-cdk** (`packages/cdk`): CDK library for infrastructure declarations
+Do not ignore, suppress, or bypass linting checks unless explicitly instructed by the user.
 
-## Versioning
+## Workflow
 
-### Format
-- **MAJOR.MINOR.PATCH** - [Semantic Versioning](https://semver.org/)
-- **MAJOR** = Incompatible API changes
-- **MINOR** = Backward-compatible functionality additions
-- **PATCH** = Backward-compatible bug fixes
+1. **Run the project's linter** - Use whatever linting tools the project has configured
+2. **Fix all reported issues** - Address errors, warnings, and style violations
+3. **Verify clean output** - Re-run linter to confirm all issues are resolved
+4. **Only then commit** - Linting must pass before creating commits
 
-### Version Policy
-- Same MAJOR version = API compatibility (MINOR and PATCH are backward compatible)
-- Different MAJOR version = Breaking changes
-- Projects should pin to specific MAJOR.MINOR for stability
+## When Linting Errors Occur
 
-### Current Version
-- 2.0.0
+- **Fix the issue** - Don't add ignore comments or suppress warnings
+- **Follow project standards** - Respect the project's linting configuration
+- **Ask for clarification** - If an error seems incorrect, ask the user rather than bypassing it
 
-## Core Principles
+## Acceptable Exceptions
 
-### Additive Convenience
-- Framework provides convenience without blocking direct AWS access
-- Never prevent boto3 or direct AWS service usage
-- Users can mix framework features with direct AWS calls
-- Eliminate boilerplate, not control
+You may ignore linting errors only when:
+- The user explicitly instructs you to do so
+- The user provides specific ignore directives or suppression comments to add
 
-### Single Source of Truth
-- Table definitions centralized
-- Configuration in one place
-- Avoid duplication
+Otherwise, treat all linting errors as blockers that must be resolved.
 
-### AWS-Native Development
-- Stay close to AWS services
-- Framework wraps but doesn't hide
-- Leverage AWS managed services
+# Bug Fix Tests
 
-### Operational First
-- Built-in error handling
-- Service discovery
-- Event communication
-- Production-ready patterns
+**Before fixing a bug, write a test that reproduces it and fails.** Then fix the bug and confirm the test passes.
 
-### Table Definitions Drive Infrastructure
-- DynamoDB table definitions should be centralized
-- Infrastructure generated from code
-- Consistent naming across environments
+The failing test proves the bug exists and prevents regression. Skip only if the user waives it or the change has no behavioral impact (e.g. typo in a comment).
 
-## Package Management
+# Use Serena for Codebase Work
 
-### uv Workspace
-- Monorepo with two packages in `packages/` directory
-- Root workspace configuration
-- Shared development dependencies
-- Both packages installed in editable mode
+**Use the `serena` MCP server for all codebase exploration, navigation, and symbol lookup.** Do not rely on memory or assumptions about code structure — query serena.
 
-### Dependencies
-- Core: Python ≥3.11, boto3, requests
-- CDK: Python ≥3.12, aws-cdk-lib, constructs, da-vinci (workspace)
-- Dev: pytest, flake8, black, isort, mypy, boto3-stubs
+# Use Context7 for Documentation
 
-## Testing & Quality
+**Use the `context7` MCP server to look up library and API documentation.** Never assume an API's behavior — check the docs before writing or recommending code that depends on it.
 
-### Coverage Requirement
-- **90% minimum** coverage required
-- Enforced before PR merge
-- Combined coverage across both packages
+# No AI Attribution
 
-### Linting
-- Line length: 100 characters
-- Tools: flake8, black, isort, mypy
-- Zero lint errors required for PR
+**Never include attribution for AI assistance in commits, pull requests, or any code contributions.**
 
-### CRITICAL: Use Project Scripts
+Do not add:
+- `Co-Authored-By: Claude`
+- `Co-Authored-By: AI Assistant`
+- Any similar AI attribution
+- Comments crediting AI assistance
 
-**ALWAYS use the provided scripts. DO NOT run tools directly or make up your own commands.**
+Code contributions should reflect the repository owner's work. AI assistance is a tool, not a contributor.
 
-### Test Commands
-- `./test.sh` - Run all tests
-- `./test.sh core` - Test da_vinci only
-- `./test.sh cdk` - Test da_vinci-cdk only
-- `./test.sh --coverage` - With coverage report
 
-**NEVER run pytest directly. ALWAYS use ./test.sh**
+# Use Runbook for Project Tasks
 
-### Lint Commands
-- `./lint.sh` - Lint all packages
-- `./lint.sh --fix` - Auto-fix issues
-- `./lint.sh core` - Lint da_vinci only
-- `./lint.sh cdk` - Lint da_vinci-cdk only
+**Use the `runbook` MCP server for all project task automation** — dev servers, builds, linting, type checking, testing, and any other tooling exposed under `.runbook/*.yaml`. Never invoke those underlying commands (e.g. `tsc`, `eslint`, `vitest`, `vite`, `astro`, `next`, `docker compose`, `ruff`, `mypy`) directly via Bash when an equivalent runbook task exists.
 
-**NEVER run flake8, black, isort, or mypy directly. ALWAYS use ./lint.sh**
+Check available tasks with the runbook MCP tools before reaching for Bash. If a task is missing, add it to the appropriate `.runbook/*.yaml` rather than working around it.
 
-### Documentation Commands
-- `./scripts/build-docs.sh` - Build Sphinx documentation
-- `./scripts/deploy-docs.sh <version> <bucket> <distribution-id>` - Deploy docs to S3
 
-**NEVER run sphinx-build or make directly. ALWAYS use ./scripts/build-docs.sh**
+You must use the runbook MCP tools for all Python linting, formatting, type checking, and dead-code detection operations. Never run ruff, mypy, black, isort, or vulture commands directly via Bash. Available runbook tasks: py-ruff, py-black, py-isort, py-mypy, py-vulture, py-vulture-whitelist, py-uv-sync.
+# NO INLINE LINT / TYPE / DEAD-CODE SUPPRESSIONS — HARD RULE
 
-## Development Workflow
+**NEVER** write `# noqa`, `# noqa: <code>`, `# type: ignore`, `# type: ignore[<code>]`,
+`# pyright: ignore`, `# pylint: disable`, `# vulture: ignore`, `# noinspection`,
+`# fmt: off` / `# fmt: on`, `# ruff: noqa`, `# mypy: ignore-errors`, or any
+equivalent inline suppression comment. **NO EXCEPTIONS.**
 
-### Skills and Commands
+If a tool reports an issue, do exactly one of:
 
-**CRITICAL: Skill Activation is Mandatory**
+1. **Fix the actual problem.** The tool is telling you something real.
+2. **Delete the code.** If vulture says it is dead, it is almost always dead. Remove it.
+3. **Use the project-level whitelist mechanism.** For genuine vulture false positives
+   (framework hooks, dynamic attribute access), append to `.vulture_whitelist.py`
+   via the `py-vulture-whitelist` runbook task — never inline. For ruff per-file
+   exceptions, use `[tool.ruff.lint.per-file-ignores]` in `pyproject.toml`.
+4. **Refactor.** If a type checker is fighting you, your types are wrong.
 
-When executing any slash command (e.g., `/create-pr`, `/work-on-issue`), you MUST:
-1. Activate ALL skills listed in the command's frontmatter using the Skill tool
-2. Skills are activated using: `Skill(skill-name)`
-3. Skills MUST be activated BEFORE executing any other steps in the command
+Inline suppressions hide bugs, spread, and defeat CI. Reject any PR that adds one.
 
-**Example**:
-```
-Command frontmatter lists: skills: [pr-writing, testing, linting]
-You MUST call: Skill(pr-writing), Skill(testing), Skill(linting)
-BEFORE running any tests, linting, or creating PRs
-```
-
-**Available Skills**:
-- `development` - Development patterns and implementation guidance
-- `testing` - Test execution and coverage validation
-- `linting` - Code quality and formatting
-- `code-review` - Comprehensive code review
-- `github-operations` - GitHub issue and PR management
-- `pr-writing` - Pull request description formatting
-- `issue-writing` - GitHub issue creation standards
-- `doc-audit` - Documentation validation
-- `definition-of-done` - Work completion validation
-- `python-docs` - Da Vinci framework documentation queries
-
-### Branch Strategy
-- Feature branches: `feature/description`
-- Fix branches: `fix/description`
-- Issue branches: `issue/<#>`
-
-### Commit Message Format
-- Title: Under 70 characters, active voice
-- Body: Bullet points for multiple changes
-- Reference issues when applicable
-
-### Pull Request Process
-1. Ensure tests pass (90% coverage)
-2. Ensure linting passes (zero errors)
-3. Squash commits appropriately
-4. Create PR with clear description
-5. Respond to review feedback
-
-## MCP Servers
-
-### context7
-- Fetch latest da-vinci documentation
-- Get up-to-date framework patterns
-- Always prefer context7 over outdated assumptions
-
-### serena
-- Code navigation and symbol search
-- Intelligent code refactoring
-- Find references and definitions
-
-### github
-- Issue and PR management
-- Auto-detect repository from git remote
-- Requires GITHUB_PERSONAL_ACCESS_TOKEN
-
-## Key Files
-
-- `pyproject.toml` - Root workspace configuration
-- `packages/core/pyproject.toml` - Core package configuration
-- `packages/cdk/pyproject.toml` - CDK package configuration
-- `scripts/` - Build and distribution automation
-- `CONTRIBUTING.md` - Contribution guidelines
-- `CHANGELOG.md` - Version history
-- `README.md` - Project overview
-
-## Development Environment
-
-### Devcontainer
-- Python 3.12, Node.js 22
-- AWS CLI, AWS CDK
-- uv package manager
-- All dev tools pre-installed
-
-### Local Development
-- Install uv: `curl -LsSf https://astral.sh/uv/install.sh | sh`
-- Sync workspace: `uv sync`
-- Run tests: `./test.sh`
-- Run linting: `./lint.sh --fix`
+See `.claude/rules/python/no-suppressions.md` for the full reference.

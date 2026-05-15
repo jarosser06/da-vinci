@@ -4,9 +4,11 @@ from collections.abc import Callable
 from copy import deepcopy
 from datetime import UTC, datetime
 from enum import StrEnum, auto
-from typing import Any
+from typing import Any, TypeVar
 
 from da_vinci.core.orm.orm_exceptions import MissingTableObjectAttributeError
+
+TTableObject = TypeVar("TTableObject", bound="TableObject")
 
 
 class TableObjectAttributeType(StrEnum):
@@ -596,8 +598,11 @@ class TableObject:
                 attr.set_attribute(self, attr.composite_string_value(composite_args))
 
             elif attr.name in kwargs:
-                # If the value is None and the attribute has a default, use the default
-                if not kwargs[attr.name] and attr.default:
+                # If the value is None and the attribute has a default, use the
+                # default. Only None triggers this — an explicit falsy value
+                # (e.g. active=False, count=0, name="") is a real value the
+                # caller chose and must be preserved.
+                if kwargs[attr.name] is None and attr.default is not None:
                     attr.set_attribute(self, attr.default)
 
                 else:
@@ -839,7 +844,7 @@ class TableObject:
         return None
 
     @classmethod
-    def from_dynamodb_item(cls, item: dict) -> "TableObject":
+    def from_dynamodb_item(cls: type[TTableObject], item: dict) -> TTableObject:
         """
         Create a TableObject from a DynamoDB item
 
@@ -914,11 +919,20 @@ class TableObject:
         Returns:
             str
         """
-        schema_str_list = [
-            cls.schema_description(),
-        ]
+        full_descr = cls.object_name or cls.__name__
+
+        if cls.description:
+            full_descr += f" - {cls.description}"
+
+        schema_str_list = [full_descr]
 
         for attr in cls.all_attributes():
+            if attr.exclude_from_schema_description:
+                continue
+
+            if only_indexed_attributes and not attr.is_indexed:
+                continue
+
             schema_str_list.append(attr.schema_to_str())
 
         return "\n".join(schema_str_list)

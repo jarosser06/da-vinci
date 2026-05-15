@@ -124,7 +124,7 @@ class GlobalSettingsScanDefinition(TableScanDefinition):
         super().__init__(table_object_class=GlobalSetting)
 
 
-class GlobalSettings(TableClient):
+class GlobalSettings(TableClient[GlobalSetting]):
     def __init__(
         self,
         app_name: str | None = None,
@@ -147,10 +147,8 @@ class GlobalSettings(TableClient):
         )
 
     def all(self) -> list[GlobalSetting]:
-        """
-        Get all settings
-        """
-        return self._all_objects()  # type: ignore[return-value]
+        """Get all settings."""
+        return self._all_objects()
 
     def delete(self, setting: GlobalSetting) -> None:
         """
@@ -169,7 +167,7 @@ class GlobalSettings(TableClient):
             namespace: The namespace of the setting
             setting_key: The setting key
         """
-        return self.get_object(  # type: ignore[return-value]
+        return self.get_object(
             partition_key_value=namespace,
             sort_key_value=setting_key,
         )
@@ -181,9 +179,11 @@ class GlobalSettings(TableClient):
         Arguments:
             setting: The setting to put
         """
-        return self.put_object(setting)  # type: ignore[func-returns-value, return-value]
+        self.put_object(setting)
 
-    def scan(self, scan_definition: TableScanDefinition) -> list[TableObject]:
+        return setting
+
+    def scan(self, scan_definition: TableScanDefinition) -> list[GlobalSetting]:
         """
         Scan for settings
 

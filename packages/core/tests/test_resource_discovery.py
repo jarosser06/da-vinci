@@ -138,7 +138,9 @@ class TestSSMResourceLookup:
     def test_ssm_lookup_success(self, aws_credentials, ssm_client):
         """Test successful SSM parameter lookup."""
         # Create SSM parameter
-        param_name = "/da_vinci_framework/service_discovery/test-app/test-deployment/table/test-table"
+        param_name = (
+            "/da_vinci_framework/service_discovery/test-app/test-deployment/table/test-table"
+        )
         ssm_client.put_parameter(
             Name=param_name,
             Value="arn:aws:dynamodb:us-east-1:123456789012:table/test-table",
@@ -174,7 +176,9 @@ class TestSSMResourceLookup:
     def test_ssm_lookup_uses_cache(self, aws_credentials, ssm_client):
         """Test that SSM lookup uses cache on second call."""
         # Create SSM parameter
-        param_name = "/da_vinci_framework/service_discovery/test-app/test-deployment/table/cached-table"
+        param_name = (
+            "/da_vinci_framework/service_discovery/test-app/test-deployment/table/cached-table"
+        )
         ssm_client.put_parameter(
             Name=param_name,
             Value="test-endpoint",
@@ -204,7 +208,9 @@ class TestSSMResourceLookup:
     def test_ssm_cache_expires(self, aws_credentials, ssm_client, monkeypatch):
         """Test that SSM cache expires after TTL."""
         # Create SSM parameter
-        param_name = "/da_vinci_framework/service_discovery/test-app/test-deployment/table/expire-test"
+        param_name = (
+            "/da_vinci_framework/service_discovery/test-app/test-deployment/table/expire-test"
+        )
         ssm_client.put_parameter(
             Name=param_name,
             Value="original-endpoint",
@@ -427,7 +433,9 @@ class TestResourceDiscoveryIntegration:
     ):
         """Test using both SSM and DynamoDB storage solutions."""
         # Create SSM parameter
-        ssm_param_name = "/da_vinci_framework/service_discovery/test-app/test-deployment/table/ssm-table"
+        ssm_param_name = (
+            "/da_vinci_framework/service_discovery/test-app/test-deployment/table/ssm-table"
+        )
         ssm_client.put_parameter(
             Name=ssm_param_name,
             Value="ssm-endpoint",

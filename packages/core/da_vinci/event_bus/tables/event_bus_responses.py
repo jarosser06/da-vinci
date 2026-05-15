@@ -118,7 +118,7 @@ class EventBusResponsesScanDefinition(TableScanDefinition):
         )
 
 
-class EventBusResponses(TableClient):
+class EventBusResponses(TableClient[EventBusResponse]):
     def __init__(self, app_name: str | None = None, deployment_id: str | None = None) -> None:
         super().__init__(
             app_name=app_name,
@@ -126,7 +126,7 @@ class EventBusResponses(TableClient):
             default_object_class=EventBusResponse,
         )
 
-    def delete(self, event_response: EventBusResponse):
+    def delete(self, event_response: EventBusResponse) -> None:
         """
         Delete an event bus subscription response
 
@@ -135,7 +135,7 @@ class EventBusResponses(TableClient):
         """
         self.delete_object(event_response)
 
-    def get(self, event_type: str, response_id: str) -> EventBusResponse:
+    def get(self, event_type: str, response_id: str) -> EventBusResponse | None:
         """
         Get an event bus subscription response
 
@@ -144,22 +144,21 @@ class EventBusResponses(TableClient):
             response_id: The response ID
 
         Returns:
-            EventBusResponse
+            EventBusResponse or None if no record exists
         """
-
-        return self.get_object(  # type: ignore[return-value]
+        return self.get_object(
             partition_key_value=event_type,
             sort_key_value=response_id,
         )
 
-    def put(self, event_bus_subscription_response: EventBusResponse):
+    def put(self, event_bus_subscription_response: EventBusResponse) -> None:
         """
         Put an event bus subscription response
 
         Keyword Arguments:
             event_bus_subscription_response: The event bus subscription response to put
         """
-        return self.put_object(event_bus_subscription_response)
+        self.put_object(event_bus_subscription_response)
 
     def scan(self, scan_definition: EventBusResponsesScanDefinition) -> list[EventBusResponse]:
         """
@@ -171,4 +170,4 @@ class EventBusResponses(TableClient):
         Returns:
             List of EventBusResponse
         """
-        return self.full_scan(scan_definition=scan_definition)  # type: ignore[return-value]
+        return self.full_scan(scan_definition=scan_definition)

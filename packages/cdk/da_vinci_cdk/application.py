@@ -2,6 +2,8 @@
 Application class and Core Stack for DaVinci CDK
 """
 
+import hashlib
+import os
 from os import getenv
 from os.path import realpath
 from typing import Any
@@ -31,7 +33,38 @@ from da_vinci_cdk.framework_stacks.tables.resource_registry.stack import (
 )
 from da_vinci_cdk.stack import Stack
 
-DA_VINCI_DISABLE_DOCKER_CACHE = getenv("DA_VINCI_DISABLE_DOCKER_CACHE", False)
+DA_VINCI_DISABLE_DOCKER_CACHE: bool = bool(getenv("DA_VINCI_DISABLE_DOCKER_CACHE", False))
+
+
+def _hash_tree(path: str) -> str:
+    """Return a stable sha256 hash of every file under ``path``.
+
+    Used as a Docker build arg so CDK's image asset hash invalidates when
+    framework source is edited. Without this the image tag is a function of
+    only ``path`` and explicit args, leaving local edits stuck behind cached
+    Lambda function code.
+    """
+    hasher = hashlib.sha256()
+
+    for root, _dirs, files in sorted(os.walk(path)):
+        for name in sorted(files):
+            if name.endswith((".pyc",)) or "__pycache__" in root:
+                continue
+
+            full = os.path.join(root, name)
+
+            hasher.update(full.encode("utf-8"))
+
+            with open(full, "rb") as fh:
+                while True:
+                    chunk = fh.read(65536)
+
+                    if not chunk:
+                        break
+
+                    hasher.update(chunk)
+
+    return hasher.hexdigest()
 
 
 class CoreStack(Stack):
@@ -126,8 +159,11 @@ class CoreStack(Stack):
         )
 
         if resource_discovery_storage_solution == ResourceDiscoveryStorageSolution.DYNAMODB:
+            if resource_discovery_table_name is None:
+                raise ValueError("resource_discovery_table_name is required when using DynamoDB")
+
             resource_discovery_full_table_name = resource_namer(
-                name=resource_discovery_table_name,  # type: ignore[arg-type]
+                name=resource_discovery_table_name,
                 scope=self,
             )
 
@@ -184,7 +220,7 @@ class Application:
         architecture: str | None = cdk_lambda.Architecture.ARM_64,
         custom_context: dict | None = None,
         create_hosted_zone: bool | None = False,
-        disable_docker_image_cache: bool | None = DA_VINCI_DISABLE_DOCKER_CACHE,  # type: ignore[assignment]
+        disable_docker_image_cache: bool = DA_VINCI_DISABLE_DOCKER_CACHE,
         enable_exception_trap: bool | None = True,
         enable_logging_bucket: bool | None = False,
         enable_event_bus: bool | None = False,
@@ -250,8 +286,17 @@ class Application:
 
         import da_vinci
 
+        # CDK's ``DockerImage.from_build`` derives the image tag from the
+        # build path and build args — NOT from file contents. A content-hash
+        # build arg makes the tag (and the asset hashes that propagate from
+        # it) invalidate when the da_vinci source tree changes.
+        lib_src_hash = _hash_tree(self.lib_container_entry)
+
         self.lib_docker_image = DockerImage.from_build(
-            build_args={"DA_VINCI_VERSION": da_vinci.__version__},
+            build_args={
+                "DA_VINCI_VERSION": da_vinci.__version__,
+                "DA_VINCI_SRC_HASH": lib_src_hash,
+            },
             cache_disabled=disable_docker_image_cache,
             path=self.lib_container_entry,
         )
@@ -324,29 +369,31 @@ class Application:
 
         self.cdk_app = CDKApp(context=context)
 
-        self.dependency_stacks: list[type] = []
+        self.dependency_stacks: list[Stack] = []
 
         if resource_discovery_table_name:
             resource_registration_stack = self.add_uninitialized_stack(
-                stack=ResourceRegistrationTableStack,  # type: ignore[arg-type]
+                stack=ResourceRegistrationTableStack,
                 include_core_dependencies=False,
             )
 
-            self.dependency_stacks.append(resource_registration_stack)  # type: ignore[arg-type]
+            self.dependency_stacks.append(resource_registration_stack)
 
         global_settings_stack = self.add_uninitialized_stack(
-            stack=GlobalSettingsTableStack,  # type: ignore[arg-type]
+            stack=GlobalSettingsTableStack,
             include_core_dependencies=False,
         )
 
-        self.dependency_stacks.append(global_settings_stack)  # type: ignore[arg-type]
+        self.dependency_stacks.append(global_settings_stack)
 
         self.core_stack = CoreStack(
             app_name=self.app_name,
             create_hosted_zone=create_hosted_zone,
             deployment_id=self.deployment_id,
+            event_bus_enabled=enable_event_bus,
+            exception_trap_enabled=enable_exception_trap,
             scope=self.cdk_app,
-            stack_name=self.generate_stack_name(CoreStack),  # type: ignore[arg-type]
+            stack_name=self.generate_stack_name(CoreStack),
             root_domain_name=self.root_domain_name,
             using_external_logging_bucket=external_logging_bucket,
             resource_discovery_storage_solution=resource_discovery_storage_solution,
@@ -355,28 +402,34 @@ class Application:
             s3_logging_bucket_object_retention_days=s3_logging_bucket_object_retention_days,
         )
 
-        self.dependency_stacks.append(self.core_stack)  # type: ignore[arg-type]
+        # core_stack reads SSM parameters published by the earlier dependency
+        # stacks (resource registration, global settings). Without an explicit
+        # CFN dependency, deploy order is undefined and CFN may evaluate
+        # core_stack's {{resolve:ssm:...}} references before those params exist.
+        for prerequisite in self.dependency_stacks:
+            self.core_stack.add_dependency(prerequisite)
 
-        self._event_bus_stack = None
+        self.dependency_stacks.append(self.core_stack)
+
+        self._event_bus_stack: Stack | None = None
 
         if enable_event_bus:
-            self._event_bus_stack = self.add_uninitialized_stack(EventBusStack)  # type: ignore[arg-type]
+            self._event_bus_stack = self.add_uninitialized_stack(EventBusStack)
 
-        self._exceptions_trap_stack = None
+        self._exceptions_trap_stack: Stack | None = None
 
         if enable_exception_trap:
-            self._exceptions_trap_stack = self.add_uninitialized_stack(ExceptionsTrapStack)  # type: ignore[arg-type]
+            self._exceptions_trap_stack = self.add_uninitialized_stack(ExceptionsTrapStack)
 
     @staticmethod
-    def generate_stack_name(stack: Stack) -> str:
+    def generate_stack_name(stack: type[Stack]) -> str:
         """
         Generate a stack name
 
         Keyword Arguments:
-            stack: Stack to generate the name for
+            stack: Stack class to generate the name for
         """
-
-        return stack.__name__.lower()  # type: ignore[attr-defined]
+        return stack.__name__.lower()
 
     @property
     def lib_container_entry(self) -> str:
@@ -391,26 +444,29 @@ class Application:
 
         da_vinci_spec = da_vinci.__spec__
 
+        if da_vinci_spec is None or da_vinci_spec.submodule_search_locations is None:
+            raise RuntimeError("da_vinci package spec or search locations are unavailable")
+
         da_vinci_lib_path = da_vinci_spec.submodule_search_locations[0]
 
         return realpath(da_vinci_lib_path)
 
     def add_uninitialized_stack(
-        self, stack: Stack, include_core_dependencies: bool | None = True
+        self, stack: type[Stack], include_core_dependencies: bool | None = True
     ) -> Stack:
         """
         Add a new unintialized stack to the application. This is useful for
         adding stacks that take standard parameters.
 
         Keyword Arguments:
-            stack: Stack to add to the application
+            stack: Stack class to add to the application
         """
         stack_name = self.generate_stack_name(stack)
 
         if stack_name in self._stacks:
             return self._stacks[stack_name]
 
-        init_args = {
+        init_args: dict[str, Any] = {
             "architecture": self.architecture,
             "app_name": self.app_name,
             "library_base_image": self.lib_docker_image.image,
@@ -424,7 +480,7 @@ class Application:
         else:
             init_args["app_base_image"] = None
 
-        req_init_vars = stack.__init__.__code__.co_varnames  # type: ignore[misc]
+        req_init_vars = stack.__init__.__code__.co_varnames
 
         stk_req_init_vars = set(req_init_vars)
 
@@ -435,7 +491,7 @@ class Application:
         for arg in stk_args:
             del init_args[arg]
 
-        self._stacks[stack_name] = stack(**init_args)  # type: ignore[operator]
+        self._stacks[stack_name] = stack(**init_args)
 
         initialized_stack = self._stacks[stack_name]
 
@@ -488,7 +544,7 @@ class SideCarApplication:
         app_image_use_lib_base: bool | None = True,
         architecture: str | None = cdk_lambda.Architecture.ARM_64,
         log_level: str | None = "INFO",
-        disable_docker_image_cache: bool | None = DA_VINCI_DISABLE_DOCKER_CACHE,  # type: ignore[assignment]
+        disable_docker_image_cache: bool = DA_VINCI_DISABLE_DOCKER_CACHE,
     ) -> None:
         """
         Initialize a sidecar application that shares resources with a parent application
@@ -537,8 +593,17 @@ class SideCarApplication:
 
         import da_vinci
 
+        # CDK's ``DockerImage.from_build`` derives the image tag from the
+        # build path and build args — NOT from file contents. A content-hash
+        # build arg makes the tag (and the asset hashes that propagate from
+        # it) invalidate when the da_vinci source tree changes.
+        lib_src_hash = _hash_tree(self.lib_container_entry)
+
         self.lib_docker_image = DockerImage.from_build(
-            build_args={"DA_VINCI_VERSION": da_vinci.__version__},
+            build_args={
+                "DA_VINCI_VERSION": da_vinci.__version__,
+                "DA_VINCI_SRC_HASH": lib_src_hash,
+            },
             cache_disabled=disable_docker_image_cache,
             path=self.lib_container_entry,
         )
@@ -587,7 +652,7 @@ class SideCarApplication:
             context=side_car_context,
         )
 
-        self.dependency_stacks: list[type] = []
+        self.dependency_stacks: list[Stack] = []
 
     def _get_parent_context_values(self) -> dict:
         """
@@ -628,15 +693,14 @@ class SideCarApplication:
         return results
 
     @staticmethod
-    def generate_stack_name(stack: Stack) -> str:
+    def generate_stack_name(stack: type[Stack]) -> str:
         """
         Generate a stack name
 
         Keyword Arguments:
-            stack: Stack to generate the name for
+            stack: Stack class to generate the name for
         """
-
-        return stack.__name__.lower()  # type: ignore[attr-defined]
+        return stack.__name__.lower()
 
     @property
     def lib_container_entry(self) -> str:
@@ -651,24 +715,27 @@ class SideCarApplication:
 
         da_vinci_spec = da_vinci.__spec__
 
+        if da_vinci_spec is None or da_vinci_spec.submodule_search_locations is None:
+            raise RuntimeError("da_vinci package spec or search locations are unavailable")
+
         da_vinci_lib_path = da_vinci_spec.submodule_search_locations[0]
 
         return realpath(da_vinci_lib_path)
 
-    def add_uninitialized_stack(self, stack: Stack) -> Stack:
+    def add_uninitialized_stack(self, stack: type[Stack]) -> Stack:
         """
         Add a new unintialized stack to the application. This is useful for
         adding stacks that take standard parameters.
 
         Keyword Arguments:
-            stack: Stack to add to the application
+            stack: Stack class to add to the application
         """
         stack_name = self.generate_stack_name(stack)
 
         if stack_name in self._stacks:
             return self._stacks[stack_name]
 
-        init_args = {
+        init_args: dict[str, Any] = {
             "architecture": self.architecture,
             "app_name": self.app_name,
             "library_base_image": self.lib_docker_image.image,
@@ -683,7 +750,7 @@ class SideCarApplication:
         else:
             init_args["app_base_image"] = None
 
-        req_init_vars = stack.__init__.__code__.co_varnames  # type: ignore[misc]
+        req_init_vars = stack.__init__.__code__.co_varnames
 
         stk_req_init_vars = set(req_init_vars)
 
@@ -694,7 +761,7 @@ class SideCarApplication:
         for arg in stk_args:
             del init_args[arg]
 
-        self._stacks[stack_name] = stack(**init_args)  # type: ignore[operator]
+        self._stacks[stack_name] = stack(**init_args)
 
         for dependency in self._stacks[stack_name].required_stacks:
 

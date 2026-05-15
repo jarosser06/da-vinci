@@ -1,6 +1,6 @@
 import os
 
-from aws_cdk import DockerImage, Duration
+from aws_cdk import Duration
 from aws_cdk import aws_iam as cdk_iam
 from aws_cdk.aws_lambda import RecursiveLoop
 from constructs import Construct
@@ -28,7 +28,7 @@ class EventBusStack(Stack):
         deployment_id: str,
         scope: Construct,
         stack_name: str,
-        library_base_image: DockerImage,
+        library_base_image: str,
     ) -> None:
         """
         Initialize a new EventBusStack object
@@ -61,7 +61,7 @@ class EventBusStack(Stack):
         )
 
         self.bus_service = AsyncService(
-            base_image=self.library_base_image,  # type: ignore[arg-type]
+            base_image=self.library_base_image,
             description="Invokes functions with event bodies from the event bus",
             entry=self.runtime_path,
             handler="handler",
@@ -92,7 +92,7 @@ class EventBusStack(Stack):
         )
 
         self.bus_watcher = SimpleRESTService(
-            base_image=self.library_base_image,  # type: ignore[arg-type]
+            base_image=self.library_base_image,
             description="Handles responses from functions executed from the event bus",
             entry=self.runtime_path,
             handler="api",

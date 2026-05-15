@@ -1,5 +1,6 @@
 import tomllib
 from pathlib import Path
+
 import da_vinci
 
 
@@ -10,5 +11,6 @@ def test_version_matches_pyproject():
         pyproject = tomllib.load(f)
     pyproject_version = pyproject["project"]["version"]
 
-    assert da_vinci.__version__ == pyproject_version, \
-        f"__version__ ({da_vinci.__version__}) must match pyproject.toml ({pyproject_version})"
+    assert (
+        da_vinci.__version__ == pyproject_version
+    ), f"__version__ ({da_vinci.__version__}) must match pyproject.toml ({pyproject_version})"

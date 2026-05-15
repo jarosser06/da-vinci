@@ -16,6 +16,11 @@ eggs/
 .eggs/
 lib/
 lib64/
+# integration/lib/ is a first-party source package (the integration-test
+# validation library), not a Python build artifact — keep its sources tracked
+# (but not bytecode, which the __pycache__/*.pyc rules still ignore).
+!integration/lib/
+!integration/lib/**/*.py
 parts/
 sdist/
 var/
@@ -169,3 +174,8 @@ infrastructure/config.sh
 infrastructure/docs-env.sh
 *.pem
 *.key
+
+dex.hcl
+
+# CDK synth output
+**/cdk.out/

@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Generator
 from enum import StrEnum, auto
-from typing import Any
+from typing import Any, Generic, TypeVar
 
 import boto3
 from botocore.exceptions import ClientError
@@ -213,7 +213,10 @@ class TableScanDefinition:
         raise AttributeError(attr)
 
 
-class TableClient:
+T = TypeVar("T", bound=TableObject)
+
+
+class TableClient(Generic[T]):
     """
     Client for interacting with DynamoDB tables using Da Vinci table objects
 
@@ -223,7 +226,7 @@ class TableClient:
 
     def __init__(
         self,
-        default_object_class: type[TableObject],
+        default_object_class: type[T],
         app_name: str | None = None,
         deployment_id: str | None = None,
         table_endpoint_name: str | None = None,
@@ -399,12 +402,12 @@ class TableClient:
             if max_pages and retrieved_pages >= max_pages:
                 break
 
-    def _all_objects(self) -> list[TableObject]:
+    def _all_objects(self) -> list[T]:
         """
         Loads all objects from a DynamoDB table into memory. Not recommended to use
         for large tables.
         """
-        all: list[TableObject] = []
+        all: list[T] = []
 
         for page in self.paginated(call="scan"):
             all.extend(page)
@@ -416,7 +419,7 @@ class TableClient:
         partition_key_value: Any,
         sort_key_value: Any = None,
         consistent_read: bool | None = False,
-    ) -> TableObject | None:
+    ) -> T | None:
         """
         Retrieve a single object from the table by partition and sort key
 
@@ -446,7 +449,7 @@ class TableClient:
 
         return self.default_object_class.from_dynamodb_item(results["Item"])
 
-    def put_object(self, table_object: TableObject) -> None:
+    def put_object(self, table_object: T) -> None:
         """
         Save a single object to the table
 
@@ -506,7 +509,7 @@ class TableClient:
             Key=self.default_object_class.gen_dynamodb_key(**key_args),
         )
 
-    def delete_object(self, table_object: TableObject) -> None:
+    def delete_object(self, table_object: T) -> None:
         """
         Delete a single object from the table
 
@@ -555,14 +558,14 @@ class TableClient:
 
         yield from self.paginated(call="scan", parameters=params)
 
-    def full_scan(self, scan_definition: TableScanDefinition) -> list[TableObject]:
+    def full_scan(self, scan_definition: TableScanDefinition) -> list[T]:
         """
         Perform a full scan on the table, returns all items matching the scan definition at once.
 
         Keyword Arguments:
             scan_definition: Scan definition to use (default: None)
         """
-        all: list[TableObject] = []
+        all: list[T] = []
 
         for page in self.scanner(scan_definition=scan_definition):
             all.extend(page)

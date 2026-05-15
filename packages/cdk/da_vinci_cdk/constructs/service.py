@@ -1,5 +1,6 @@
 from aws_cdk import (
     Duration,
+    Stack,
     Tags,
 )
 from aws_cdk import aws_apigatewayv2 as cdk_apigatewayv2
@@ -273,6 +274,23 @@ class SimpleRESTService(Construct):
             auth_type=auth_type,
         )
 
+        if not public:
+            # Function URLs with AWS_IAM auth require BOTH an identity-based
+            # policy on the caller AND a resource-based policy on the function
+            # (see https://docs.aws.amazon.com/lambda/latest/dg/urls-auth.html).
+            # ResourceAccessPolicy below only attaches to caller roles, so
+            # without this resource-policy grant the caller gets 403 Forbidden
+            # even when its identity policy carries lambda:InvokeFunctionUrl.
+            # Restricting to the deploying account keeps cross-account access
+            # closed; same-account callers must still hold the identity
+            # permission imported via ResourceAccessPolicy to invoke.
+            self.handler.function.add_permission(
+                f"{construct_id}_account_invoke_url",
+                principal=cdk_iam.AccountPrincipal(Stack.of(self).account),
+                action="lambda:InvokeFunctionUrl",
+                function_url_auth_type=cdk_lambda.FunctionUrlAuthType.AWS_IAM,
+            )
+
         self.discovery_resource = DiscoverableResource(
             construct_id=f"{construct_id}-discovery-resource",
             scope=self,
@@ -281,15 +299,39 @@ class SimpleRESTService(Construct):
             resource_type=ResourceType.REST_SERVICE,
         )
 
+        # IAM grants required to invoke a Function URL with AWS_IAM auth.
+        #
+        # Note 1: the action is ``lambda:InvokeFunctionUrl`` — capital U
+        # only. ``lambda:InvokeFunctionURL`` (all-caps URL) is NOT a real
+        # action name; it silently denies every Function-URL invocation.
+        #
+        # Note 2: BOTH grants are required. AWS evaluates a Function-URL
+        # invocation as both ``lambda:InvokeFunctionUrl`` AND
+        # ``lambda:InvokeFunction`` (the latter restricted via the
+        # ``lambda:InvokedViaFunctionUrl`` condition). Granting only one
+        # results in a 403 ``Forbidden`` at the auth layer. CDK's own
+        # ``grant_invoke_url`` generates the same pair of statements.
         self.fn_url_access_statement = cdk_iam.PolicyStatement(
-            actions=["lambda:InvokeFunctionURL"],
+            actions=["lambda:InvokeFunctionUrl"],
             resources=[self.function_url.function_arn],
+            conditions={
+                "StringEquals": {"lambda:FunctionUrlAuthType": "AWS_IAM"},
+            },
+        )
+
+        self.fn_invoke_via_url_statement = cdk_iam.PolicyStatement(
+            actions=["lambda:InvokeFunction"],
+            resources=[self.function_url.function_arn],
+            conditions={
+                "Bool": {"lambda:InvokedViaFunctionUrl": "true"},
+            },
         )
 
         self.default_access_policy = ResourceAccessPolicy(
             scope=scope,
             policy_statements=[
                 self.fn_url_access_statement,
+                self.fn_invoke_via_url_statement,
                 self.discovery_resource.access_statement,
             ],
             resource_name=service_name,

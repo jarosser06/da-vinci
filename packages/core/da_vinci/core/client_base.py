@@ -1,18 +1,84 @@
 """Base Client Classess"""
 
 import json
+import logging
+import os
 from dataclasses import dataclass
 from urllib.parse import urljoin
 
 import boto3
-import requests  # type: ignore[import-untyped]
-from requests_auth_aws_sigv4 import AWSSigV4
+import requests
+from botocore.auth import SigV4Auth
+from botocore.awsrequest import AWSRequest
 
 from da_vinci.core.json import DaVinciObjectEncoder
 from da_vinci.core.resource_discovery import (
     ResourceDiscovery,
     ResourceType,
 )
+
+
+class _BotocoreSigV4Auth(requests.auth.AuthBase):
+    """``requests`` ``auth=`` adapter that signs with botocore's SigV4Auth.
+
+    Replaces the third-party ``requests_auth_aws_sigv4`` which mis-signs
+    requests issued from Lambda execution roles (session-token credentials
+    are accepted by the signer but the produced signature is rejected as
+    ``Forbidden`` by the Lambda Function URL auth layer). Botocore is the
+    canonical AWS Python signer and round-trips correctly.
+    """
+
+    def __init__(self, service_name: str, region_name: str) -> None:
+        session = boto3.session.Session()
+
+        creds = session.get_credentials()
+
+        if creds is None:
+            raise RuntimeError("No AWS credentials available for SigV4 signing")
+
+        self._signer = SigV4Auth(creds, service_name, region_name)
+
+    # Hop-by-hop headers stripped before signing because the urllib3 transport
+    # may rewrite/drop them after we sign; AWS will then reject the request
+    # because the SignedHeaders list references a header it cannot see.
+    _UNSIGNABLE_HEADERS = frozenset(
+        h.lower()
+        for h in (
+            "Connection",
+            "Keep-Alive",
+            "Proxy-Authenticate",
+            "Proxy-Authorization",
+            "TE",
+            "Trailer",
+            "Transfer-Encoding",
+            "Upgrade",
+            "Content-Length",
+        )
+    )
+
+    def __call__(self, request: requests.PreparedRequest) -> requests.PreparedRequest:
+        body = request.body
+
+        if isinstance(body, str):
+            body = body.encode("utf-8")
+
+        sign_headers = {
+            k: v for k, v in request.headers.items() if k.lower() not in self._UNSIGNABLE_HEADERS
+        }
+
+        aws_req = AWSRequest(
+            method=request.method or "GET",
+            url=request.url or "",
+            data=body,
+            headers=sign_headers,
+        )
+
+        self._signer.add_auth(aws_req)
+
+        for key, value in aws_req.headers.items():
+            request.headers[key] = value
+
+        return request
 
 
 @dataclass
@@ -158,7 +224,19 @@ class RESTClientBase(BaseClient):
             self.aws_auth = None
 
         else:
-            self.aws_auth = AWSSigV4("lambda")
+            # Pass region explicitly so we never fall through to a session
+            # default that doesn't match the deployment region.
+            region = (
+                os.environ.get("AWS_REGION")
+                or os.environ.get("AWS_DEFAULT_REGION")
+                or boto3.session.Session().region_name
+            )
+            logging.info(
+                "RESTClientBase signing for endpoint=%s region=%s",
+                self.endpoint,
+                region,
+            )
+            self.aws_auth = _BotocoreSigV4Auth("lambda", region)
 
     def _full_url(self, path: str | None = None) -> str:
         """

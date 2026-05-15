@@ -193,7 +193,7 @@ class DynamoDBTable(Construct):
         Keyword Arguments:
             resource: Resource to grant access to
         """
-        self.table.grant_read_data(resource)
+        self.table.grants.read_data(resource)
 
         self._discovery_resource.grant_read(resource=resource)
 
@@ -204,7 +204,7 @@ class DynamoDBTable(Construct):
         Keyword Arguments:
             resource: Resource to grant access to
         """
-        self.table.grant_read_write_data(resource)
+        self.table.grants.read_write_data(resource)
 
         self._discovery_resource.grant_read(resource=resource)
 
@@ -216,7 +216,7 @@ class DynamoDBTable(Construct):
         construct_id: str | None = None,
         exclude_from_discovery: bool = False,
         removal_policy: RemovalPolicy | None = None,
-        tags: list[dict[str, Any]] = None,
+        tags: list[dict[str, Any]] | None = None,
     ) -> "DynamoDBTable":
         """
         Lazy constructor that allows defining a DynamoDBTable from a TableObject
@@ -399,6 +399,14 @@ class DynamoDBItem(Construct):
             on_delete=self.delete(table_object),
             on_update=on_update,
             resource_type=self.custom_type_name,
+            # Use the Lambda runtime's bundled boto3 instead of pip-installing
+            # latest at runtime. CDK's default of True can silently fail in
+            # restricted Lambda environments (no internet egress, package
+            # installation errors), leaving the GlobalSetting row unwritten
+            # — which then breaks SideCarApplication.__init__'s GetItem
+            # lookup. The bundled boto3 is sufficient for the DynamoDB
+            # putItem/updateItem/deleteItem/getItem calls used here.
+            install_latest_aws_sdk=False,
         )
 
     @staticmethod
