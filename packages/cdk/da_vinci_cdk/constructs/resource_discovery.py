@@ -69,6 +69,7 @@ class DiscoverableResourceDynamoDBItem(Construct):
             on_delete=self.delete(self.registration_obj),
             on_update=self.update(self.registration_obj),
             resource_type=self.custom_type_name,
+            install_latest_aws_sdk=False,
         )
 
     @staticmethod
@@ -299,6 +300,7 @@ class DiscoverableResourceDynamoDBLookup(Construct):
             on_create=self._get_item_call(),
             on_update=self._get_item_call(),
             resource_type="Custom::DynamoDBLookup",
+            install_latest_aws_sdk=False,
         )
 
     def _get_item_call(self) -> AwsSdkCall:
@@ -520,4 +522,4 @@ class DiscoverableResource(Construct):
                 table_name=self.dynamodb_item.full_table_name,
             )
 
-            return table.grant_read_data(resource)
+            return table.grants.read_data(resource)

@@ -60,7 +60,7 @@ class EventBusSubscriptionsScanDefinition(TableScanDefinition):
         super().__init__(table_object_class=EventBusSubscription)
 
 
-class EventBusSubscriptions(TableClient):
+class EventBusSubscriptions(TableClient[EventBusSubscription]):
     def __init__(self, app_name: str | None = None, deployment_id: str | None = None) -> None:
         super().__init__(
             app_name=app_name,
@@ -85,24 +85,23 @@ class EventBusSubscriptions(TableClient):
             "KeyConditionExpression": "#ck = :cv",
         }
 
-        all_items: list = []
+        all_items: list[EventBusSubscription] = []
 
         for page in self.paginated(call="query", parameters=params):
             all_items.extend(page)
 
         return all_items
 
-    def delete(self, event_subscription: EventBusSubscription):
+    def delete(self, event_subscription: EventBusSubscription) -> None:
         """
         Delete an event subscription
 
         Keyword Arguments:
             event_subscription: The event subscription
         """
+        self.delete_object(event_subscription)
 
-        return self.delete_object(event_subscription)
-
-    def get(self, event_type: str, function_name: str) -> EventBusSubscription:
+    def get(self, event_type: str, function_name: str) -> EventBusSubscription | None:
         """
         Return a single event subscription.
 
@@ -110,21 +109,19 @@ class EventBusSubscriptions(TableClient):
             event_type: The event type.
             function_name: The function name.
         """
-
-        return self.get_object(  # type: ignore[return-value]
+        return self.get_object(
             partition_key_value=event_type,
             sort_key_value=function_name,
         )
 
-    def put(self, event_subscription: EventBusSubscription):
+    def put(self, event_subscription: EventBusSubscription) -> None:
         """
         Create or update an event subscription.
 
         Keyword Arguments:
             event_subscription: The event subscription
         """
-
-        return self.put_object(event_subscription)
+        self.put_object(event_subscription)
 
     def scan(
         self, scan_definition: EventBusSubscriptionsScanDefinition
@@ -135,5 +132,4 @@ class EventBusSubscriptions(TableClient):
         Keyword Arguments:
             scan_definition: The scan definition.
         """
-
-        return self.full_scan(scan_definition=scan_definition)  # type: ignore[return-value]
+        return self.full_scan(scan_definition=scan_definition)

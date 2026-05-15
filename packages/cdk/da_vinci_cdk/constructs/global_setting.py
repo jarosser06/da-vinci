@@ -119,6 +119,7 @@ class GlobalSettingLookup(Construct):
             on_create=self._get_item_call(),
             on_update=self._get_item_call(),
             resource_type="Custom::DynamoDBLookup",
+            install_latest_aws_sdk=False,
         )
 
     def _get_item_call(self) -> AwsSdkCall:

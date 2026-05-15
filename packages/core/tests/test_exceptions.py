@@ -23,76 +23,108 @@ from da_vinci.core.orm.orm_exceptions import (
 class TestCoreExceptions:
     """Test core Da Vinci exceptions."""
 
-    def test_duplicate_route_definition_error(self):
-        """Test DuplicateRouteDefinitionError exception."""
-        error = DuplicateRouteDefinitionError("test_route")
-        assert "test_route" in str(error)
-        assert "already exists" in str(error)
+    def test_duplicate_route_definition_error_message_and_type(self):
+        """DuplicateRouteDefinitionError renders the exact route message."""
+        with pytest.raises(DuplicateRouteDefinitionError) as exc_info:
+            raise DuplicateRouteDefinitionError("test_route")
 
-    def test_global_settings_not_enabled_error(self):
-        """Test GlobalSettingsNotEnabledError exception."""
-        error = GlobalSettingsNotEnabledError()
-        assert "not enabled" in str(error)
+        error = exc_info.value
+        assert isinstance(error, Exception)
+        assert str(error) == "Route definition for test_route already exists"
 
-    def test_global_setting_not_found_error(self):
-        """Test GlobalSettingNotFoundError exception."""
-        error = GlobalSettingNotFoundError("my_key", "my_namespace")
-        assert "my_key" in str(error)
-        assert "my_namespace" in str(error)
-        assert "not found" in str(error)
+    def test_global_settings_not_enabled_error_message_and_type(self):
+        """GlobalSettingsNotEnabledError renders the exact static message."""
+        with pytest.raises(GlobalSettingsNotEnabledError) as exc_info:
+            raise GlobalSettingsNotEnabledError()
 
-    def test_missing_required_runtime_variable_error(self):
-        """Test MissingRequiredRuntimeVariableError exception."""
-        error = MissingRequiredRuntimeVariableError("MY_VAR")
-        assert "MY_VAR" in str(error)
-        assert "not found" in str(error)
+        error = exc_info.value
+        assert isinstance(error, Exception)
+        assert str(error) == ("Attempting to access global settings when they are not enabled")
 
-    def test_resource_not_found_error(self):
-        """Test ResourceNotFoundError exception."""
-        error = ResourceNotFoundError("my-resource", "table")
-        assert "my-resource" in str(error)
-        assert "table" in str(error)
-        assert "not found" in str(error)
+    def test_global_setting_not_found_error_message_and_type(self):
+        """GlobalSettingNotFoundError renders key and namespace exactly."""
+        with pytest.raises(GlobalSettingNotFoundError) as exc_info:
+            raise GlobalSettingNotFoundError("my_key", "my_namespace")
+
+        error = exc_info.value
+        assert isinstance(error, Exception)
+        assert str(error) == "Setting my_key in namespace my_namespace not found"
+
+    def test_missing_required_runtime_variable_error_message_and_type(self):
+        """MissingRequiredRuntimeVariableError subclasses RuntimeError."""
+        with pytest.raises(MissingRequiredRuntimeVariableError) as exc_info:
+            raise MissingRequiredRuntimeVariableError("MY_VAR")
+
+        error = exc_info.value
+        assert isinstance(error, RuntimeError)
+        assert str(error) == "Required runtime variable MY_VAR not found"
+
+    def test_resource_not_found_error_message_and_type(self):
+        """ResourceNotFoundError renders resource name and type exactly."""
+        with pytest.raises(ResourceNotFoundError) as exc_info:
+            raise ResourceNotFoundError("my-resource", "table")
+
+        error = exc_info.value
+        assert isinstance(error, Exception)
+        assert str(error) == "Resource my-resource of type table not found"
 
 
 @pytest.mark.unit
 class TestORMExceptions:
     """Test ORM-specific exceptions."""
 
-    def test_augmented_retrieval_invalid_query_exception(self):
-        """Test AugmentedRetrievalInvalidQueryException exception."""
-        error = AugmentedRetrievalInvalidQueryError("SELECT *", "Invalid syntax")
-        assert "SELECT *" in str(error)
-        assert "Invalid syntax" in str(error)
-        assert "not a valid query" in str(error)
+    def test_augmented_retrieval_invalid_query_error_message_and_type(self):
+        """AugmentedRetrievalInvalidQueryError subclasses ValueError."""
+        with pytest.raises(AugmentedRetrievalInvalidQueryError) as exc_info:
+            raise AugmentedRetrievalInvalidQueryError("SELECT *", "Invalid syntax")
 
-    def test_missing_table_object_attribute_exception(self):
-        """Test MissingTableObjectAttributeException exception."""
-        error = MissingTableObjectAttributeError("my_field")
-        assert "my_field" in str(error)
-        assert "not provided" in str(error)
+        error = exc_info.value
+        assert isinstance(error, ValueError)
+        assert str(error) == "SELECT * is not a valid query: Invalid syntax"
 
-    def test_table_scan_query_exception(self):
-        """Test TableScanQueryException exception."""
-        error = TableScanQueryError("field_name", "STRING")
-        assert "field_name" in str(error)
-        assert "STRING" in str(error)
-        assert "not a valid" in str(error)
+    def test_missing_table_object_attribute_error_message_and_type(self):
+        """MissingTableObjectAttributeError subclasses ValueError."""
+        with pytest.raises(MissingTableObjectAttributeError) as exc_info:
+            raise MissingTableObjectAttributeError("my_field")
 
-    def test_table_scan_invalid_comparison_exception(self):
-        """Test TableScanInvalidComparisonException exception."""
-        error = TableScanInvalidComparisonError("invalid_op")
-        assert "invalid_op" in str(error)
-        assert "comparison operator" in str(error)
+        error = exc_info.value
+        assert isinstance(error, ValueError)
+        assert str(error) == "Required argument my_field, was not provided"
 
-    def test_table_scan_invalid_attribute_exception(self):
-        """Test TableScanInvalidAttributeException exception."""
-        error = TableScanInvalidAttributeError("bad_field")
-        assert "bad_field" in str(error)
-        assert "table object attribute" in str(error)
+    def test_table_scan_query_error_message_and_type(self):
+        """TableScanQueryError renders attribute name and type exactly."""
+        with pytest.raises(TableScanQueryError) as exc_info:
+            raise TableScanQueryError("field_name", "STRING")
 
-    def test_table_scan_missing_attribute_exception(self):
-        """Test TableScanMissingAttributeException exception."""
-        error = TableScanMissingAttributeError("required_field")
-        assert "required_field" in str(error)
-        assert "not provided" in str(error)
+        error = exc_info.value
+        assert isinstance(error, ValueError)
+        assert str(error) == "field_name is not a valid STRING"
+
+    def test_table_scan_invalid_comparison_error_message_and_hierarchy(self):
+        """TableScanInvalidComparisonError formats via its TableScanQueryError base."""
+        with pytest.raises(TableScanInvalidComparisonError) as exc_info:
+            raise TableScanInvalidComparisonError("invalid_op")
+
+        error = exc_info.value
+        assert isinstance(error, TableScanQueryError)
+        assert isinstance(error, ValueError)
+        assert str(error) == "invalid_op is not a valid comparison operator"
+
+    def test_table_scan_invalid_attribute_error_message_and_hierarchy(self):
+        """TableScanInvalidAttributeError formats via its TableScanQueryError base."""
+        with pytest.raises(TableScanInvalidAttributeError) as exc_info:
+            raise TableScanInvalidAttributeError("bad_field")
+
+        error = exc_info.value
+        assert isinstance(error, TableScanQueryError)
+        assert isinstance(error, ValueError)
+        assert str(error) == "bad_field is not a valid table object attribute"
+
+    def test_table_scan_missing_attribute_error_message_and_type(self):
+        """TableScanMissingAttributeError subclasses ValueError."""
+        with pytest.raises(TableScanMissingAttributeError) as exc_info:
+            raise TableScanMissingAttributeError("required_field")
+
+        error = exc_info.value
+        assert isinstance(error, ValueError)
+        assert str(error) == "required_field was not provided"

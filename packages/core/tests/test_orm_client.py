@@ -542,13 +542,14 @@ class TestORMClientCoverageGaps:
             app_name="test-app",
             deployment_id="test-deployment",
         )
-        # Method doesn't return explicit True, just doesn't raise or return False
-        assert result is not False
+        # Returns True when the resource is discovered.
+        assert result is True
 
     def test_table_resource_exists_false(
         self, aws_credentials, resource_registry_table, mock_environment
     ):
         """Test table_resource_exists when resource doesn't exist (lines 247-248)."""
+
         # Create a different table name that doesn't exist
         class NonExistentTable(TableObject):
             table_name = "nonexistent-table"
@@ -566,8 +567,8 @@ class TestORMClientCoverageGaps:
         assert result is False
 
     def test_paginated_query_with_limit(self, table_client, dynamodb_table):
-        """Test paginated query with limit (lines 272-351)."""
-        # Insert test data
+        """Paginated query respects the page limit and returns every item once."""
+        # Insert test data.
         for i in range(10):
             dynamodb_table.put_item(Item={"Pk": "pk1", "Sk": f"sk{i:02d}", "Value": f"value{i}"})
 
@@ -576,28 +577,38 @@ class TestORMClientCoverageGaps:
             "ExpressionAttributeValues": {":pk": {"S": "pk1"}},
         }
 
-        # Test with limit
         pages = list(table_client.paginated(call="query", limit=3, parameters=params))
 
-        assert len(pages) > 0
-        # Each page should have at most 3 items
-        for page in pages:
-            assert len(page.items) <= 3
+        # 10 items at 3 per page -> 4 pages of sizes [3, 3, 3, 1].
+        assert [len(page.items) for page in pages] == [3, 3, 3, 1]
+
+        # Every item is returned exactly once, in ascending sort-key order.
+        all_items = [item for page in pages for item in page.items]
+        assert [item.sk for item in all_items] == [f"sk{i:02d}" for i in range(10)]
+        assert [item.value for item in all_items] == [f"value{i}" for i in range(10)]
+        assert {item.pk for item in all_items} == {"pk1"}
 
     def test_paginated_scan_with_max_pages(self, table_client, dynamodb_table):
-        """Test paginated scan with max_pages (lines 350-351)."""
-        # Insert test data
+        """Paginated scan stops after max_pages and returns full pages."""
+        # Insert test data.
         for i in range(20):
-            dynamodb_table.put_item(Item={"Pk": f"pk{i}", "Sk": "sk", "Value": f"value{i}"})
+            dynamodb_table.put_item(Item={"Pk": f"pk{i:02d}", "Sk": "sk", "Value": f"value{i}"})
 
-        # Test with max_pages=2
         pages = list(table_client.paginated(call="scan", limit=5, max_pages=2))
 
-        assert len(pages) == 2
+        # Exactly two pages of five items each are returned (10 of the 20 items).
+        assert [len(page.items) for page in pages] == [5, 5]
+
+        scanned = [item for page in pages for item in page.items]
+        assert len(scanned) == 10
+        # All scanned rows are real, distinct items from the seeded set.
+        assert all(isinstance(item, SampleTableObject) for item in scanned)
+        assert len({item.pk for item in scanned}) == 10
+        assert {item.pk for item in scanned}.issubset({f"pk{i:02d}" for i in range(20)})
 
     def test_paginated_query_with_last_evaluated_key(self, table_client, dynamodb_table):
-        """Test paginated query with last_evaluated_key (lines 293-301)."""
-        # Insert test data
+        """Resuming a query from last_evaluated_key returns the remaining items."""
+        # Insert test data.
         for i in range(5):
             dynamodb_table.put_item(Item={"Pk": "pk1", "Sk": f"sk{i}", "Value": f"value{i}"})
 
@@ -606,24 +617,29 @@ class TestORMClientCoverageGaps:
             "ExpressionAttributeValues": {":pk": {"S": "pk1"}},
         }
 
-        # Get first page
+        # First page holds the first two items and signals more results.
         first_page = next(table_client.paginated(call="query", limit=2, parameters=params))
+        assert [item.sk for item in first_page.items] == ["sk0", "sk1"]
+        assert first_page.has_more is True
+        assert first_page.last_evaluated_key is not None
 
-        if first_page.last_evaluated_key:
-            # Get next page using last_evaluated_key
-            pages = list(
-                table_client.paginated(
-                    call="query",
-                    limit=2,
-                    last_evaluated_key=first_page.last_evaluated_key,
-                    parameters=params,
-                )
+        # Resuming from the key returns exactly the remaining three items.
+        remaining = [
+            item
+            for page in table_client.paginated(
+                call="query",
+                limit=2,
+                last_evaluated_key=first_page.last_evaluated_key,
+                parameters=params,
             )
-            assert len(pages) > 0
+            for item in page.items
+        ]
+        assert [item.sk for item in remaining] == ["sk2", "sk3", "sk4"]
+        assert [item.value for item in remaining] == ["value2", "value3", "value4"]
 
     def test_paginated_query_with_last_evaluated_object(self, table_client, dynamodb_table):
-        """Test paginated query with last_evaluated_object (lines 303-315)."""
-        # Insert test data
+        """Resuming a query from last_evaluated_object returns the remaining items."""
+        # Insert test data.
         for i in range(5):
             dynamodb_table.put_item(Item={"Pk": "pk1", "Sk": f"sk{i}", "Value": f"value{i}"})
 
@@ -632,25 +648,28 @@ class TestORMClientCoverageGaps:
             "ExpressionAttributeValues": {":pk": {"S": "pk1"}},
         }
 
-        # Get first page
+        # First page holds the first two items; resume from its last object.
         first_page = next(table_client.paginated(call="query", limit=2, parameters=params))
+        assert [item.sk for item in first_page.items] == ["sk0", "sk1"]
+        last_obj = first_page.items[-1]
+        assert last_obj.sk == "sk1"
 
-        if first_page.items:
-            last_obj = first_page.items[-1]
-            # Get next page using last_evaluated_object
-            pages = list(
-                table_client.paginated(
-                    call="query",
-                    limit=2,
-                    last_evaluated_object=last_obj,
-                    parameters=params,
-                )
+        remaining = [
+            item
+            for page in table_client.paginated(
+                call="query",
+                limit=2,
+                last_evaluated_object=last_obj,
+                parameters=params,
             )
-            assert len(pages) > 0
+            for item in page.items
+        ]
+        assert [item.sk for item in remaining] == ["sk2", "sk3", "sk4"]
+        assert [item.value for item in remaining] == ["value2", "value3", "value4"]
 
     def test_paginated_query_with_sort_order(self, table_client, dynamodb_table):
-        """Test paginated query with sort order (lines 287-291)."""
-        # Insert test data
+        """Sort order controls the order of returned items, ascending vs descending."""
+        # Insert test data.
         for i in range(5):
             dynamodb_table.put_item(Item={"Pk": "pk1", "Sk": f"sk{i}", "Value": f"value{i}"})
 
@@ -659,34 +678,43 @@ class TestORMClientCoverageGaps:
             "ExpressionAttributeValues": {":pk": {"S": "pk1"}},
         }
 
-        # Test ascending order
-        pages_asc = list(
-            table_client.paginated(
+        ascending = [
+            item.sk
+            for page in table_client.paginated(
                 call="query",
                 parameters=params,
                 sort_order=TableResultSortOrder.ASCENDING,
             )
-        )
-        assert len(pages_asc) > 0
+            for item in page.items
+        ]
+        assert ascending == ["sk0", "sk1", "sk2", "sk3", "sk4"]
 
-        # Test descending order
-        pages_desc = list(
-            table_client.paginated(
+        descending = [
+            item.sk
+            for page in table_client.paginated(
                 call="query",
                 parameters=params,
                 sort_order=TableResultSortOrder.DESCENDING,
             )
-        )
-        assert len(pages_desc) > 0
+            for item in page.items
+        ]
+        assert descending == ["sk4", "sk3", "sk2", "sk1", "sk0"]
 
     def test_all_objects_method(self, table_client, dynamodb_table):
-        """Test _all_objects method (lines 358-363)."""
-        # Insert test data
+        """_all_objects materializes every row as a typed object with its values."""
+        # Insert test data.
         for i in range(5):
             dynamodb_table.put_item(Item={"Pk": f"pk{i}", "Sk": "sk", "Value": f"value{i}"})
 
         all_objs = table_client._all_objects()
+
         assert len(all_objs) == 5
+        assert all(isinstance(obj, SampleTableObject) for obj in all_objs)
+        by_pk = {obj.pk: obj for obj in all_objs}
+        assert set(by_pk) == {f"pk{i}" for i in range(5)}
+        for i in range(5):
+            assert by_pk[f"pk{i}"].value == f"value{i}"
+            assert by_pk[f"pk{i}"].sk == "sk"
 
     def test_put_object_with_validation_exception(self, table_client, monkeypatch):
         """Test put_object with ClientError validation exception (lines 415-429)."""
@@ -708,16 +736,21 @@ class TestORMClientCoverageGaps:
 
         table_client.client = mock_client
 
-        with pytest.raises(Exception, match="Empty attribute value detected"):
+        with pytest.raises(Exception) as exc_info:
             table_client.put_object(obj)
 
+        # The empty-attribute ValidationException is re-wrapped with guidance
+        # and the original message appended.
+        assert not isinstance(exc_info.value, ClientError)
+        assert str(exc_info.value) == (
+            "Empty attribute value detected, if using JSON type, attributes "
+            "cannot be empty. Original Error: Supplied AttributeValue is empty"
+        )
 
     def test_update_object_with_updates(self, table_client, dynamodb_table):
         """Test update_object with updates (lines 559-658)."""
         # Insert initial data
-        dynamodb_table.put_item(
-            Item={"Pk": "pk1", "Sk": "sk1", "Value": "initial", "Count": "10"}
-        )
+        dynamodb_table.put_item(Item={"Pk": "pk1", "Sk": "sk1", "Value": "initial", "Count": "10"})
 
         # Update the object
         table_client.update_object(
@@ -754,7 +787,7 @@ class TestORMClientCoverageGaps:
             "ExpressionAttributeValues": {":pk": {"S": "pk1"}},
         }
 
-        with pytest.raises(Exception, match="must have sort key"):
+        with pytest.raises(Exception) as exc_info:
             list(
                 client.paginated(
                     call="query",
@@ -763,10 +796,16 @@ class TestORMClientCoverageGaps:
                 )
             )
 
+        assert str(exc_info.value) == "Table object must have sort key to enable sorting"
+
     def test_paginated_scan_with_invalid_last_evaluated_key(self, table_client):
         """Test paginated scan with non-dict last_evaluated_key (lines 295-298)."""
-        with pytest.raises(Exception, match="must be a dictionary"):
+        with pytest.raises(Exception) as exc_info:
             list(table_client.paginated(call="scan", last_evaluated_key="invalid_string"))
+
+        assert str(exc_info.value) == (
+            "Last evaluated key must be a dictionary for scan operations"
+        )
 
     def test_put_object_with_other_validation_exception(self, table_client, monkeypatch):
         """Test put_object with ValidationException that's not about empty attributes (line 425)."""
@@ -800,7 +839,12 @@ class TestORMClientCoverageGaps:
         # Mock the client to raise a different ClientError
         mock_client = MagicMock()
         mock_client.put_item.side_effect = ClientError(
-            {"Error": {"Code": "ResourceNotFoundException", "Message": "Table not found"}},
+            {
+                "Error": {
+                    "Code": "ResourceNotFoundException",
+                    "Message": "Table not found",
+                }
+            },
             "PutItem",
         )
 
@@ -810,31 +854,31 @@ class TestORMClientCoverageGaps:
             table_client.put_object(obj)
 
     def test_scanner_with_empty_filter(self, table_client, dynamodb_table):
-        """Test scanner method with empty scan definition (lines 481-494)."""
-        # Insert test data
+        """An unfiltered scan returns every row in the table."""
+        # Insert test data.
         for i in range(3):
             dynamodb_table.put_item(Item={"Pk": f"pk{i}", "Sk": "sk"})
 
-        # Create empty scan definition (no filters)
+        # Create empty scan definition (no filters).
         scan_def = TableScanDefinition(SampleTableObject)
 
-        # Scanner should work even with no filters
-        pages = list(table_client.scanner(scan_def))
-        assert len(pages) > 0
+        scanned = [item for page in table_client.scanner(scan_def) for item in page.items]
+        assert {item.pk for item in scanned} == {"pk0", "pk1", "pk2"}
 
     def test_full_scan_with_empty_filter(self, table_client, dynamodb_table):
-        """Test full_scan method with empty scan definition (lines 503-508)."""
-        # Insert test data
+        """full_scan with no filter materializes every row as a typed object."""
+        # Insert test data.
         for i in range(3):
             dynamodb_table.put_item(Item={"Pk": f"pk{i}", "Sk": "sk"})
 
-        # Create empty scan definition
+        # Create empty scan definition.
         scan_def = TableScanDefinition(SampleTableObject)
 
-        # Full scan should work
         results = table_client.full_scan(scan_def)
+
         assert isinstance(results, list)
-        assert len(results) >= 3
+        assert all(isinstance(obj, SampleTableObject) for obj in results)
+        assert {obj.pk for obj in results} == {"pk0", "pk1", "pk2"}
 
     def test_update_object_with_nested_updates(self, table_client, dynamodb_table):
         """Test update_object with dot notation for nested updates (lines 571-591)."""
@@ -902,22 +946,31 @@ class TestORMClientCoverageGaps:
             assert item.pk == "pk1"
 
     def test_paginated_scan_with_dict_last_evaluated_key(self, table_client, dynamodb_table):
-        """Test paginated scan with valid dict last_evaluated_key (line 298)."""
-        # Insert test data
+        """Resuming a scan from a dict last_evaluated_key returns the rest, no overlap."""
+        # Insert test data.
         for i in range(10):
-            dynamodb_table.put_item(
-                Item={"Pk": f"pk{i:02d}", "Sk": "sk", "Value": f"value{i}"}
-            )
+            dynamodb_table.put_item(Item={"Pk": f"pk{i:02d}", "Sk": "sk", "Value": f"value{i}"})
 
-        # First, get a page to get a last_evaluated_key
+        # First page yields three items and a resumable key.
         first_page = next(table_client.paginated(call="scan", limit=3))
+        assert len(first_page.items) == 3
+        assert isinstance(first_page.last_evaluated_key, dict)
+        first_pks = {item.pk for item in first_page.items}
 
-        if first_page.last_evaluated_key:
-            # Use the last_evaluated_key (which is a dict) for scan (line 298)
-            pages = list(
-                table_client.paginated(call="scan", limit=3, last_evaluated_key=first_page.last_evaluated_key)
+        # Resuming returns the remaining seven items with no overlap.
+        resumed = [
+            item
+            for page in table_client.paginated(
+                call="scan",
+                limit=3,
+                last_evaluated_key=first_page.last_evaluated_key,
             )
-            assert len(pages) > 0
+            for item in page.items
+        ]
+        resumed_pks = {item.pk for item in resumed}
+        assert len(resumed) == 7
+        assert first_pks.isdisjoint(resumed_pks)
+        assert first_pks | resumed_pks == {f"pk{i:02d}" for i in range(10)}
 
     def test_update_object_remove_keys_only_nested(self, table_client):
         """Test update_object with nested remove_keys using mocking (lines 619-629)."""

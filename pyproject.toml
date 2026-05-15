@@ -1,5 +1,5 @@
 [tool.uv.workspace]
-members = ["packages/core", "packages/cdk"]
+members = ["packages/core", "packages/cdk", "integration"]
 
 [tool.uv]
 dev-dependencies = [
@@ -8,6 +8,7 @@ dev-dependencies = [
     "pytest-cov>=4.1.0",
     "pytest-asyncio>=0.23.0",
     "pytest-mock>=3.12.0",
+    "pytest-bdd>=8.0.0",
     "moto[dynamodb,ssm,sqs,logs]>=5.0.0",
     # Linting and formatting
     "flake8>=7.0.0",
@@ -33,6 +34,10 @@ addopts = [
     "-v",
     "--strict-markers",
     "--strict-config",
+    # importlib mode lets the core and cdk suites (both packaged as ``tests``)
+    # run in a single pytest invocation without the package-name collision the
+    # old test.sh avoided by running them separately.
+    "--import-mode=importlib",
     "--cov=da_vinci",
     "--cov=da_vinci_cdk",
     "--cov-report=term-missing",
@@ -77,6 +82,7 @@ force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
 known_first_party = ["da_vinci", "da_vinci_cdk"]
+extend_skip_glob = ["*/cdk.out/*"]
 
 # mypy configuration
 [tool.mypy]
@@ -94,7 +100,12 @@ follow_imports = "normal"
 strict_optional = false  # Relaxed - allow None without Optional
 explicit_package_bases = true
 namespace_packages = true
-mypy_path = "packages/core:packages/cdk"
+mypy_path = "packages/core:packages/cdk:integration"
+# Each workspace member ships a ``tests`` package; under the three mypy roots
+# above they all resolve to the same module name and collide. Tests are not
+# part of the shipped type surface (and are coverage-omitted below), so exclude
+# them from type checking.
+exclude = ["(^|/)tests/"]
 
 [[tool.mypy.overrides]]
 module = "tests.*"
@@ -104,6 +115,24 @@ disallow_untyped_defs = false
 module = [
     "requests_auth_aws_sigv4.*",
 ]
+ignore_missing_imports = true
+
+# Integration test application and the bundled examples use CDK app
+# entry-point conventions (``python app.py`` with sys.path manipulation), so
+# mypy cannot resolve the sibling/cross-module imports of ``handlers.*``,
+# ``stacks.*`` and the example's ``table_client`` without duplicating the
+# runtime path setup. These are exercised by ``cdk synth`` at deploy time —
+# any actual breakage surfaces there.
+[[tool.mypy.overrides]]
+module = [
+    "handlers.*",
+    "stacks.*",
+    "table_client",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "requests.*"
 ignore_missing_imports = true
 
 # Coverage configuration

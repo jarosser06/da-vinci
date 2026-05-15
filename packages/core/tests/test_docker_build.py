@@ -1,67 +1,89 @@
-"""Integration tests for Docker image builds"""
+"""Integration tests for Docker image builds."""
+
+from pathlib import Path
 
 import docker
 import pytest
 
+import da_vinci
 
-def test_library_base_image_has_davinci():
-    """Test that da-vinci package is installed in the library base image"""
-    # Try common Docker socket locations
-    import os
-    from pathlib import Path
 
+def _docker_client() -> "docker.DockerClient | None":
+    """Return a connected Docker client, or None if Docker is unavailable."""
     socket_paths = [
         "unix:///var/run/docker.sock",  # Standard Linux
         f"unix://{Path.home()}/.docker/run/docker.sock",  # Docker Desktop Mac
         f"unix://{Path.home()}/.colima/default/docker.sock",  # Colima
     ]
 
-    client = None
     for socket in socket_paths:
         try:
             client = docker.DockerClient(base_url=socket)
-            client.ping()  # Test connection
-            break
-        except (docker.errors.DockerException, Exception):
+            client.ping()
+        except docker.errors.DockerException:
             continue
+        else:
+            return client
 
-    if not client:
+    return None
+
+
+def _run(client: "docker.DockerClient", command: str) -> tuple[int, str]:
+    """Run a command in the built image and return (exit_code, decoded_stdout)."""
+    container = client.containers.run(
+        "test-davinci:latest",
+        command=command,
+        entrypoint="",  # Override the Lambda entrypoint.
+        detach=True,
+    )
+    try:
+        result = container.wait()
+        exit_code = result["StatusCode"]
+        output = container.logs(stdout=True, stderr=True).decode("utf-8")
+        return exit_code, output
+    finally:
+        container.remove(force=True)
+
+
+@pytest.mark.integration
+def test_library_base_image_has_davinci():
+    """The built image imports da_vinci and reports the packaged version."""
+    client = _docker_client()
+    if client is None:
         pytest.skip("Docker is not available")
 
-    # Build the image
-    image, logs = client.images.build(
+    expected_version = da_vinci.__version__
+
+    client.images.build(
         path="packages/core/da_vinci",
         dockerfile="Dockerfile",
-        buildargs={"DA_VINCI_VERSION": "3.0.4"},
+        buildargs={"DA_VINCI_VERSION": expected_version},
         tag="test-davinci:latest",
     )
 
-    # Test 1: da-vinci package is importable
-    result = client.containers.run(
-        "test-davinci:latest",
-        command="python -c 'import da_vinci; print(da_vinci.__version__)'",
-        entrypoint="",  # Override Lambda entrypoint
-        remove=True,
-    )
-    assert b"3.0.4" in result
+    try:
+        # da_vinci is importable and reports the exact packaged version.
+        exit_code, output = _run(
+            client,
+            "python -c 'import da_vinci; print(da_vinci.__version__)'",
+        )
+        assert exit_code == 0, output
+        assert output.strip() == expected_version
 
-    # Test 2: requests is available
-    result = client.containers.run(
-        "test-davinci:latest",
-        command="python -c 'import requests; print(requests.__version__)'",
-        entrypoint="",  # Override Lambda entrypoint
-        remove=True,
-    )
-    assert result  # Should not error
+        # requests is available and prints a non-empty version on a clean exit.
+        exit_code, output = _run(
+            client,
+            "python -c 'import requests; print(requests.__version__)'",
+        )
+        assert exit_code == 0, output
+        assert output.strip() != ""
 
-    # Test 3: Can import event bus client (the failing import)
-    result = client.containers.run(
-        "test-davinci:latest",
-        command="python -c 'from da_vinci.event_bus.client import EventResponder; print(\"OK\")'",
-        entrypoint="",  # Override Lambda entrypoint
-        remove=True,
-    )
-    assert b"OK" in result
-
-    # Cleanup
-    client.images.remove("test-davinci:latest", force=True)
+        # The event bus client (the historically failing import) loads cleanly.
+        exit_code, output = _run(
+            client,
+            "python -c 'from da_vinci.event_bus.client import EventResponder; " 'print("OK")\'',
+        )
+        assert exit_code == 0, output
+        assert output.strip() == "OK"
+    finally:
+        client.images.remove("test-davinci:latest", force=True)

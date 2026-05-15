@@ -81,6 +81,7 @@ class EventBusSubscription(Construct):
             on_create=self._create(event_bus_subscription),
             on_delete=self._delete(event_bus_subscription),
             resource_type=custom_type_name(name="EventBusSubscription"),
+            install_latest_aws_sdk=False,
         )
 
     def _create(self, event_bus_subscription: EventBusSubscriptionTblObj):

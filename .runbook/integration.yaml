@@ -1,0 +1,147 @@
+version: "1.0"
+
+# Da Vinci real-AWS integration test runbook tasks.
+#
+# These tasks drive the integration suite at `integration/`. They deploy
+# the parent app + sidecar to AWS, run the pytest-bdd suite against the
+# deployed resources, then destroy the deployment.
+#
+# AWS credentials must be available in the caller's shell (or via the
+# default boto3 chain). `region` is injected as AWS_REGION /
+# AWS_DEFAULT_REGION / CDK_DEFAULT_REGION before invoking pytest.
+#
+# Working directory is the repo root; pytest discovers `integration/`
+# via the workspace.
+
+tasks:
+  it-test:
+    description: "Run the full integration suite: deploy parent + sidecar, run pytest-bdd, then destroy."
+    expose_working_directory: true
+    command: "AWS_REGION={{.region}} AWS_DEFAULT_REGION={{.region}} CDK_DEFAULT_REGION={{.region}} uv run pytest integration/tests --region {{.region}} {{.args}}"
+    type: oneshot
+    parameters:
+      region:
+        type: string
+        required: false
+        default: "us-east-1"
+        description: "AWS region to target (default us-east-1)"
+      args:
+        type: string
+        required: false
+        default: ""
+        description: "Additional pytest args (e.g., '-k event_bus', '-vv')"
+
+  it-test-keep:
+    description: "Deploy + run tests, but skip the cdk destroy at the end (for troubleshooting). Reports the install id."
+    expose_working_directory: true
+    command: "AWS_REGION={{.region}} AWS_DEFAULT_REGION={{.region}} CDK_DEFAULT_REGION={{.region}} uv run pytest integration/tests --region {{.region}} --keep {{.args}}"
+    type: oneshot
+    parameters:
+      region:
+        type: string
+        required: false
+        default: "us-east-1"
+        description: "AWS region to target (default us-east-1)"
+      args:
+        type: string
+        required: false
+        default: ""
+        description: "Additional pytest args"
+
+  it-test-reuse:
+    description: "Re-run the suite against an already-deployed install (no deploy, no destroy). Pass the install_id of the existing deployment."
+    expose_working_directory: true
+    command: "AWS_REGION={{.region}} AWS_DEFAULT_REGION={{.region}} CDK_DEFAULT_REGION={{.region}} DA_VINCI_IT_INSTALL_ID={{.install_id}} uv run pytest integration/tests --region {{.region}} --reuse --keep {{.args}}"
+    type: oneshot
+    parameters:
+      install_id:
+        type: string
+        required: true
+        description: "Install id of an EXISTING deployment to test against (e.g., 'it-run1')"
+      region:
+        type: string
+        required: false
+        default: "us-east-1"
+        description: "AWS region to target (default us-east-1)"
+      args:
+        type: string
+        required: false
+        default: ""
+        description: "Additional pytest args (e.g., '-k event_bus')"
+
+  it-synth:
+    description: "Synthesize the parent app (no deploy). Sidecar synth requires the parent's GlobalSettings table to exist in DynamoDB, so it is only meaningful against a deployed install_id."
+    expose_working_directory: true
+    command: "AWS_REGION={{.region}} AWS_DEFAULT_REGION={{.region}} CDK_DEFAULT_REGION={{.region}} DA_VINCI_IT_DEPLOYMENT_ID={{.install_id}} sh -c 'cd integration/app && npx --no-install cdk synth --quiet'"
+    type: oneshot
+    parameters:
+      region:
+        type: string
+        required: false
+        default: "us-east-1"
+        description: "AWS region to target (default us-east-1)"
+      install_id:
+        type: string
+        required: false
+        default: "it-synthcheck"
+        description: "Deployment id to inject (does not deploy; default placeholder)"
+
+  it-synth-sidecar:
+    description: "Synthesize the sidecar against an EXISTING parent deployment (DA_VINCI_IT_INSTALL_ID must be a real deployed install)."
+    expose_working_directory: true
+    command: "AWS_REGION={{.region}} AWS_DEFAULT_REGION={{.region}} CDK_DEFAULT_REGION={{.region}} DA_VINCI_IT_DEPLOYMENT_ID={{.install_id}} sh -c 'cd integration/sidecar && npx --no-install cdk synth --quiet'"
+    type: oneshot
+    parameters:
+      install_id:
+        type: string
+        required: true
+        description: "Install id of an EXISTING parent deployment (sidecar reads parent's GlobalSettings table at synth)"
+      region:
+        type: string
+        required: false
+        default: "us-east-1"
+        description: "AWS region to target (default us-east-1)"
+
+  it-bootstrap:
+    description: "Bootstrap the target AWS account/region for CDK (one-time per account/region before the first deploy)."
+    expose_working_directory: true
+    command: "AWS_REGION={{.region}} AWS_DEFAULT_REGION={{.region}} CDK_DEFAULT_REGION={{.region}} DA_VINCI_IT_DEPLOYMENT_ID=it-bootstrap sh -c 'cd integration/app && npx --no-install cdk bootstrap'"
+    type: oneshot
+    parameters:
+      region:
+        type: string
+        required: false
+        default: "us-east-1"
+        description: "AWS region to bootstrap (default us-east-1)"
+
+  it-deploy:
+    description: "Deploy the parent app then the sidecar against DA_VINCI_IT_INSTALL_ID. Does NOT run tests."
+    expose_working_directory: true
+    command: "AWS_REGION={{.region}} AWS_DEFAULT_REGION={{.region}} CDK_DEFAULT_REGION={{.region}} DA_VINCI_IT_DEPLOYMENT_ID={{.install_id}} sh -c 'cd integration/app && npx --no-install cdk deploy --all --require-approval never && cd ../sidecar && npx --no-install cdk deploy --all --require-approval never'"
+    type: oneshot
+    parameters:
+      install_id:
+        type: string
+        required: true
+        description: "Deployment id (becomes part of resource names; e.g., 'it-abc12345')"
+      region:
+        type: string
+        required: false
+        default: "us-east-1"
+        description: "AWS region to target (default us-east-1)"
+
+  it-destroy:
+    description: "Destroy a previously-deployed integration install. Sidecar first, then parent."
+    expose_working_directory: true
+    command: "AWS_REGION={{.region}} AWS_DEFAULT_REGION={{.region}} CDK_DEFAULT_REGION={{.region}} DA_VINCI_IT_DEPLOYMENT_ID={{.install_id}} sh -c 'cd integration/sidecar && npx --no-install cdk destroy --all --force && cd ../app && npx --no-install cdk destroy --all --force'"
+    type: oneshot
+    parameters:
+      install_id:
+        type: string
+        required: true
+        description: "Deployment id to tear down"
+      region:
+        type: string
+        required: false
+        default: "us-east-1"
+        description: "AWS region to target (default us-east-1)"

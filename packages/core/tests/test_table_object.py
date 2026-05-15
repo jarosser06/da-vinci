@@ -1004,6 +1004,38 @@ class TestTableObjectAdvancedFeatures:
         result = TestObject.schema_to_str(only_indexed_attributes=True)
         assert "TestObject" in result  # Should contain the class name
 
+    def test_schema_to_str_only_indexed_attributes_filters_non_indexed(self):
+        """only_indexed_attributes controls whether non-indexed attrs appear."""
+
+        class TestObject(TableObject):
+            table_name = "test_table"
+
+            partition_key_attribute = TableObjectAttribute(
+                name="pk",
+                attribute_type=TableObjectAttributeType.STRING,
+            )
+
+            attributes = [
+                TableObjectAttribute(
+                    name="indexed_field",
+                    attribute_type=TableObjectAttributeType.STRING,
+                    is_indexed=True,
+                ),
+                TableObjectAttribute(
+                    name="non_indexed_field",
+                    attribute_type=TableObjectAttributeType.JSON_STRING,
+                    is_indexed=False,
+                ),
+            ]
+
+        indexed_only = TestObject.schema_to_str(only_indexed_attributes=True)
+        assert "indexed_field" in indexed_only
+        assert "non_indexed_field" not in indexed_only
+
+        all_attrs = TestObject.schema_to_str(only_indexed_attributes=False)
+        assert "indexed_field" in all_attrs
+        assert "non_indexed_field" in all_attrs
+
     def test_attribute_lookup_prefix(self):
         """Test attribute_lookup_prefix feature."""
 

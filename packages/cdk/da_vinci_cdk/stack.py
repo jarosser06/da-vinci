@@ -1,8 +1,5 @@
 from os import path as pathlib
 
-from aws_cdk import (
-    DockerImage,
-)
 from aws_cdk import Stack as CDKStack
 from constructs import Construct
 
@@ -14,9 +11,9 @@ class Stack(CDKStack):
         deployment_id: str,
         scope: Construct,
         stack_name: str,
-        app_base_image: DockerImage | None = None,
+        app_base_image: str | None = None,
         architecture: str | None = None,
-        library_base_image: DockerImage | None = None,
+        library_base_image: str | None = None,
         required_stacks: list | None = None,
         requires_event_bus: bool | None = False,
         requires_exceptions_trap: bool | None = False,

@@ -93,7 +93,7 @@ class TrappedExceptionsScanDefinition(TableScanDefinition):
         )
 
 
-class TrappedExceptions(TableClient):
+class TrappedExceptions(TableClient[TrappedException]):
     def __init__(self, app_name: str | None = None, deployment_id: str | None = None) -> None:
         """
         The client for the TrappedExceptions table
@@ -108,7 +108,7 @@ class TrappedExceptions(TableClient):
             deployment_id=deployment_id,
         )
 
-    def get(self, function_name: str, exception_id: str) -> TrappedException:
+    def get(self, function_name: str, exception_id: str) -> TrappedException | None:
         """
         Get a trapped exception
 
@@ -116,12 +116,12 @@ class TrappedExceptions(TableClient):
             function_name: The name of the function that produced the exception
             exception_id: The ID of the exception
         """
-        return self.get_object(  # type: ignore[return-value]
+        return self.get_object(
             partition_key_value=function_name,
             sort_key_value=exception_id,
         )
 
-    def delete(self, trapped_exception: TrappedException):
+    def delete(self, trapped_exception: TrappedException) -> None:
         """
         Delete a trapped exception
 
@@ -133,9 +133,11 @@ class TrappedExceptions(TableClient):
         )
 
     def put(self, trapped_exception: TrappedException) -> TrappedException:
-        return self.put_object(  # type: ignore[func-returns-value, return-value]
+        """Persist a trapped exception and return the same object."""
+        self.put_object(
             table_object=trapped_exception,
         )
+        return trapped_exception
 
     def scan(self, scan_definition: TrappedExceptionsScanDefinition) -> list[TrappedException]:
         """
@@ -144,6 +146,6 @@ class TrappedExceptions(TableClient):
         Keyword Arguments:
             scan_definition: The scan definition
         """
-        return self.full_scan(  # type: ignore[return-value]
+        return self.full_scan(
             scan_definition=scan_definition,
         )

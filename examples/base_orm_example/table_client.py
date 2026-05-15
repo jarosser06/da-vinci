@@ -2,8 +2,8 @@ from datetime import UTC as utc_tz
 from datetime import datetime
 from uuid import uuid4
 
-from da_vinci.core.orm.client import (
-    TableClient,
+from da_vinci.core.orm.client import TableClient
+from da_vinci.core.orm.table_object import (
     TableObject,
     TableObjectAttribute,
     TableObjectAttributeType,
@@ -17,7 +17,7 @@ class ExampleTableObject(TableObject):
 
     partition_key_attribute = TableObjectAttribute(
         name="primary_key",
-        type=TableObjectAttributeType.STRING,
+        attribute_type=TableObjectAttributeType.STRING,
         description="Primary Key",
         default=lambda: str(uuid4()),
     )
@@ -25,48 +25,42 @@ class ExampleTableObject(TableObject):
     attributes = [
         TableObjectAttribute(
             name="created_at",
-            type=TableObjectAttributeType.DATETIME,
+            attribute_type=TableObjectAttributeType.DATETIME,
             description="Created At",
             default=lambda: datetime.now(utc_tz),
         ),
-
         TableObjectAttribute(
             name="updated_at",
-            type=TableObjectAttributeType.DATETIME,
+            attribute_type=TableObjectAttributeType.DATETIME,
             description="Updated At",
             default=lambda: datetime.now(utc_tz),
         ),
-
         TableObjectAttribute(
             name="name",
-            type=TableObjectAttributeType.STRING,
+            attribute_type=TableObjectAttributeType.STRING,
             description="Name",
         ),
-
         TableObjectAttribute(
             name="age",
-            type=TableObjectAttributeType.NUMBER,
+            attribute_type=TableObjectAttributeType.NUMBER,
             description="Age",
             optional=True,
         ),
-
         TableObjectAttribute(
             name="is_active",
-            type=TableObjectAttributeType.BOOLEAN,
+            attribute_type=TableObjectAttributeType.BOOLEAN,
             description="Is Active",
             default=True,
         ),
-
         TableObjectAttribute(
             name="metadata",
-            type=TableObjectAttributeType.JSON,
+            attribute_type=TableObjectAttributeType.JSON,
             description="Other metadata, converts to a DynamoDB MAP",
             default={},
         ),
-
         TableObjectAttribute(
             name="tags",
-            type=TableObjectAttributeType.STRING_LIST,
+            attribute_type=TableObjectAttributeType.STRING_LIST,
             description="Tags",
             default=[],
         ),
@@ -76,9 +70,7 @@ class ExampleTableObject(TableObject):
 class ExampleTableClient(TableClient):
     def __init__(self, app_name: str | None = None, deployment_id: str | None = None):
         super().__init__(
-            app_name=app_name,
-            deployment_id=deployment_id,
-            default_object_class=ExampleTableObject
+            app_name=app_name, deployment_id=deployment_id, default_object_class=ExampleTableObject
         )
 
     def get(self, primary_key: str) -> ExampleTableObject | None:
@@ -91,10 +83,10 @@ class ExampleTableClient(TableClient):
         """
         Delete an object
         """
-        self.delete_object(obj=obj)
+        self.delete_object(table_object=obj)
 
     def put(self, obj: ExampleTableObject) -> None:
         """
         Put an object
         """
-        self.put_object(obj=obj)
+        self.put_object(table_object=obj)
